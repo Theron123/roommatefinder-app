@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, Image } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MOCK_PROFILES, mockCurrentUserConfig } from '@/lib/mockData';
@@ -38,13 +38,20 @@ type Profile = {
   dealbreakers: string;
   latitude: number | null;
   longitude: number | null;
-  distance?: number;
+  name?: string;
+  age?: number;
+  bio?: string;
+  photoUrl?: string;
+  latOffset?: number;
+  lngOffset?: number;
+  distance?: number | null;
   similarityScore?: number;
 };
 
 export default function HomeScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -61,10 +68,10 @@ export default function HomeScreen() {
     const baseLat = currentUserProfile.latitude || 0;
     const baseLng = currentUserProfile.longitude || 0;
 
-    const _profiles = MOCK_PROFILES.map((p) => ({
+    const _profiles: Profile[] = MOCK_PROFILES.map((p) => ({
       ...p,
-      latitude: baseLat + p.latOffset,
-      longitude: baseLng + p.lngOffset,
+      latitude: baseLat + (p.latOffset ?? 0),
+      longitude: baseLng + (p.lngOffset ?? 0),
     }));
 
     if (_profiles) {
@@ -99,7 +106,7 @@ export default function HomeScreen() {
         return 0;
       });
 
-      setProfiles(scoredProfiles);
+      setProfiles(scoredProfiles as Profile[]);
     }
     
     setLoading(false);
@@ -116,10 +123,17 @@ export default function HomeScreen() {
     const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
 
     return (
-      <View style={styles.card}>
+      <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.card}>
         <View style={styles.cardHeader}>
-          <IconSymbol size={24} name="person.circle.fill" color="#fff" />
-          <Text style={styles.cardTitle}>Nearby Roommate</Text>
+          {item.photoUrl ? (
+            <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} />
+          ) : (
+            <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+          )}
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.cardTitle}>{item.name || 'Roommate'}, {item.age || '?'}</Text>
+            <Text style={styles.cardSubtitle}>Tap to view profile</Text>
+          </View>
         </View>
 
         <View style={styles.metaRow}>
@@ -134,14 +148,11 @@ export default function HomeScreen() {
         </View>
         
         <Text style={styles.label}>Likes & Hobbies</Text>
-        <Text style={styles.content}>{item.likes || 'Not specified'}</Text>
+        <Text style={styles.content} numberOfLines={2}>{item.likes || 'Not specified'}</Text>
 
         <Text style={styles.label}>Preferences</Text>
-        <Text style={styles.content}>{item.preferences || 'Not specified'}</Text>
-
-        <Text style={styles.label}>Dealbreakers</Text>
-        <Text style={styles.contentDealbreaker}>{item.dealbreakers || 'None mentioned'}</Text>
-      </View>
+        <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
+      </Pressable>
     );
   };
 
@@ -211,13 +222,23 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  cardAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#333',
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
-    marginLeft: 8,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',
