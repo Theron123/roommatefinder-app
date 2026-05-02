@@ -15,6 +15,7 @@ import {
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
@@ -43,6 +44,11 @@ export default function LoginScreen() {
     setLoading(true);
 
     if (isRegistering) {
+      if (!name) {
+        setMessage({ text: 'Por favor, ingresa tu nombre.', type: 'error' });
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -59,6 +65,14 @@ export default function LoginScreen() {
         setIsRegistering(false);
         setLoading(false);
         return;
+      }
+
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          name: name.trim(),
+          age: 20
+        });
       }
 
       setMessage({ text: '¡Cuenta Creada Exitosamente! Redirigiendo...', type: 'success' });
@@ -96,6 +110,16 @@ export default function LoginScreen() {
           </Text>
         </View>
       ) : null}
+
+      {isRegistering && (
+        <TextInput
+          placeholder="Full Name"
+          placeholderTextColor="#999"
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+        />
+      )}
 
       <TextInput
         placeholder="Email address"

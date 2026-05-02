@@ -4,8 +4,7 @@ import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useCallback } from 'react';
-
-const PLACEHOLDER_PHOTO = 'https://i.pravatar.cc/300?img=33';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function MyProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
@@ -44,6 +43,26 @@ export default function MyProfileScreen() {
     Alert.alert('Saved!', 'Your profile has been updated.');
   };
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        await supabase.from('profiles').update({ photoUrl: base64Image }).eq('id', session.user.id);
+        setProfile({ ...profile, photoUrl: base64Image });
+      }
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login');
@@ -76,10 +95,16 @@ export default function MyProfileScreen() {
         
         {/* Header with avatar */}
         <View style={styles.heroSection}>
-          <View style={styles.avatarWrapper}>
-            <Image source={{ uri: PLACEHOLDER_PHOTO }} style={styles.avatar} />
+          <Pressable onPress={pickImage} style={styles.avatarWrapper}>
+            {profile?.photoUrl ? (
+              <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
+                <IconSymbol name="person.crop.circle.fill" size={60} color="#666" />
+              </View>
+            )}
             <View style={styles.onlineDot} />
-          </View>
+          </Pressable>
 
           {editing ? (
             <View style={styles.editNameRow}>

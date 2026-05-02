@@ -110,7 +110,6 @@ export default function PreferencesScreen() {
 
     const { data: existing } = await supabase.from('profiles').select('name').eq('id', session.user.id).single();
     if (!existing?.name) {
-      updates.name = 'New Roommate';
       updates.age = 20;
     }
 
