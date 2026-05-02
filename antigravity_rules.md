@@ -19,6 +19,10 @@ npm start
 - **Enrutamiento:** Expo Router.
 - **Base de Datos:** Configurando / Integrando Supabase (`@supabase/supabase-js` v2.91.1).
 
+### [1 de Mayo, 2026] - Migración a Supabase
+- **Base de Datos:** Se crearon las tablas SQL reales (`profiles`) con Row Level Security.
+- **Frontend:** Se eliminó la dependencia de `MOCK_PROFILES` y se refactorizaron las pantallas (Explore, Home, Inbox, MyProfile, Login, Preferences, Chat) para consultar y actualizar datos directamente desde Supabase.
+
 ---
 
 **Nota para Antigravity:** Siempre revisar este archivo al inicio de una nueva sesión o tarea grande asociada a `roommatefinder-app`, y agregar una nueva nota en el "Registro de Actualizaciones" al terminar un feature significativo.

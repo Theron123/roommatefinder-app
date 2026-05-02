@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-nativ
 import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { MOCK_PROFILES, mockCurrentUserConfig } from '@/lib/mockData';
+
 
 type Profile = {
   id: string;
@@ -20,13 +20,20 @@ export default function ExploreScreen() {
   const fetchProfiles = async () => {
     setLoading(true);
 
-    const currentUserProfile = mockCurrentUserConfig.profile;
-    if (!currentUserProfile) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
       setLoading(false);
       return;
     }
 
-    setProfiles(MOCK_PROFILES);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .neq('id', session.user.id);
+      
+    if (data) {
+      setProfiles(data);
+    }
     setLoading(false);
   };
 

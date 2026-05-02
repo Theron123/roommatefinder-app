@@ -4,7 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, Image }
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { MOCK_PROFILES, mockCurrentUserConfig } from '@/lib/mockData';
+
 
 // Helper to calculate distance using Haversine formula in KM
 const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -56,33 +56,30 @@ export default function HomeScreen() {
   const fetchMatches = async () => {
     setLoading(true);
 
-    // [MOCK] Using local mock profile
-    const currentUserProfile = mockCurrentUserConfig.profile;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setLoading(false);
+      return;
+    }
 
+    const { data: currentUserProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    
     if (!currentUserProfile) {
       setLoading(false);
       return;
     }
 
-    // [MOCK] Generate coords for fake profiles based on user's current location
-    const baseLat = currentUserProfile.latitude || 0;
-    const baseLng = currentUserProfile.longitude || 0;
+    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id);
 
-    const _profiles: Profile[] = MOCK_PROFILES.map((p) => ({
-      ...p,
-      latitude: baseLat + (p.latOffset ?? 0),
-      longitude: baseLng + (p.lngOffset ?? 0),
-    }));
-
-    if (_profiles) {
-      let scoredProfiles = _profiles.map((p: Profile) => {
+    if (otherProfiles) {
+      let scoredProfiles = otherProfiles.map((p: any) => {
         let distance = null;
-        let pLat = p.latitude;
-        let pLng = p.longitude;
-        let cLat = currentUserProfile.latitude;
-        let cLng = currentUserProfile.longitude;
+        let pLat = p.latOffset;
+        let pLng = p.lngOffset;
+        let cLat = currentUserProfile.latOffset;
+        let cLng = currentUserProfile.lngOffset;
 
-        if (pLat && pLng && cLat && cLng) {
+        if (pLat != null && pLng != null && cLat != null && cLng != null) {
           distance = getDistanceFromLatLonInKm(cLat, cLng, pLat, pLng);
         }
 

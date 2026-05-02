@@ -1,24 +1,57 @@
-import { mockCurrentUserConfig } from '@/lib/mockData';
-import { router } from 'expo-router';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { supabase } from '@/lib/supabase';
+import { router, useFocusEffect } from 'expo-router';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 const PLACEHOLDER_PHOTO = 'https://i.pravatar.cc/300?img=33';
 
 export default function MyProfileScreen() {
-  const profile = mockCurrentUserConfig.profile as any;
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [name, setName] = useState<string>((profile?.name as string) || 'You');
+  const [name, setName] = useState<string>('');
 
-  const handleSaveProfile = () => {
-    if (mockCurrentUserConfig.profile) {
-      mockCurrentUserConfig.profile.name = name;
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyProfile();
+    }, [])
+  );
+
+  const fetchMyProfile = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      if (data) {
+        setProfile(data);
+        setName(data.name || 'You');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleSaveProfile = async () => {
+    if (profile) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from('profiles').update({ name }).eq('id', session.user.id);
+        setProfile({ ...profile, name });
+      }
     }
     setEditing(false);
     Alert.alert('Saved!', 'Your profile has been updated.');
   };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace('/(auth)/login');
+  };
+
+  if (loading) {
+    return <SafeAreaView style={styles.container}><ActivityIndicator color="#fff" style={{marginTop: 40}} /></SafeAreaView>;
+  }
 
   if (!profile) {
     return (
@@ -127,6 +160,13 @@ export default function MyProfileScreen() {
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
           <IconSymbol name="slider.horizontal.3" size={20} color="#000" />
           <Text style={styles.editBtnText}>Edit My Preferences</Text>
+        </Pressable>
+
+        <View style={{ height: 16 }} />
+
+        {/* Logout CTA */}
+        <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutBtnText}>Log Out</Text>
         </Pressable>
 
         <View style={{ height: 40 }} />
@@ -311,6 +351,22 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  logoutBtn: {
+    backgroundColor: '#1a0a0a',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#330000',
+  },
+  logoutBtnText: {
+    color: '#FF6B6B',
     fontWeight: 'bold',
     fontSize: 16,
   },

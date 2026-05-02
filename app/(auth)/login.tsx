@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-import { mockCurrentUserConfig } from '@/lib/mockData';
+
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -17,10 +17,16 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [message, setMessage] = useState({ text: '', type: '' });
 
   const checkProfileAndRedirect = async (userId: string) => {
-    // [MOCK] Bypassing Supabase check
-    if (mockCurrentUserConfig.profile) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (data) {
       router.replace('/(tabs)');
     } else {
       router.replace('/preferences');
@@ -28,8 +34,9 @@ export default function LoginScreen() {
   };
 
   const handleAuth = async () => {
+    setMessage({ text: '', type: '' });
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+      setMessage({ text: 'Por favor, ingresa tu correo y contraseña.', type: 'error' });
       return;
     }
 
@@ -42,20 +49,25 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        Alert.alert('Registration Failed', error.message);
+        setMessage({ text: error.message, type: 'error' });
         setLoading(false);
         return;
       }
 
       if (!data.session) {
-        Alert.alert('Account Created!', 'Please check your inbox to verify your email address.');
+        setMessage({ text: '¡Cuenta creada! Por favor revisa tu bandeja de entrada para verificar tu correo electrónico.', type: 'success' });
         setIsRegistering(false);
         setLoading(false);
         return;
       }
 
-      await checkProfileAndRedirect(data.user!.id);
-      setLoading(false);
+      setMessage({ text: '¡Cuenta Creada Exitosamente! Redirigiendo...', type: 'success' });
+      // Short delay so they can see the message
+      setTimeout(async () => {
+        await checkProfileAndRedirect(data.user!.id);
+        setLoading(false);
+      }, 1500);
+      
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -63,7 +75,7 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        Alert.alert('Login Failed', error.message);
+        setMessage({ text: error.message, type: 'error' });
         setLoading(false);
         return;
       }
@@ -76,6 +88,14 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Roommate Finder</Text>
+
+      {message.text ? (
+        <View style={[styles.messageBox, message.type === 'error' ? styles.messageBoxError : styles.messageBoxSuccess]}>
+          <Text style={[styles.messageText, message.type === 'error' ? styles.messageTextError : styles.messageTextSuccess]}>
+            {message.text}
+          </Text>
+        </View>
+      ) : null}
 
       <TextInput
         placeholder="Email address"
@@ -166,5 +186,29 @@ const styles = StyleSheet.create({
   toggleButtonText: {
     color: '#bbb',
     fontSize: 14,
+  },
+  messageBox: {
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+  },
+  messageBoxError: {
+    backgroundColor: '#1a0a0a',
+    borderColor: '#ff4444',
+  },
+  messageBoxSuccess: {
+    backgroundColor: '#0a1a0a',
+    borderColor: '#00C9A7',
+  },
+  messageText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  messageTextError: {
+    color: '#ff4444',
+  },
+  messageTextSuccess: {
+    color: '#00C9A7',
   },
 });

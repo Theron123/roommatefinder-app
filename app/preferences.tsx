@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { mockCurrentUserConfig } from '@/lib/mockData';
+
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -89,17 +89,40 @@ export default function PreferencesScreen() {
     const preferences = [Array.from(selectedPrefs).join(', '), otherPrefs.trim()].filter(Boolean).join(', ');
     const dealbreakers = [Array.from(selectedDeals).join(', '), otherDeals.trim()].filter(Boolean).join(', ');
 
-    // [MOCK] Saving locally instead of using Supabase
-    mockCurrentUserConfig.profile = {
-      id: 'current-user-mock',
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      Alert.alert('Error', 'Not authenticated');
+      setLoading(false);
+      return;
+    }
+
+    const updates: any = {
+      id: session.user.id,
       likes,
       preferences,
       dealbreakers,
-      ...locationProps,
     };
 
+    if ('latitude' in locationProps) {
+      updates.latOffset = (locationProps as any).latitude;
+      updates.lngOffset = (locationProps as any).longitude;
+    }
+
+    const { data: existing } = await supabase.from('profiles').select('name').eq('id', session.user.id).single();
+    if (!existing?.name) {
+      updates.name = 'New Roommate';
+      updates.age = 20;
+    }
+
+    const { error } = await supabase.from('profiles').upsert(updates);
+
     setLoading(false);
-    router.replace('/(tabs)');
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   return (

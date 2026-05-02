@@ -12,7 +12,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MOCK_PROFILES } from '@/lib/mockData';
+import { supabase } from '@/lib/supabase';
+import { useEffect } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type Message = {
@@ -43,7 +44,13 @@ const INITIAL_MESSAGES: Record<string, Message[]> = {
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const profile = MOCK_PROFILES.find((p) => p.id === id);
+  const [profile, setProfile] = useState<any>(null);
+  
+  useEffect(() => {
+    supabase.from('profiles').select('*').eq('id', id).single().then(({ data }) => {
+      if (data) setProfile(data);
+    });
+  }, [id]);
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES[id] || []);
   const [input, setInput] = useState('');
   const flatListRef = useRef<FlatList>(null);

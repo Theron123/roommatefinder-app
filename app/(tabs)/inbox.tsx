@@ -1,29 +1,48 @@
-import { useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View, FlatList } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Image, Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MOCK_PROFILES } from '@/lib/mockData';
-
-// Simulate that the current user has had conversations with all mock roommates
-const MOCK_CONVERSATIONS = MOCK_PROFILES.map((p, index) => ({
-  id: p.id,
-  name: p.name,
-  age: p.age,
-  photoUrl: p.photoUrl,
-  lastMessage: index === 0
-    ? 'Hey! I saw we have a lot in common 👀'
-    : index === 1
-    ? 'Are you still looking for a place?'
-    : index === 2
-    ? 'That sounds great, when can we chat?'
-    : 'Let me know if you want to meet up!',
-  time: ['2m ago', '1h ago', 'Yesterday', 'Mon'][index],
-  unread: index === 0 || index === 2,
-}));
+import { supabase } from '@/lib/supabase';
+import { useState, useCallback } from 'react';
 
 export default function InboxScreen() {
   const router = useRouter();
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const renderConversation = ({ item }: { item: typeof MOCK_CONVERSATIONS[0] }) => (
+  useFocusEffect(
+    useCallback(() => {
+      fetchConversations();
+    }, [])
+  );
+
+  const fetchConversations = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(4);
+      if (data) {
+        const mapped = data.map((p, index) => ({
+          id: p.id,
+          name: p.name || 'Roommate',
+          age: p.age,
+          photoUrl: p.photoUrl,
+          lastMessage: index === 0
+            ? 'Hey! I saw we have a lot in common 👀'
+            : index === 1
+            ? 'Are you still looking for a place?'
+            : index === 2
+            ? 'That sounds great, when can we chat?'
+            : 'Let me know if you want to meet up!',
+          time: ['2m ago', '1h ago', 'Yesterday', 'Mon'][index] || 'Mon',
+          unread: index === 0 || index === 2,
+        }));
+        setConversations(mapped);
+      }
+    }
+    setLoading(false);
+  };
+
+  const renderConversation = ({ item }: { item: any }) => (
     <Pressable
       onPress={() => router.push(`/chat/${item.id}`)}
       style={styles.row}
@@ -51,16 +70,22 @@ export default function InboxScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Messages</Text>
-        <Text style={styles.subtitle}>{MOCK_CONVERSATIONS.filter(c => c.unread).length} unread conversations</Text>
+        <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
       </View>
 
-      <FlatList
-        data={MOCK_CONVERSATIONS}
-        keyExtractor={(item) => item.id}
-        renderItem={renderConversation}
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator color="#fff" size="large" />
+        </View>
+      ) : (
+        <FlatList
+          data={conversations}
+          keyExtractor={(item) => item.id}
+          renderItem={renderConversation}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
     </SafeAreaView>
   );
 }

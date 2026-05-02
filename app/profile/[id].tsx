@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Image, ScrollView, Pressable } from 'react-native';
-import { MOCK_PROFILES, mockCurrentUserConfig } from '@/lib/mockData';
+import { View, Text, StyleSheet, Image, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useEffect, useState } from 'react';
 
 const getSimilarityScore = (text1: string, text2: string) => {
   if (!text1 || !text2) return 0;
@@ -17,8 +18,37 @@ export default function ProfileDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const profile = MOCK_PROFILES.find((p) => p.id === id);
-  const currentUser = mockCurrentUserConfig.profile;
+  const [profile, setProfile] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      const [profileRes, currentUserRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', id).single(),
+        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+      ]);
+      
+      if (profileRes.data) setProfile(profileRes.data);
+      if (currentUserRes.data) setCurrentUser(currentUserRes.data);
+    }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centerBox}>
+        <ActivityIndicator color="#fff" size="large" />
+      </View>
+    );
+  }
 
   if (!profile) {
     return (
