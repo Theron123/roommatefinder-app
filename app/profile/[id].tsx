@@ -4,15 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useEffect, useState } from 'react';
-
-const getSimilarityScore = (text1: string, text2: string) => {
-  if (!text1 || !text2) return 0;
-  const words1 = text1.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
-  const words2 = text2.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
-  const set1 = new Set(words1);
-  const overlap = words2.filter((word) => set1.has(word));
-  return overlap.length;
-};
+import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
+import MapComponent from '@/components/ui/MapComponent';
 
 export default function ProfileDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -61,8 +54,10 @@ export default function ProfileDetailScreen() {
     );
   }
 
-  // Calculate Match Percentage
+  // Calculate Match Percentage and Distance
   let matchPercentage = 0;
+  let distanceText = 'Location unknown';
+
   if (currentUser) {
     const simLikes = getSimilarityScore(currentUser.likes, profile.likes);
     const simPrefs = getSimilarityScore(currentUser.preferences, profile.preferences);
@@ -72,6 +67,11 @@ export default function ProfileDetailScreen() {
     const totalScore = simLikes + simPrefs + simDeals;
     matchPercentage = Math.min(Math.round((totalScore / 10) * 100), 99);
     if (matchPercentage < 20) matchPercentage = 25; // Floor it for realism
+
+    if (currentUser.latOffset != null && currentUser.lngOffset != null && profile.latOffset != null && profile.lngOffset != null) {
+      const dist = getDistanceFromLatLonInKm(currentUser.latOffset, currentUser.lngOffset, profile.latOffset, profile.lngOffset);
+      distanceText = `${dist.toFixed(1)} km away`;
+    }
   }
 
   return (
@@ -92,7 +92,7 @@ export default function ProfileDetailScreen() {
           <View style={styles.titleRow}>
             <View>
               <Text style={styles.name}>{profile.name}, {profile.age}</Text>
-              <Text style={styles.distanceBadge}>Nearby Roommate</Text>
+              <Text style={styles.distanceBadge}>{distanceText}</Text>
             </View>
 
             {/* Match Circle */}
@@ -118,13 +118,20 @@ export default function ProfileDetailScreen() {
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
           <Text style={[styles.tagsText, { color: '#ff6b6b' }]}>{profile.dealbreakers}</Text>
           
+          {profile.latOffset && profile.lngOffset && (
+            <>
+              <Text style={styles.sectionTitle}>Approximate Location</Text>
+              <MapComponent lat={profile.latOffset} lng={profile.lngOffset} />
+            </>
+          )}
+
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
       {/* Floating Action Button for Chat */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.primaryButton}>
+        <Pressable style={styles.primaryButton} onPress={() => router.push(`/chat/${profile.id}`)}>
           <IconSymbol name="paperplane.fill" size={20} color="#000" />
           <Text style={styles.primaryButtonText}>Message {profile.name}</Text>
         </Pressable>

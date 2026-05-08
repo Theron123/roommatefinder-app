@@ -4,32 +4,8 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, Image }
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-
-
-// Helper to calculate distance using Haversine formula in KM
-const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Radius of the earth in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Distance in km
-};
-
-// Helper for basic text similarity (word overlap)
-const getSimilarityScore = (text1: string, text2: string) => {
-  if (!text1 || !text2) return 0;
-  const words1 = text1.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
-  const words2 = text2.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').filter(Boolean);
-  const set1 = new Set(words1);
-  const overlap = words2.filter((word) => set1.has(word));
-  return overlap.length;
-};
+import { LinearGradient } from 'expo-linear-gradient';
+import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 
 type Profile = {
   id: string;
@@ -69,7 +45,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id);
+    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(50);
 
     if (otherProfiles) {
       let scoredProfiles = otherProfiles.map((p: any) => {
@@ -120,8 +96,13 @@ export default function HomeScreen() {
     const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
 
     return (
-      <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.card}>
-        <View style={styles.cardHeader}>
+      <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.cardContainer}>
+        <LinearGradient
+          colors={['#1a1a24', '#0a0a0f']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.card}
+        >
+          <View style={styles.cardHeader}>
           {item.photoUrl ? (
             <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} />
           ) : (
@@ -149,6 +130,7 @@ export default function HomeScreen() {
 
         <Text style={styles.label}>Preferences</Text>
         <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
+        </LinearGradient>
       </Pressable>
     );
   };
@@ -207,14 +189,21 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 20,
+    paddingBottom: 40,
+  },
+  cardContainer: {
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
   card: {
-    backgroundColor: '#111',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#2a2a35',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -222,10 +211,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#333',
+    borderWidth: 2,
+    borderColor: '#6C63FF',
   },
   cardTitle: {
     fontSize: 20,

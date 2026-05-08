@@ -29,7 +29,8 @@ export default function ExploreScreen() {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .neq('id', session.user.id);
+      .neq('id', session.user.id)
+      .limit(50);
       
     if (data) {
       setProfiles(data);

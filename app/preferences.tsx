@@ -1,10 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-import * as Location from 'expo-location';
+import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
 
-import { useState } from 'react';
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'TU_CLAVE_AQUI';
+
+import { useState, useEffect } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const HOBBIES = [
   '🎮 Video Games', '📚 Reading', '🏋️ Fitness', '🍳 Cooking', 
@@ -32,6 +35,80 @@ export default function PreferencesScreen() {
   const [otherDeals, setOtherDeals] = useState('');
   
   const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationName, setLocationName] = useState('');
+
+  useEffect(() => {
+    loadExistingPreferences();
+  }, []);
+
+  const loadExistingPreferences = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('likes, preferences, dealbreakers, latOffset, lngOffset')
+        .eq('id', session.user.id)
+        .single();
+
+      if (data) {
+        if (data.likes) {
+          const likesArr = data.likes.split(',').map((s: string) => s.trim()).filter(Boolean);
+          const known = likesArr.filter((l: string) => HOBBIES.includes(l));
+          const unknown = likesArr.filter((l: string) => !HOBBIES.includes(l)).join(', ');
+          setSelectedLikes(new Set(known));
+          setOtherLikes(unknown);
+        }
+        if (data.preferences) {
+          const prefsArr = data.preferences.split(',').map((s: string) => s.trim()).filter(Boolean);
+          const known = prefsArr.filter((l: string) => LIFESTYLE.includes(l));
+          const unknown = prefsArr.filter((l: string) => !LIFESTYLE.includes(l)).join(', ');
+          setSelectedPrefs(new Set(known));
+          setOtherPrefs(unknown);
+        }
+        if (data.dealbreakers) {
+          const dealsArr = data.dealbreakers.split(',').map((s: string) => s.trim()).filter(Boolean);
+          const known = dealsArr.filter((l: string) => DEALBREAKERS.includes(l));
+          const unknown = dealsArr.filter((l: string) => !DEALBREAKERS.includes(l)).join(', ');
+          setSelectedDeals(new Set(known));
+          setOtherDeals(unknown);
+        }
+        
+        if (data.latOffset && data.lngOffset) {
+          setSelectedLocation({ lat: data.latOffset, lng: data.lngOffset });
+          setLocationName('Loading location...');
+          
+          try {
+            const url = `https://nominatim.openstreetmap.org/reverse?lat=${data.latOffset}&lon=${data.lngOffset}&format=json`;
+            const res = await fetch(url, {
+              headers: {
+                'Accept-Language': 'en-US,en;q=0.9',
+                'User-Agent': 'RoommateFinderApp/1.0'
+              }
+            });
+            const json = await res.json();
+            if (json && json.display_name) {
+              const parts = json.display_name.split(',');
+              const shortName = parts.slice(0, 3).join(',').trim();
+              setLocationName(shortName);
+            } else {
+              setLocationName('Saved Location');
+            }
+          } catch (e) {
+            setLocationName('Saved Location');
+          }
+        }
+      }
+    } catch (err) {
+      console.log('Error loading preferences', err);
+    } finally {
+      setInitialLoad(false);
+    }
+  };
 
   const toggleSelection = (item: string, setObj: Set<string>, setFn: (val: Set<string>) => void) => {
     const newSet = new Set(setObj);
@@ -64,23 +141,9 @@ export default function PreferencesScreen() {
 
   const handleSave = async () => {
     setLoading(true);
-    let locationProps = {};
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        let location = await Location.getCurrentPositionAsync({});
-        locationProps = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        };
-      } else {
-        Alert.alert('Permission Required', 'Location access is strictly required to find roommates near you.');
-        setLoading(false);
-        return;
-      }
-    } catch (err) {
-      console.log('Location error:', err);
-      Alert.alert('Error', 'An error occurred while fetching your location.');
+
+    if (!selectedLocation) {
+      Alert.alert('Location Required', 'Please search and select your city to continue.');
       setLoading(false);
       return;
     }
@@ -103,17 +166,17 @@ export default function PreferencesScreen() {
       dealbreakers,
     };
 
-    if ('latitude' in locationProps) {
-      updates.latOffset = (locationProps as any).latitude;
-      updates.lngOffset = (locationProps as any).longitude;
+    if (selectedLocation) {
+      updates.latOffset = selectedLocation.lat;
+      updates.lngOffset = selectedLocation.lng;
     }
 
-    const { data: existing } = await supabase.from('profiles').select('name').eq('id', session.user.id).single();
-    if (!existing?.name) {
+    const { data: existing } = await supabase.from('profiles').select('name, age').eq('id', session.user.id).single();
+    if (existing && !existing.age) {
       updates.age = 20;
     }
 
-    const { error } = await supabase.from('profiles').upsert(updates);
+    const { error } = await supabase.from('profiles').update(updates).eq('id', session.user.id);
 
     setLoading(false);
 
@@ -126,9 +189,35 @@ export default function PreferencesScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Your Preferences</Text>
-        <Text style={styles.subtitle}>Tap the tags that best describe you to help us find the perfect roommate match.</Text>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
+          <Text style={styles.backText}>Cancel</Text>
+        </Pressable>
+      </View>
+
+      {initialLoad ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator color="#6C63FF" size="large" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Your Preferences</Text>
+          <Text style={styles.subtitle}>Tap the tags that best describe you to help us find the perfect roommate match.</Text>
+
+          <Text style={styles.sectionTitle}>Where do you live?</Text>
+          <View style={{ zIndex: 999, marginBottom: 16 }}>
+            {locationName ? <Text style={styles.locationSavedText}>Saved: {locationName}</Text> : null}
+            <LocationAutocomplete
+              apiKey={GOOGLE_API_KEY}
+              placeholder="Search city, neighborhood, or zip..."
+              onSelect={(lat, lng, description) => {
+                setSelectedLocation({ lat, lng });
+                setLocationName(description);
+              }}
+              style={{ marginBottom: 16 }}
+            />
+          </View>
 
         <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
         <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
@@ -170,8 +259,9 @@ export default function PreferencesScreen() {
           ) : (
             <Text style={styles.buttonText}>Save and Continue</Text>
           )}
-        </Pressable>
-      </ScrollView>
+          </Pressable>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -180,6 +270,23 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: '#6C63FF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   container: {
     padding: 24,
@@ -253,5 +360,10 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  locationSavedText: {
+    color: '#4ade80',
+    marginBottom: 8,
+    fontWeight: '600',
   },
 });

@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useState, useCallback } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function InboxScreen() {
   const router = useRouter();
@@ -19,24 +20,61 @@ export default function InboxScreen() {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(4);
-      if (data) {
-        const mapped = data.map((p, index) => ({
-          id: p.id,
-          name: p.name || 'Roommate',
-          age: p.age,
-          photoUrl: p.photoUrl,
-          lastMessage: index === 0
-            ? 'Hey! I saw we have a lot in common 👀'
-            : index === 1
-            ? 'Are you still looking for a place?'
-            : index === 2
-            ? 'That sounds great, when can we chat?'
-            : 'Let me know if you want to meet up!',
-          time: ['2m ago', '1h ago', 'Yesterday', 'Mon'][index] || 'Mon',
-          unread: index === 0 || index === 2,
-        }));
-        setConversations(mapped);
+      const myId = session.user.id;
+
+      // 1. Fetch messages
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
+        .order('created_at', { ascending: false });
+
+      if (msgs && msgs.length > 0) {
+        const uniqueUserIds = new Set<string>();
+        const lastMsgs = new Map<string, any>();
+
+        msgs.forEach(msg => {
+          const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+          if (!uniqueUserIds.has(otherId)) {
+            uniqueUserIds.add(otherId);
+            lastMsgs.set(otherId, msg);
+          }
+        });
+
+        // 2. Fetch profiles
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, age, photoUrl')
+          .in('id', Array.from(uniqueUserIds));
+
+        if (profiles) {
+          const formattedConvos = profiles.map(p => {
+            const lastMsg = lastMsgs.get(p.id);
+            const date = new Date(lastMsg.created_at);
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            return {
+              id: p.id,
+              name: p.name || 'Roommate',
+              age: p.age,
+              photoUrl: p.photoUrl,
+              lastMessage: lastMsg.content,
+              time: timeStr,
+              unread: false,
+            };
+          });
+
+          // Sort formattedConvos by lastMsg created_at DESC
+          formattedConvos.sort((a, b) => {
+            const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
+            const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
+            return timeB - timeA;
+          });
+
+          setConversations(formattedConvos);
+        }
+      } else {
+        setConversations([]);
       }
     }
     setLoading(false);
@@ -67,15 +105,24 @@ export default function InboxScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#1a1a24', '#000']} style={styles.header}>
         <Text style={styles.title}>Messages</Text>
         <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
-      </View>
+        
+        <View style={styles.searchBar}>
+          <Text style={styles.searchText}>Search messages...</Text>
+        </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color="#fff" size="large" />
+        </View>
+      ) : conversations.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#888', fontSize: 16 }}>No messages yet.</Text>
+          <Text style={{ color: '#555', fontSize: 14, marginTop: 8 }}>Go to Home and start chatting!</Text>
         </View>
       ) : (
         <FlatList
@@ -98,9 +145,21 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '#1a1a24',
+  },
+  searchBar: {
+    backgroundColor: '#0a0a0f',
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2a2a35',
+  },
+  searchText: {
+    color: '#666',
+    fontSize: 14,
   },
   title: {
     fontSize: 28,
@@ -123,9 +182,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#222',
   },
   unreadDot: {

@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function MyProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [name, setName] = useState<string>('');
 
   useFocusEffect(
@@ -49,16 +51,49 @@ export default function MyProfileScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
-      base64: true,
     });
 
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        await supabase.from('profiles').update({ photoUrl: base64Image }).eq('id', session.user.id);
-        setProfile({ ...profile, photoUrl: base64Image });
+    if (!result.canceled && result.assets[0].uri) {
+      try {
+        setUploading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const photoUri = result.assets[0].uri;
+        
+        // Convert URI to blob
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+
+        // Create unique filename based on user ID and timestamp
+        const fileExt = photoUri.split('.').pop() || 'jpeg';
+        const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+
+        // Upload to Supabase Storage 'Roommate' bucket
+        const { error: uploadError } = await supabase.storage
+          .from('Roommate')
+          .upload(fileName, blob, {
+            contentType: `image/${fileExt}`,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get Public URL
+        const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
+        const publicUrl = data.publicUrl;
+
+        // Save URL to profile
+        await supabase.from('profiles').update({ photoUrl: publicUrl }).eq('id', session.user.id);
+        setProfile({ ...profile, photoUrl: publicUrl });
+
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        Alert.alert('Upload Failed', 'There was an error uploading your profile picture.');
+      } finally {
+        setUploading(false);
       }
     }
   };
@@ -94,9 +129,13 @@ export default function MyProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         
         {/* Header with avatar */}
-        <View style={styles.heroSection}>
-          <Pressable onPress={pickImage} style={styles.avatarWrapper}>
-            {profile?.photoUrl ? (
+        <LinearGradient colors={['#1a1a24', '#000']} style={styles.heroSection}>
+          <Pressable onPress={pickImage} style={styles.avatarWrapper} disabled={uploading}>
+            {uploading ? (
+              <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
+                <ActivityIndicator color="#6C63FF" />
+              </View>
+            ) : profile?.photoUrl ? (
               <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
@@ -126,7 +165,7 @@ export default function MyProfileScreen() {
           )}
 
           <Text style={styles.profileSub}>Your profile is visible to nearby roommates</Text>
-        </View>
+        </LinearGradient>
 
         {/* Stats strip */}
         <View style={styles.statsRow}>
@@ -347,12 +386,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   chip: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: 'rgba(255,255,255,0.1)',
     borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   chipText: {
     color: '#ccc',
