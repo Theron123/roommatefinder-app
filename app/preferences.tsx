@@ -190,7 +190,7 @@ export default function PreferencesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => router.replace('/(tabs)/myprofile')} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
           <Text style={styles.backText}>Cancel</Text>
         </Pressable>

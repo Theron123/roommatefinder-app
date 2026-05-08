@@ -2,12 +2,10 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   Dimensions,
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
   View,
-  ViewToken,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -54,19 +52,10 @@ const SLIDES = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
-
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0) {
-        setCurrentIndex(viewableItems[0].index ?? 0);
-      }
-    }
-  ).current;
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
+      setCurrentIndex(currentIndex + 1);
     } else {
       router.replace('/(auth)/login');
     }
@@ -89,33 +78,20 @@ export default function OnboardingScreen() {
         </SafeAreaView>
       )}
 
-      {/* Slides */}
-      <FlatList
-        ref={flatListRef}
-        data={SLIDES}
-        keyExtractor={(item) => item.id}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={true}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={{ viewAreaCoveragePercentThreshold: 50 }}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { backgroundColor: item.bg }]}>
-            {/* Giant Emoji */}
-            <View style={[styles.emojiContainer, { borderColor: item.accent + '33', backgroundColor: item.accent + '15' }]}>
-              <Text style={styles.emoji}>{item.emoji}</Text>
-            </View>
+      {/* Current Slide */}
+      <View style={styles.slide}>
+        {/* Giant Emoji */}
+        <View style={[styles.emojiContainer, { borderColor: currentSlide.accent + '33', backgroundColor: currentSlide.accent + '15' }]}>
+          <Text style={styles.emoji}>{currentSlide.emoji}</Text>
+        </View>
 
-            {/* Text */}
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={[styles.subtitle, { color: '#aaa' }]}>{item.subtitle}</Text>
+        {/* Text */}
+        <Text style={styles.title}>{currentSlide.title}</Text>
+        <Text style={[styles.subtitle, { color: '#aaa' }]}>{currentSlide.subtitle}</Text>
 
-            {/* Accent line */}
-            <View style={[styles.accentLine, { backgroundColor: item.accent }]} />
-          </View>
-        )}
-      />
+        {/* Accent line */}
+        <View style={[styles.accentLine, { backgroundColor: currentSlide.accent }]} />
+      </View>
 
       {/* Bottom controls */}
       <SafeAreaView style={styles.bottomBar}>

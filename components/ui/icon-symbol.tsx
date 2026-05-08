@@ -27,6 +27,10 @@ const MAPPING = {
   'pencil': 'edit',
   'slider.horizontal.3': 'tune',
   'chevron.down.circle.fill': 'arrow-drop-down-circle',
+  'plus': 'add',
+  'clock': 'access-time',
+  'checkmark': 'check',
+  'exclamationmark.triangle.fill': 'error',
 } as IconMapping;
 
 /**

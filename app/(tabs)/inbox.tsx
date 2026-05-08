@@ -1,14 +1,35 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function InboxScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (searchQuery.trim().length > 1) {
+      searchProfiles(searchQuery);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  const searchProfiles = async (query: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, name, age, photoUrl')
+      .ilike('name', `%${query}%`)
+      .limit(15);
+    if (data) {
+      setSearchResults(data);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -111,11 +132,35 @@ export default function InboxScreen() {
         <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
         
         <View style={styles.searchBar}>
-          <Text style={styles.searchText}>Search messages...</Text>
+          <TextInput
+            style={styles.searchText}
+            placeholder="Search users by name..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCapitalize="none"
+          />
         </View>
       </LinearGradient>
 
-      {loading ? (
+      {searchQuery.trim().length > 1 ? (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => router.push(`/chat/${item.id}`)} style={styles.row}>
+              <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
+              <View style={styles.content}>
+                 <Text style={styles.name}>{item.name}, {item.age}</Text>
+                 <Text style={styles.lastMessage}>Tap to start chat</Text>
+              </View>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No users found</Text>}
+          contentContainerStyle={styles.list}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      ) : loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color="#fff" size="large" />
         </View>
@@ -158,8 +203,10 @@ const styles = StyleSheet.create({
     borderColor: '#2a2a35',
   },
   searchText: {
-    color: '#666',
+    color: '#fff',
     fontSize: 14,
+    padding: 0,
+    margin: 0,
   },
   title: {
     fontSize: 28,

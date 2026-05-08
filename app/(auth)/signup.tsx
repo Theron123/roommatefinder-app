@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     StyleSheet,
     Text,
@@ -12,9 +11,10 @@ import {
     View,
 } from 'react-native';
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -32,16 +32,16 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSignIn = async () => {
+  const handleSignUp = async () => {
     setMessage({ text: '', type: '' });
-    if (!email || !password) {
-      setMessage({ text: 'Por favor, ingresa tu correo y contraseña.', type: 'error' });
+    if (!email || !password || !name) {
+      setMessage({ text: 'Por favor, ingresa tu nombre, correo y contraseña.', type: 'error' });
       return;
     }
 
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
     });
@@ -52,8 +52,26 @@ export default function LoginScreen() {
       return;
     }
 
-    await checkProfileAndRedirect(data.user!.id);
-    setLoading(false);
+    if (!data.session) {
+      setMessage({ text: '¡Cuenta creada! Por favor revisa tu bandeja de entrada para verificar tu correo electrónico.', type: 'success' });
+      setLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        name: name.trim(),
+        age: 20
+      });
+    }
+
+    setMessage({ text: '¡Cuenta Creada Exitosamente! Redirigiendo...', type: 'success' });
+    // Short delay so they can see the message
+    setTimeout(async () => {
+      await checkProfileAndRedirect(data.user!.id);
+      setLoading(false);
+    }, 1500);
   };
 
   return (
@@ -67,6 +85,14 @@ export default function LoginScreen() {
           </Text>
         </View>
       ) : null}
+
+      <TextInput
+        placeholder="Full Name"
+        placeholderTextColor="#999"
+        value={name}
+        onChangeText={setName}
+        style={styles.input}
+      />
 
       <TextInput
         placeholder="Email address"
@@ -89,23 +115,23 @@ export default function LoginScreen() {
 
       <Pressable
         style={[styles.button, loading && { opacity: 0.6 }]}
-        onPress={handleSignIn}
+        onPress={handleSignUp}
         disabled={loading}
       >
         {loading ? (
           <ActivityIndicator color="#000" />
         ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
+          <Text style={styles.buttonText}>Create Account</Text>
         )}
       </Pressable>
 
       <Pressable
         style={styles.toggleButton}
-        onPress={() => router.push('/signup')}
+        onPress={() => router.back()}
         disabled={loading}
       >
         <Text style={styles.toggleButtonText}>
-          Don't have an account? <Text style={styles.blueText}>Sign up here</Text>
+          Already have an account? <Text style={styles.blueText}>Sign in</Text>
         </Text>
       </Pressable>
     </View>
