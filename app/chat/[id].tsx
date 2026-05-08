@@ -1,14 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View, Text, StyleSheet, TextInput, Pressable, FlatList,
-  KeyboardAvoidingView, Platform, Image, Modal, ScrollView, Alert,
+  KeyboardAvoidingView, Platform, Image, Modal, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useRef } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 
 export default function ChatScreen() {
@@ -153,14 +153,22 @@ export default function ChatScreen() {
 
   // ─── Download Image ───────────────────────────────────────────
   const downloadImage = async (url: string) => {
+    // Web: open in new tab so user can save manually
+    if (Platform.OS === 'web') {
+      window.open(url, '_blank');
+      return;
+    }
+
+    // Native (iOS / Android)
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission required', 'Allow media access to save photos.');
         return;
       }
-      const fileUri = FileSystem.cacheDirectory + `chat_img_${Date.now()}.jpg`;
-      const { uri } = await FileSystem.downloadAsync(url, fileUri);
+      // Use documentDirectory which is guaranteed to exist
+      const destUri = (FileSystem.documentDirectory ?? '') + `chat_img_${Date.now()}.jpg`;
+      const { uri } = await FileSystem.downloadAsync(url, destUri);
       await MediaLibrary.saveToLibraryAsync(uri);
       Alert.alert('✅ Saved!', 'The image was saved to your gallery.');
     } catch (err) {
