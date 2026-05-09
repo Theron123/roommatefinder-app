@@ -10,6 +10,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
+import { Audio } from 'expo-av';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -36,6 +37,17 @@ export default function ChatScreen() {
   // Message Action Menu
   const [activeMessage, setActiveMessage] = useState<any | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
+
+  // Voice recording
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  // Web MediaRecorder support
+  const webMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const webChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -106,6 +118,132 @@ export default function ChatScreen() {
     } else if (data) {
       setMessages(prev => prev.map(m => m.id === tempId ? { ...data, status: 'sent' } : m));
     }
+  };
+
+  // ─── Voice Recording ──────────────────────────────────────────
+  const startRecording = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          Alert.alert('No soportado', 'Tu navegador no soporta grabación de audio.');
+          return;
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mr = new MediaRecorder(stream);
+        webChunksRef.current = [];
+        mr.ondataavailable = (e) => { if (e.data.size > 0) webChunksRef.current.push(e.data); };
+        webMediaRecorderRef.current = mr;
+        mr.start();
+      } else {
+        await Audio.requestPermissionsAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        recordingRef.current = recording;
+      }
+      setIsRecording(true);
+      setRecordingDuration(0);
+      durationTimerRef.current = setInterval(() => setRecordingDuration(d => d + 1), 1000);
+    } catch (e) {
+      console.error('startRecording error', e);
+      Alert.alert('Error', 'No se pudo iniciar la grabación. Revisa los permisos del micrófono.');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    setIsRecording(false);
+    setRecordingDuration(0);
+    try {
+      if (Platform.OS === 'web') {
+        const mr = webMediaRecorderRef.current;
+        if (!mr) return;
+        mr.stop();
+        mr.stream.getTracks().forEach(t => t.stop());
+        await new Promise<void>(res => { mr.onstop = () => res(); });
+        const blob = new Blob(webChunksRef.current, { type: 'audio/webm' });
+        await uploadAudioBlob(blob, 'webm');
+      } else {
+        const rec = recordingRef.current;
+        if (!rec) return;
+        await rec.stopAndUnloadAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        const uri = rec.getURI();
+        recordingRef.current = null;
+        if (uri) await uploadAudioFile(uri);
+      }
+    } catch (e) {
+      console.error('stopRecording error', e);
+    }
+  };
+
+  const uploadAudioFile = async (uri: string) => {
+    try {
+      const tempId = `temp_${Date.now()}`;
+      setMessages(prev => [...prev, {
+        id: tempId, sender_id: myId, receiver_id: id,
+        content: '🎙️ Mensaje de voz', media_type: 'audio', media_url: uri,
+        created_at: new Date().toISOString(), status: 'pending',
+      }]);
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      await uploadAudioBlob(blob, 'm4a', tempId);
+    } catch (e) { console.error('uploadAudioFile error', e); }
+  };
+
+  const uploadAudioBlob = async (blob: Blob, ext: string, tempId?: string) => {
+    const tId = tempId ?? `temp_${Date.now()}`;
+    if (!tempId) {
+      setMessages(prev => [...prev, {
+        id: tId, sender_id: myId, receiver_id: id,
+        content: '🎙️ Mensaje de voz', media_type: 'audio', media_url: '',
+        created_at: new Date().toISOString(), status: 'pending',
+      }]);
+    }
+    try {
+      const filePath = `${myId}/audio_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('chat_media').upload(filePath, blob, { contentType: blob.type || 'audio/mpeg' });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(filePath);
+      const { data: dbData, error: dbError } = await supabase.from('messages').insert({
+        sender_id: myId, receiver_id: id,
+        content: '🎙️ Mensaje de voz', media_url: publicUrl, media_type: 'audio',
+      }).select().single();
+      if (dbError) throw dbError;
+      setMessages(prev => prev.map(m => m.id === tId ? { ...dbData, status: 'sent' } : m));
+    } catch (e) {
+      console.error('uploadAudioBlob error', e);
+      setMessages(prev => prev.map(m => m.id === tId ? { ...m, status: 'error' } : m));
+    }
+  };
+
+  const playAudio = async (url: string, msgId: string) => {
+    try {
+      if (playingId === msgId) {
+        await soundRef.current?.stopAsync();
+        await soundRef.current?.unloadAsync();
+        soundRef.current = null;
+        setPlayingId(null);
+        return;
+      }
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+      setPlayingId(msgId);
+      const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
+      soundRef.current = sound;
+      sound.setOnPlaybackStatusUpdate(status => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlayingId(null);
+          sound.unloadAsync();
+          soundRef.current = null;
+        }
+      });
+    } catch (e) { console.error('playAudio error', e); setPlayingId(null); }
   };
 
   // ─── Image Picker & Upload ───────────────────────────────────
@@ -230,14 +368,25 @@ export default function ChatScreen() {
               </Text>
             </View>
           )}
-          {/* Image */}
-          {item.media_url ? (
+          {/* Audio */}
+          {item.media_type === 'audio' && item.media_url ? (
+            <Pressable onPress={() => playAudio(item.media_url, item.id)} style={styles.audioBtn}>
+              <IconSymbol
+                name={playingId === item.id ? 'stop.fill' : 'play.fill'}
+                size={18}
+                color={isMine ? '#fff' : '#6C63FF'}
+              />
+              <Text style={[styles.audioText, isMine ? styles.myMsgText : styles.theirMsgText]}>
+                {playingId === item.id ? 'Reproduciendo...' : '🎙️ Mensaje de voz'}
+              </Text>
+            </Pressable>
+          ) : item.media_type === 'image' && item.media_url ? (
             <Pressable onPress={() => { setSelectedImage(item.media_url); setImageScale(1); }}>
               <Image source={{ uri: item.media_url }} style={styles.messageImage} />
             </Pressable>
           ) : null}
           {/* Text */}
-          {!(item.media_url && item.content === '📸 Image') && (
+          {!(item.media_url && (item.content === '📸 Image' || item.content === '🎙️ Mensaje de voz')) && (
             <Text style={[styles.msgText, isMine ? styles.myMsgText : styles.theirMsgText]}>
               {item.content}
             </Text>
@@ -297,17 +446,33 @@ export default function ChatScreen() {
           <Pressable onPress={pickImage} style={styles.attachBtn}>
             <IconSymbol name="plus" size={24} color="#6C63FF" />
           </Pressable>
-          <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Type a message..."
-            placeholderTextColor="#888"
-            style={styles.input}
-            multiline
-          />
-          <Pressable onPress={sendMessage} style={styles.sendBtn}>
-            <IconSymbol name="paperplane.fill" size={20} color="#fff" />
-          </Pressable>
+          {isRecording ? (
+            <View style={styles.recordingBar}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingText}>Grabando... {recordingDuration}s</Text>
+              <Pressable onPress={stopRecording} style={styles.stopBtn}>
+                <IconSymbol name="stop.fill" size={18} color="#fff" />
+              </Pressable>
+            </View>
+          ) : (
+            <TextInput
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Escribe un mensaje..."
+              placeholderTextColor="#888"
+              style={styles.input}
+              multiline
+            />
+          )}
+          {!isRecording && inputText.trim() === '' ? (
+            <Pressable onPress={startRecording} style={styles.micBtn}>
+              <IconSymbol name="mic.fill" size={20} color="#fff" />
+            </Pressable>
+          ) : !isRecording ? (
+            <Pressable onPress={sendMessage} style={styles.sendBtn}>
+              <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+            </Pressable>
+          ) : null}
         </View>
       </KeyboardAvoidingView>
 
@@ -471,6 +636,29 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
+  micBtn: {
+    marginLeft: 12, backgroundColor: '#6C63FF',
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  recordingBar: {
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a24', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 10, gap: 10,
+  },
+  recordingDot: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: '#ff4444',
+  },
+  recordingText: { color: '#fff', fontSize: 15, flex: 1 },
+  stopBtn: {
+    backgroundColor: '#ff4444', width: 32, height: 32,
+    borderRadius: 16, justifyContent: 'center', alignItems: 'center',
+  },
+  audioBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 4,
+  },
+  audioText: { fontSize: 14 },
 
   // Image Viewer Modal
   modalContainer: {
