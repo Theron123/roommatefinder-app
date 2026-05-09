@@ -10,7 +10,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
-import { Audio } from 'expo-av';
+import { Audio, Video, ResizeMode } from 'expo-av';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -37,6 +38,9 @@ export default function ChatScreen() {
   // Message Action Menu
   const [activeMessage, setActiveMessage] = useState<any | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
+
+  // Attach Menu
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   // Voice recording
   const [isRecording, setIsRecording] = useState(false);
@@ -246,46 +250,73 @@ export default function ChatScreen() {
     } catch (e) { console.error('playAudio error', e); setPlayingId(null); }
   };
 
-  // ─── Image Picker & Upload ───────────────────────────────────
-  const pickImage = async () => {
+  // ─── File Picker & Upload ───────────────────────────────────
+  const pickMedia = async () => {
+    setShowAttachMenu(false);
     if (!myId) return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'], allowsEditing: true, quality: 0.7,
+      mediaTypes: ['images', 'videos'], allowsEditing: true, quality: 0.7,
     });
     if (!result.canceled && result.assets?.length > 0) {
-      uploadImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      const isVideo = asset.type === 'video' || asset.uri.endsWith('.mp4');
+      uploadFile(asset.uri, isVideo ? 'video' : 'image', isVideo ? '🎥 Video' : '📸 Image');
     }
   };
 
-  const uploadImage = async (uri: string) => {
+  const pickDocument = async () => {
+    setShowAttachMenu(false);
+    if (!myId) return;
+    const result = await DocumentPicker.getDocumentAsync({
+      type: '*/*', copyToCacheDirectory: true,
+    });
+    if (!result.canceled && result.assets?.length > 0) {
+      const asset = result.assets[0];
+      let type = 'file';
+      let content = '📄 Archivo';
+      if (asset.mimeType?.startsWith('audio/') || asset.name.endsWith('.mp3')) {
+        type = 'audio';
+        content = '🎵 Audio';
+      } else if (asset.mimeType?.startsWith('video/') || asset.name.endsWith('.mp4')) {
+        type = 'video';
+        content = '🎥 Video';
+      } else if (asset.mimeType?.startsWith('image/')) {
+        type = 'image';
+        content = '📸 Image';
+      }
+      uploadFile(asset.uri, type, content, asset.name, asset.mimeType);
+    }
+  };
+
+  const uploadFile = async (uri: string, mediaType: string, contentText: string, filename?: string, mimeType?: string) => {
     try {
       const tempId = `temp_${Date.now()}`;
       setMessages(prev => [...prev, {
         id: tempId, sender_id: myId, receiver_id: id,
-        content: '📸 Image', media_url: uri, media_type: 'image',
+        content: contentText, media_url: uri, media_type: mediaType,
         created_at: new Date().toISOString(), status: 'pending',
       }]);
 
       const response = await fetch(uri);
       const blob = await response.blob();
-      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileExt = filename ? filename.split('.').pop() : uri.split('.').pop() || 'bin';
       const filePath = `${myId}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('chat_media').upload(filePath, blob, { contentType: blob.type || 'image/jpeg' });
+        .from('chat_media').upload(filePath, blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(filePath);
 
       const { data: dbData, error: dbError } = await supabase.from('messages').insert({
         sender_id: myId, receiver_id: id,
-        content: '📸 Image', media_url: publicUrl, media_type: 'image',
+        content: contentText, media_url: publicUrl, media_type: mediaType,
       }).select().single();
 
       if (dbError) throw dbError;
       setMessages(prev => prev.map(m => m.id === tempId ? { ...dbData, status: 'sent' } : m));
     } catch (err) {
-      console.error('Error uploading image:', err);
+      console.error('Error uploading file:', err);
     }
   };
 
@@ -321,6 +352,8 @@ export default function ChatScreen() {
     setShowForwardModal(true);
     setShowActionMenu(false);
     setSelectedImage(null);
+    setImageScale(1);
+    setZoomOffset({ x: 0, y: 0 });
   };
 
   const sendForward = async (targetUserId: string) => {
@@ -368,8 +401,21 @@ export default function ChatScreen() {
               </Text>
             </View>
           )}
-          {/* Audio */}
-          {item.media_type === 'audio' && item.media_url ? (
+          {/* Media */}
+          {item.media_type === 'video' && item.media_url ? (
+            <Video
+              source={{ uri: item.media_url }}
+              style={styles.messageVideo}
+              useNativeControls
+              resizeMode={ResizeMode.COVER}
+              isLooping={false}
+            />
+          ) : item.media_type === 'file' && item.media_url ? (
+            <Pressable onPress={() => downloadImage(item.media_url)} style={styles.audioContainer}>
+              <IconSymbol name="doc.fill" size={24} color={isMine ? '#fff' : '#6C63FF'} />
+              <Text style={[styles.audioText, isMine ? {color: '#fff'} : {color: '#ccc'}]}>Archivo Adjunto</Text>
+            </Pressable>
+          ) : item.media_type === 'audio' && item.media_url ? (
             <Pressable onPress={() => playAudio(item.media_url, item.id)} style={styles.audioBtn}>
               <IconSymbol
                 name={playingId === item.id ? 'stop.fill' : 'play.fill'}
@@ -377,16 +423,16 @@ export default function ChatScreen() {
                 color={isMine ? '#fff' : '#6C63FF'}
               />
               <Text style={[styles.audioText, isMine ? styles.myMsgText : styles.theirMsgText]}>
-                {playingId === item.id ? 'Reproduciendo...' : '🎙️ Mensaje de voz'}
+                {playingId === item.id ? 'Reproduciendo...' : (item.content === '🎵 Audio' ? '🎵 Audio MP3' : '🎙️ Mensaje de voz')}
               </Text>
             </Pressable>
           ) : item.media_type === 'image' && item.media_url ? (
-            <Pressable onPress={() => { setSelectedImage(item.media_url); setImageScale(1); }}>
+            <Pressable onPress={() => { setSelectedImage(item.media_url); setImageScale(1); setZoomOffset({ x: 0, y: 0 }); }}>
               <Image source={{ uri: item.media_url }} style={styles.messageImage} />
             </Pressable>
           ) : null}
           {/* Text */}
-          {!(item.media_url && (item.content === '📸 Image' || item.content === '🎙️ Mensaje de voz')) && (
+          {!(item.media_url && (item.content === '📸 Image' || item.content === '🎥 Video' || item.content === '🎵 Audio' || item.content === '📄 Archivo' || item.content === '🎙️ Mensaje de voz')) && (
             <Text style={[styles.msgText, isMine ? styles.myMsgText : styles.theirMsgText]}>
               {item.content}
             </Text>
@@ -443,7 +489,7 @@ export default function ChatScreen() {
 
         {/* Input Row */}
         <View style={styles.inputRow}>
-          <Pressable onPress={pickImage} style={styles.attachBtn}>
+          <Pressable onPress={() => setShowAttachMenu(true)} style={styles.attachBtn}>
             <IconSymbol name="plus" size={24} color="#6C63FF" />
           </Pressable>
           {isRecording ? (
@@ -501,10 +547,32 @@ export default function ChatScreen() {
 
           {/* Image with tap-to-zoom */}
           {selectedImage && (
-            <Pressable onPress={() => setImageScale(s => s >= 3 ? 1 : +(s + 0.2).toFixed(1))}>
+            <Pressable onPress={(e) => {
+              if (imageScale > 1) {
+                setImageScale(1);
+                setZoomOffset({ x: 0, y: 0 });
+              } else {
+                const { pageX, pageY } = e.nativeEvent;
+                const cx = pageX - (SCREEN_WIDTH / 2);
+                const cy = pageY - (SCREEN_HEIGHT / 2);
+                const S = 2.5; // Zoom factor
+                
+                setImageScale(S);
+                setZoomOffset({ x: -cx, y: -cy });
+              }
+            }}>
               <Image
                 source={{ uri: selectedImage }}
-                style={[styles.fullImage, { transform: [{ scale: imageScale }] }]}
+                style={[
+                  styles.fullImage, 
+                  { 
+                    transform: [
+                      { translateX: zoomOffset.x },
+                      { translateY: zoomOffset.y },
+                      { scale: imageScale }
+                    ] 
+                  }
+                ]}
                 resizeMode="contain"
               />
             </Pressable>
@@ -514,7 +582,7 @@ export default function ChatScreen() {
           <View style={styles.zoomBadge}>
             <Text style={styles.zoomBadgeText}>{Math.round(imageScale * 100)}%</Text>
             {imageScale !== 1 && (
-              <Pressable onPress={() => setImageScale(1)} style={styles.resetZoomBtn}>
+              <Pressable onPress={() => { setImageScale(1); setZoomOffset({ x: 0, y: 0 }); }} style={styles.resetZoomBtn}>
                 <Text style={styles.modalActionText}>Reset</Text>
               </Pressable>
             )}
@@ -578,6 +646,24 @@ export default function ChatScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ─── Attach Menu Modal ─── */}
+      <Modal visible={showAttachMenu} transparent animationType="fade" onRequestClose={() => setShowAttachMenu(false)}>
+        <Pressable style={styles.actionMenuOverlay} onPress={() => setShowAttachMenu(false)}>
+          <View style={styles.actionMenu}>
+            <Text style={styles.actionMenuTitle}>Adjuntar Archivo</Text>
+            <Pressable style={styles.actionMenuItem} onPress={pickMedia}>
+              <Text style={styles.actionMenuItemText}>🖼  Foto o Video (Galería)</Text>
+            </Pressable>
+            <Pressable style={styles.actionMenuItem} onPress={pickDocument}>
+              <Text style={styles.actionMenuItemText}>🎵  Audio o Documento</Text>
+            </Pressable>
+            <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowAttachMenu(false)}>
+              <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -603,6 +689,8 @@ const styles = StyleSheet.create({
   theirMsgText: { color: '#ccc' },
   statusContainer: { alignSelf: 'flex-end', marginTop: 4 },
   messageImage: { width: 200, height: 200, borderRadius: 12, marginBottom: 6, backgroundColor: '#333' },
+  messageVideo: { width: 220, height: 220, borderRadius: 12, marginBottom: 6, backgroundColor: '#000' },
+  audioContainer: { flexDirection: 'row', alignItems: 'center', padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, marginBottom: 6 },
 
   // Reply preview inside bubble
   replyPreview: {
@@ -673,7 +761,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
   },
   modalActionText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  fullImage: { width: 340, height: 400 },
+  fullImage: { width: '100%', height: '100%' },
   zoomBadge: {
     position: 'absolute', bottom: 50,
     flexDirection: 'row', alignItems: 'center', gap: 12,
