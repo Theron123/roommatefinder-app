@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useState, useCallback, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function InboxScreen() {
   const router = useRouter();
@@ -128,8 +129,16 @@ export default function InboxScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient colors={['#1a1a24', '#000']} style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
-        <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
+        <View style={styles.headerTopRow}>
+          <View>
+            <Text style={styles.title}>Messages</Text>
+            <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
+          </View>
+          <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
+             <MaterialCommunityIcons name="heart-multiple" size={26} color="#ff4b4b" />
+             <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
+          </Pressable>
+        </View>
         
         <View style={styles.searchBar}>
           <TextInput
@@ -276,5 +285,34 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#111',
     marginLeft: 90,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  followersIcon: {
+    position: 'relative',
+    padding: 8,
+    backgroundColor: 'rgba(255, 75, 75, 0.1)',
+    borderRadius: 20,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1a1a24',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#ff4b4b',
   },
 });

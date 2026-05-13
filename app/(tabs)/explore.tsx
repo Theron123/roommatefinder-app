@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, ImageBackground, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Swiper from 'react-native-deck-swiper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height } = Dimensions.get('window');
 
@@ -17,6 +18,9 @@ type Profile = {
   name?: string;
   age?: number;
 };
+
+const QUOTA_KEY = '@roommatefinder:swipe_quotas';
+const LIMITS = { like: 30, reject: 30, skip: 5 };
 
 export default function ExploreScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -61,12 +65,43 @@ export default function ExploreScreen() {
     setCurrentIndex(prev => prev + 1);
   };
 
-  const onSwipedLeft = (index: number) => {
-    console.log('Passed on', profiles[index].id);
+  const checkQuota = async (type: 'like' | 'reject' | 'skip') => {
+    try {
+      const raw = await AsyncStorage.getItem(QUOTA_KEY);
+      let quotas = raw ? JSON.parse(raw) : null;
+      const now = Date.now();
+      
+      if (!quotas || now - quotas.timestamp > 3600000) {
+        quotas = { timestamp: now, like: 0, reject: 0, skip: 0 };
+      }
+      
+      if (quotas[type] >= LIMITS[type]) {
+        Alert.alert('Limit Reached', `You have reached your limit of ${LIMITS[type]} ${type}s per hour. Check back later!`);
+        swiperRef.current?.swipeBack();
+        return false;
+      }
+      
+      quotas[type] += 1;
+      await AsyncStorage.setItem(QUOTA_KEY, JSON.stringify(quotas));
+      return true;
+    } catch (error) {
+      return true; // Fail gracefully
+    }
   };
 
-  const onSwipedRight = (index: number) => {
-    console.log('Liked', profiles[index].id);
+  const onSwipedLeft = async (index: number) => {
+    const allowed = await checkQuota('reject');
+    if (allowed) console.log('Passed on', profiles[index].id);
+  };
+
+  const onSwipedRight = async (index: number) => {
+    const allowed = await checkQuota('like');
+    if (allowed) console.log('Liked', profiles[index].id);
+  };
+
+  const onSwipedBottom = async (index: number) => {
+    const allowed = await checkQuota('skip');
+    if (allowed) console.log('Skipped', profiles[index].id);
   };
 
   const onSwipedTop = (index: number) => {
@@ -136,6 +171,13 @@ export default function ExploreScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonSkip]} 
+                onPress={() => swiperRef.current?.swipeBottom()}
+              >
+                <MaterialCommunityIcons name="skip-next" size={24} color="#ff9800" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
                 style={[styles.actionButton, styles.buttonMessage]} 
                 onPress={() => router.push(`/chat/${card.id}`)}
               >
@@ -188,6 +230,7 @@ export default function ExploreScreen() {
               onSwipedLeft={onSwipedLeft}
               onSwipedRight={onSwipedRight}
               onSwipedTop={onSwipedTop}
+              onSwipedBottom={onSwipedBottom}
               onSwipedAll={onSwipedAll}
               cardIndex={0}
               backgroundColor="transparent"
@@ -270,6 +313,32 @@ export default function ExploreScreen() {
                       justifyContent: 'flex-end',
                       paddingBottom: 60,
                       backgroundColor: 'rgba(33, 150, 243, 0.4)',
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      borderRadius: 20,
+                      zIndex: 100,
+                    }
+                  }
+                },
+                bottom: {
+                  title: 'SKIP',
+                  style: {
+                    label: {
+                      backgroundColor: 'transparent',
+                      borderColor: '#ff9800',
+                      color: '#ff9800',
+                      borderWidth: 4,
+                      fontSize: 32,
+                    },
+                    wrapper: {
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      paddingTop: 60,
+                      backgroundColor: 'rgba(255, 152, 0, 0.4)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -476,6 +545,9 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderColor: '#2196f3',
+  },
+  buttonSkip: {
+    borderColor: '#ff9800',
   },
   buttonLike: {
     borderColor: '#4caf50',
