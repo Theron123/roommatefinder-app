@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, Image } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -30,7 +31,9 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const fetchMatches = async () => {
-    setLoading(true);
+    if (profiles.length === 0) {
+      setLoading(true);
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -104,7 +107,7 @@ export default function HomeScreen() {
         >
           <View style={styles.cardHeader}>
           {item.photoUrl ? (
-            <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} />
+            <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
           ) : (
             <IconSymbol size={40} name="person.circle.fill" color="#fff" />
           )}

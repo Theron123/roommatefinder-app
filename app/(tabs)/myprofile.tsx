@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase';
 import { router, useFocusEffect } from 'expo-router';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { supabase } from '@/lib/supabase';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useCallback } from 'react';
@@ -21,7 +22,9 @@ export default function MyProfileScreen() {
   );
 
   const fetchMyProfile = async () => {
-    setLoading(true);
+    if (!profile) {
+      setLoading(true);
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -136,7 +139,7 @@ export default function MyProfileScreen() {
                 <ActivityIndicator color="#6C63FF" />
               </View>
             ) : profile?.photoUrl ? (
-              <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
+              <Image source={{ uri: profile.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
             ) : (
               <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
                 <IconSymbol name="person.crop.circle.fill" size={60} color="#666" />
