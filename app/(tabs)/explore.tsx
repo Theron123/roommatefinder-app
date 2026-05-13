@@ -93,19 +93,21 @@ export default function ExploreScreen() {
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
             </Text>
             
-            <View style={styles.infoSection}>
-              <Text style={styles.subtitle}>Likes & Hobbies</Text>
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="thumb-up-outline" size={16} color="#ccc" />
-                <Text style={styles.infoText} numberOfLines={2}>{card.likes || 'Open to anything'}</Text>
+            <View style={styles.rowContainer}>
+              <View style={[styles.infoSection, { flex: 1, marginRight: 8 }]}>
+                <Text style={styles.subtitle}>Likes & Hobbies</Text>
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="thumb-up-outline" size={16} color="#ccc" />
+                  <Text style={styles.infoText} numberOfLines={2}>{card.likes || 'Open to anything'}</Text>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.infoSection}>
-              <Text style={styles.subtitle}>Preferences</Text>
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
-                <Text style={styles.infoText} numberOfLines={2}>{card.preferences || 'Flexible'}</Text>
+              <View style={[styles.infoSection, { flex: 1 }]}>
+                <Text style={styles.subtitle}>Preferences</Text>
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
+                  <Text style={styles.infoText} numberOfLines={2}>{card.preferences || 'Flexible'}</Text>
+                </View>
               </View>
             </View>
 
@@ -284,19 +286,20 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ff4b4b',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
+    fontWeight: '900',
+    color: '#000',
+    textShadowColor: '#fff',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   subTitle: {
     fontSize: 16,
-    color: '#ddd',
-    marginTop: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
+    color: '#000',
+    marginTop: 2,
+    fontWeight: '800',
+    textShadowColor: '#fff',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   cardContainer: {
     flex: 1,
@@ -320,24 +323,29 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   textOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.6)', // Less opaque
+    backgroundColor: 'rgba(0,0,0,0.5)', 
     padding: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    paddingTop: 20, // Reduced from 40
-    paddingBottom: 90, // Reduced from 110, still enough to clear the floating buttons
+    paddingTop: 12, 
+    paddingBottom: 75, 
   },
   cardTitle: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 15,
+    marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: -1, height: 1 },
     textShadowRadius: 10
   },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   infoSection: {
-    marginBottom: 10,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 12,
@@ -360,19 +368,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   infoText: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#eee',
-    marginLeft: 8,
+    marginLeft: 6,
     flex: 1,
-    lineHeight: 20,
+    lineHeight: 16,
   },
   dealbreakerText: {
-    fontSize: 15,
+    fontSize: 13,
     color: '#ff8a8a',
-    marginLeft: 8,
+    marginLeft: 6,
     flex: 1,
     fontWeight: '500',
-    lineHeight: 20,
+    lineHeight: 16,
   },
   emptyText: {
     color: '#888',
