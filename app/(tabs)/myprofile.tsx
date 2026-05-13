@@ -49,7 +49,7 @@ export default function MyProfileScreen() {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [3, 4], // Changed to 3:4 portrait so it fits well on Explore cards without bad scaling
       quality: 0.5,
     });
 

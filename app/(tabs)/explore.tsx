@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   textOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)', // Less opaque
+    padding: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    paddingTop: 40,
-    paddingBottom: 110, // Increased padding to avoid buttons
+    paddingTop: 20, // Reduced from 40
+    paddingBottom: 90, // Reduced from 110, still enough to clear the floating buttons
   },
   cardTitle: {
     fontSize: 32,
