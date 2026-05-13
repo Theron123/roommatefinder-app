@@ -195,6 +195,8 @@ export default function ExploreScreen() {
               stackSeparation={15}
               animateCardOpacity
               swipeBackCard
+              overlayOpacityHorizontalThreshold={10}
+              overlayOpacityVerticalThreshold={10}
               containerStyle={styles.swiper}
               cardStyle={styles.cardStyle}
               overlayLabels={{
