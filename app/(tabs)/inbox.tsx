@@ -1,5 +1,6 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useState, useCallback, useEffect } from 'react';
@@ -39,7 +40,9 @@ export default function InboxScreen() {
   );
 
   const fetchConversations = async () => {
-    setLoading(true);
+    if (conversations.length === 0) {
+      setLoading(true);
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const myId = session.user.id;
@@ -107,7 +110,7 @@ export default function InboxScreen() {
       onPress={() => router.push(`/chat/${item.id}`)}
       style={styles.row}
     >
-      <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
+      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
       
       {item.unread && <View style={styles.unreadDot} />}
 
@@ -158,7 +161,7 @@ export default function InboxScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
-              <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
+              <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
               <View style={styles.content}>
                  <Text style={styles.name}>{item.name}, {item.age}</Text>
                  <Text style={styles.lastMessage}>Tap to view profile</Text>

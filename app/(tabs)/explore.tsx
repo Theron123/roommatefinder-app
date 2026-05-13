@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import { useCallback, useState, useRef } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, ImageBackground, Alert } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState, useRef, useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Swiper from 'react-native-deck-swiper';
@@ -50,16 +51,21 @@ export default function ExploreScreen() {
     if (data) {
       // Shuffle or sort the profiles to make the explore feed dynamic
       const shuffledProfiles = data.sort(() => 0.5 - Math.random());
+      // Prefetch images for faster loading
+      const urlsToPrefetch = shuffledProfiles
+        .map(p => p.photoUrl)
+        .filter(Boolean) as string[];
+      if (urlsToPrefetch.length > 0) {
+        Image.prefetch(urlsToPrefetch);
+      }
       setProfiles(shuffledProfiles);
     }
     setLoading(false);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfiles();
-    }, [])
-  );
+  useEffect(() => {
+    fetchProfiles();
+  }, []);
 
   const onSwiped = () => {
     setCurrentIndex(prev => prev + 1);
@@ -124,11 +130,13 @@ export default function ExploreScreen() {
 
     return (
       <View style={styles.cardContainer}>
-        <ImageBackground 
+        <Image 
           source={imageSource} 
-          style={styles.cardImage}
-          imageStyle={styles.cardImageRounded}
-        >
+          style={[StyleSheet.absoluteFill, styles.cardImageRounded]}
+          contentFit="cover"
+          transition={200}
+        />
+        <View style={styles.cardContentWrapper}>
           <View style={styles.textOverlay}>
             <Text style={styles.cardTitle}>
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
@@ -192,7 +200,7 @@ export default function ExploreScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </ImageBackground>
+        </View>
       </View>
     );
   };
@@ -431,7 +439,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     backgroundColor: '#1a1a1a', 
   },
-  cardImage: {
+  cardContentWrapper: {
     flex: 1,
     justifyContent: 'flex-end',
     borderRadius: 20,
