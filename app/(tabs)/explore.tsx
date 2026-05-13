@@ -69,6 +69,12 @@ export default function ExploreScreen() {
     console.log('Liked', profiles[index].id);
   };
 
+  const onSwipedTop = (index: number) => {
+    if (index < profiles.length) {
+      router.push(`/chat/${profiles[index].id}`);
+    }
+  };
+
   const onSwipedAll = () => {
     setAllSwiped(true);
   };
@@ -181,6 +187,7 @@ export default function ExploreScreen() {
               onSwiped={onSwiped}
               onSwipedLeft={onSwipedLeft}
               onSwipedRight={onSwipedRight}
+              onSwipedTop={onSwipedTop}
               onSwipedAll={onSwipedAll}
               cardIndex={0}
               backgroundColor="transparent"
@@ -205,8 +212,16 @@ export default function ExploreScreen() {
                       flexDirection: 'column',
                       alignItems: 'flex-end',
                       justifyContent: 'flex-start',
-                      marginTop: 30,
-                      marginLeft: -30,
+                      paddingTop: 40,
+                      paddingRight: 40,
+                      backgroundColor: 'rgba(255, 75, 75, 0.4)',
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      borderRadius: 20,
+                      zIndex: 100,
                     }
                   }
                 },
@@ -224,8 +239,42 @@ export default function ExploreScreen() {
                       flexDirection: 'column',
                       alignItems: 'flex-start',
                       justifyContent: 'flex-start',
-                      marginTop: 30,
-                      marginLeft: 30,
+                      paddingTop: 40,
+                      paddingLeft: 40,
+                      backgroundColor: 'rgba(76, 175, 80, 0.4)',
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      borderRadius: 20,
+                      zIndex: 100,
+                    }
+                  }
+                },
+                top: {
+                  title: 'MESSAGE',
+                  style: {
+                    label: {
+                      backgroundColor: 'transparent',
+                      borderColor: '#2196f3',
+                      color: '#2196f3',
+                      borderWidth: 4,
+                      fontSize: 32,
+                    },
+                    wrapper: {
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      paddingBottom: 60,
+                      backgroundColor: 'rgba(33, 150, 243, 0.4)',
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      borderRadius: 20,
+                      zIndex: 100,
                     }
                   }
                 }
