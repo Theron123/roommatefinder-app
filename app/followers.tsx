@@ -52,7 +52,7 @@ export default function FollowersScreen() {
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/chat/${item.id}`)} style={styles.row}>
+            <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
               <Image source={{ uri: item.photoUrl || 'https://via.placeholder.com/150' }} style={styles.avatar} />
               <View style={styles.content}>
                  <Text style={styles.name}>{item.name}, {item.age}</Text>

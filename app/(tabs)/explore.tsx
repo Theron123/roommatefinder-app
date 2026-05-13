@@ -232,6 +232,7 @@ export default function ExploreScreen() {
               onSwipedTop={onSwipedTop}
               onSwipedBottom={onSwipedBottom}
               onSwipedAll={onSwipedAll}
+              onTapCard={(cardIndex) => router.push(`/profile/${profiles[cardIndex].id}`)}
               cardIndex={0}
               backgroundColor="transparent"
               stackSize={3}

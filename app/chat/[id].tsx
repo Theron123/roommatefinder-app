@@ -76,7 +76,7 @@ export default function ChatScreen() {
     if (!session) return;
     setMyId(session.user.id);
 
-    const { data: profile } = await supabase.from('profiles').select('name').eq('id', id).single();
+    const { data: profile } = await supabase.from('profiles').select('name, photoUrl').eq('id', id).single();
     if (profile) setOtherUser(profile);
 
     const { data: history } = await supabase
@@ -457,8 +457,17 @@ export default function ChatScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
         </Pressable>
-        <Text style={styles.headerName}>{otherUser ? otherUser.name : 'Loading...'}</Text>
-        <View style={{ width: 24 }} />
+        
+        <Pressable style={styles.headerUserContainer} onPress={() => router.push(`/profile/${id}`)}>
+          {otherUser?.photoUrl ? (
+            <Image source={{ uri: otherUser.photoUrl }} style={styles.headerAvatar} />
+          ) : (
+            <View style={[styles.headerAvatar, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
+              <Text style={{ color: '#fff', fontSize: 16 }}>{otherUser?.name?.[0] || '?'}</Text>
+            </View>
+          )}
+          <Text style={styles.headerName}>{otherUser ? otherUser.name : 'Loading...'}</Text>
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -671,11 +680,13 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start',
     paddingHorizontal: 16, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: '#1a1a24',
   },
-  backBtn: { padding: 4 },
+  backBtn: { padding: 4, marginRight: 12 },
+  headerUserContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  headerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   headerName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   list: { padding: 16, flexGrow: 1, justifyContent: 'flex-end' },
   emptyText: { color: '#666', textAlign: 'center', marginTop: 40, fontSize: 16 },

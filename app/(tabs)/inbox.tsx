@@ -157,11 +157,11 @@ export default function InboxScreen() {
           data={searchResults}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/chat/${item.id}`)} style={styles.row}>
+            <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
               <Image source={{ uri: item.photoUrl }} style={styles.avatar} />
               <View style={styles.content}>
                  <Text style={styles.name}>{item.name}, {item.age}</Text>
-                 <Text style={styles.lastMessage}>Tap to start chat</Text>
+                 <Text style={styles.lastMessage}>Tap to view profile</Text>
               </View>
             </Pressable>
           )}
