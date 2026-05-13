@@ -120,6 +120,29 @@ export default function ExploreScreen() {
                 </View>
               </View>
             ) : null}
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonNope]} 
+                onPress={() => swiperRef.current?.swipeLeft()}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#ff4b4b" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonMessage]} 
+                onPress={() => router.push(`/chat/${card.id}`)}
+              >
+                <MaterialCommunityIcons name="message-text" size={20} color="#2196f3" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonLike]} 
+                onPress={() => swiperRef.current?.swipeRight()}
+              >
+                <MaterialCommunityIcons name="heart" size={24} color="#4caf50" />
+              </TouchableOpacity>
+            </View>
           </View>
         </ImageBackground>
       </View>
@@ -208,33 +231,6 @@ export default function ExploreScreen() {
                 }
               }}
             />
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonNope]} 
-                onPress={() => swiperRef.current?.swipeLeft()}
-              >
-                <MaterialCommunityIcons name="close" size={36} color="#ff4b4b" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonMessage]} 
-                onPress={() => {
-                  if (currentIndex < profiles.length) {
-                    const currentProfile = profiles[currentIndex];
-                    router.push(`/chat/${currentProfile.id}`);
-                  }
-                }}
-              >
-                <MaterialCommunityIcons name="message-text" size={28} color="#2196f3" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonLike]} 
-                onPress={() => swiperRef.current?.swipeRight()}
-              >
-                <MaterialCommunityIcons name="heart" size={36} color="#4caf50" />
-              </TouchableOpacity>
-            </View>
           </>
         )}
       </View>
@@ -328,7 +324,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 12, 
-    paddingBottom: 75, 
+    paddingBottom: 16, 
   },
   cardTitle: {
     fontSize: 26,
@@ -404,37 +400,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingBottom: 30,
-    paddingTop: 20,
-    position: 'absolute',
-    bottom: 0,
+    paddingTop: 8,
     width: '100%',
-    zIndex: 20, // Ensure buttons are above the cards
   },
   actionButton: {
-    width: 65,
-    height: 65,
-    borderRadius: 35,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 10,
-    borderWidth: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+    borderWidth: 1.5,
   },
   buttonNope: {
     borderColor: '#ff4b4b',
   },
   buttonMessage: {
-    width: 55,
-    height: 55,
-    borderRadius: 28,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderColor: '#2196f3',
   },
   buttonLike: {
