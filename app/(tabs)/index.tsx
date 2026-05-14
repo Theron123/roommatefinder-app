@@ -49,8 +49,8 @@ export default function HomeScreen() {
       return;
     }
 
-    // Try to fetch with nested listings. If it fails due to foreign key issues, it'll return an error, but let's assume it works.
-    const { data: otherProfiles } = await supabase.from('profiles').select('*, listings(id)').neq('id', session.user.id).limit(50);
+    // Fetch profiles without the listings join since the foreign key is missing
+    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(50);
 
     if (otherProfiles) {
       let scoredProfiles = otherProfiles.map((p: any) => {
@@ -72,17 +72,22 @@ export default function HomeScreen() {
         return { ...p, distance, similarityScore, hasListing };
       });
 
-      // 3. Sort: First by similarity (high to low), then by distance (low to high)
+      // 3. Sort: First by distance (low to high), then by similarity (high to low)
       scoredProfiles.sort((a, b) => {
-        if (b.similarityScore !== a.similarityScore) {
-          return (b.similarityScore || 0) - (a.similarityScore || 0); // Higher similarity first
-        }
+        // If both have distance, prioritize closer distance
         if (a.distance != null && b.distance != null) {
-           return a.distance - b.distance; // Closer distance first
+           // Only sort by distance if the difference is more than 1km
+           if (Math.abs(a.distance - b.distance) > 1) {
+             return a.distance - b.distance;
+           }
         }
-        if (a.distance != null) return -1;
-        if (b.distance != null) return 1;
-        return 0;
+        
+        // If one has distance and the other doesn't, prioritize the one with distance
+        if (a.distance != null && b.distance == null) return -1;
+        if (b.distance != null && a.distance == null) return 1;
+
+        // Fallback to similarity
+        return (b.similarityScore || 0) - (a.similarityScore || 0);
       });
 
       setProfiles(scoredProfiles as Profile[]);
@@ -159,7 +164,7 @@ export default function HomeScreen() {
         </View>
       ) : profiles.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>No matches found nearby.</Text>
+          <Text style={styles.emptyText}>No matches found.</Text>
         </View>
       ) : (
         <FlatList
