@@ -28,7 +28,9 @@ type Profile = {
 
 export default function HomeScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [feedMode, setFeedMode] = useState<'people' | 'apartments'>('people');
   const router = useRouter();
 
   const fetchMatches = async () => {
@@ -96,10 +98,21 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
+  const fetchListings = async () => {
+    if (listings.length === 0) setLoading(true);
+    const { data } = await supabase.from('listings').select('*').limit(50);
+    if (data) setListings(data);
+    setLoading(false);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      fetchMatches();
-    }, [])
+      if (feedMode === 'people') {
+        fetchMatches();
+      } else {
+        fetchListings();
+      }
+    }, [feedMode])
   );
 
   const renderProfile = ({ item }: { item: Profile }) => {
@@ -151,28 +164,78 @@ export default function HomeScreen() {
     );
   };
 
+  const renderListing = ({ item }: { item: any }) => (
+    <Pressable style={styles.cardContainer}>
+      <LinearGradient
+        colors={['#1a1a24', '#0a0a0f']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.card}
+      >
+        {item.images && item.images.length > 0 ? (
+          <Image source={{ uri: item.images[0] }} style={{width: '100%', height: 150, borderRadius: 12, marginBottom: 12}} contentFit="cover" />
+        ) : (
+          <View style={{width: '100%', height: 150, borderRadius: 12, marginBottom: 12, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center'}}>
+            <IconSymbol name="house.fill" size={40} color="#666" />
+          </View>
+        )}
+        <Text style={styles.cardTitle}>{item.title || 'Apartment'}</Text>
+        <Text style={styles.cardSubtitle}>${item.price}/month • {item.address}</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>Home match feed</Text>
-        <Text style={styles.subTitle}>People nearby with similar preferences.</Text>
+        <Text style={styles.mainTitle}>Home feed</Text>
+        <Text style={styles.subTitle}>Discover people or apartments nearby.</Text>
+      </View>
+
+      <View style={styles.toggleContainer}>
+        <Pressable 
+          style={[styles.toggleBtn, feedMode === 'people' && styles.toggleBtnActive]}
+          onPress={() => setFeedMode('people')}
+        >
+          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>People</Text>
+        </Pressable>
+        <Pressable 
+          style={[styles.toggleBtn, feedMode === 'apartments' && styles.toggleBtnActive]}
+          onPress={() => setFeedMode('apartments')}
+        >
+          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>Apartments</Text>
+        </Pressable>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#fff" size="large" />
+          <ActivityIndicator color="#6C63FF" size="large" />
         </View>
-      ) : profiles.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>No matches found.</Text>
-        </View>
+      ) : feedMode === 'people' ? (
+        profiles.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No matches found.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={profiles}
+            keyExtractor={(item) => item.id}
+            renderItem={renderProfile}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       ) : (
-        <FlatList
-          data={profiles}
-          keyExtractor={(item) => item.id}
-          renderItem={renderProfile}
-          contentContainerStyle={styles.listContent}
-        />
+        listings.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyText}>No apartments found.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={listings}
+            keyExtractor={(item) => item.id}
+            renderItem={renderListing}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       )}
     </SafeAreaView>
   );
@@ -202,6 +265,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#aaa',
     marginTop: 4,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a24',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 10,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  toggleBtnActive: {
+    backgroundColor: '#6C63FF',
+  },
+  toggleText: {
+    color: '#888',
+    fontWeight: 'bold',
+  },
+  toggleTextActive: {
+    color: '#fff',
   },
   listContent: {
     padding: 20,
