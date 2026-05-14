@@ -367,5 +367,5 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   buttonText: { color: '#000', fontSize: 16, fontWeight: 'bold' },
-  locationSavedText: { color: '#4ade80', marginBottom: 8, fontWeight: '600' },
+  locationSavedText: { color: '#49C788', marginBottom: 8, fontWeight: '600' },
 });

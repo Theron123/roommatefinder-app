@@ -28,14 +28,14 @@ const TUTORIAL_SLIDES = [
     title: 'Connect Instantly',
     description: 'Message potential roommates directly through the app to see if you vibe together.',
     icon: 'paperplane.fill',
-    color: '#FF9F1C',
+    color: '#49C788',
   },
   {
     id: '4',
     title: 'Your Profile matters',
     description: 'Keep your profile updated with a nice photo and accurate preferences to get better matches.',
     icon: 'person.fill',
-    color: '#FF6B6B',
+    color: '#49C788',
   }
 ];
 

@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   messageBoxError: {
-    backgroundColor: '#1a0a0a',
+    backgroundColor: '#0a1a12',
     borderColor: '#ff4444',
   },
   messageBoxSuccess: {

@@ -182,7 +182,7 @@ export default function ManageListingScreen() {
             <View key={idx} style={styles.imageWrapper}>
               <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
               <Pressable style={styles.removeBtn} onPress={() => removeImage(idx)}>
-                <IconSymbol name="xmark.circle.fill" size={24} color="#FF6B6B" />
+                <IconSymbol name="xmark.circle.fill" size={24} color="#49C788" />
               </Pressable>
             </View>
           ))}
@@ -228,5 +228,5 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: '#49C788', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteBtn: { marginTop: 16, padding: 16, alignItems: 'center' },
-  deleteBtnText: { color: '#FF6B6B', fontSize: 16, fontWeight: 'bold' },
+  deleteBtnText: { color: '#49C788', fontSize: 16, fontWeight: 'bold' },
 });

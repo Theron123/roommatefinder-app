@@ -14,7 +14,7 @@ export default function TabLayout() {
       <TutorialModal />
       <Tabs
         screenOptions={{
-        tabBarActiveTintColor: '#fff',
+        tabBarActiveTintColor: '#49C788',
         tabBarInactiveTintColor: '#666',
         headerShown: false,
         tabBarButton: HapticTab,

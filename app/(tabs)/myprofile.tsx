@@ -172,7 +172,7 @@ export default function MyProfileScreen() {
               style={styles.premiumWheelBtn} 
               onPress={() => router.push('/subscriptions')}
             >
-              <MaterialCommunityIcons name="cog" size={16} color="#FFD700" />
+              <MaterialCommunityIcons name="cog" size={16} color="#49C788" />
             </Pressable>
           </View>
 
@@ -265,7 +265,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>My Apartment</Text>
           <Pressable onPress={() => router.push('/manage-listing')}>
-            <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#FF9F1C" />
+            <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#49C788" />
           </Pressable>
         </View>
 
@@ -286,9 +286,9 @@ export default function MyProfileScreen() {
               </View>
             </Pressable>
           ) : (
-            <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#FF9F1C', marginHorizontal: 20 }]}>
-              <IconSymbol name="house.fill" size={16} color="#FF9F1C" />
-              <Text style={[styles.addChipText, { color: '#FF9F1C' }]}>List your room or apartment</Text>
+            <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#49C788', marginHorizontal: 20 }]}>
+              <IconSymbol name="house.fill" size={16} color="#49C788" />
+              <Text style={[styles.addChipText, { color: '#49C788' }]}>List your room or apartment</Text>
             </Pressable>
           )}
         </View>
@@ -351,18 +351,18 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
           <Pressable onPress={() => router.push('/preferences')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#FF6B6B" />
+            <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
           {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string) => (
-            <View key={tag} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF6B6B' }]}>
-              <Text style={[styles.chipText, { color: '#FF6B6B' }]}>{tag}</Text>
+            <View key={tag} style={[styles.chip, { backgroundColor: '#0a1a12', borderColor: '#49C788' }]}>
+              <Text style={[styles.chipText, { color: '#49C788' }]}>{tag}</Text>
             </View>
           ))}</>) : (
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#FF6B6B' }]}>
-              <IconSymbol name="plus" size={16} color="#FF6B6B" />
-              <Text style={[styles.addChipText, { color: '#FF6B6B' }]}>Add Dealbreakers</Text>
+            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#49C788' }]}>
+              <IconSymbol name="plus" size={16} color="#49C788" />
+              <Text style={[styles.addChipText, { color: '#49C788' }]}>Add Dealbreakers</Text>
             </Pressable>
           )}
         </View>
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFD700',
+    borderColor: '#49C788',
     zIndex: 10,
   },
   avatar: {
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#4ade80',
+    backgroundColor: '#49C788',
     borderWidth: 3,
     borderColor: '#1a1a24',
   },
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   logoutBtnText: {
-    color: '#FF6B6B',
+    color: '#49C788',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   premiumTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#49C788',
   },
   subCard: {
     backgroundColor: '#111',
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   listingPrice: {
-    color: '#4ade80',
+    color: '#49C788',
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 4,

@@ -36,8 +36,8 @@ const SLIDES = [
     title: 'See Who\'s\nNearby',
     subtitle:
       'Using your location, we surface potential roommates close to you — ranked by similarity and distance.',
-    accent: '#FF6B6B',
-    bg: '#1a0a0a',
+    accent: '#49C788',
+    bg: '#0a1a12',
   },
   {
     id: '4',

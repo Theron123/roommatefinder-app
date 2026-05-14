@@ -169,7 +169,7 @@ export default function InboxScreen() {
             <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
           </View>
           <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
-             <MaterialCommunityIcons name="heart-multiple" size={26} color="#ff4b4b" />
+             <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
              <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
           </Pressable>
         </View>
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   followersIcon: {
     position: 'relative',
     padding: 8,
-    backgroundColor: 'rgba(255, 75, 75, 0.1)',
+    backgroundColor: 'rgba(73, 199, 136, 0.12)',
     borderRadius: 20,
   },
   badge: {
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#ff4b4b',
+    color: '#49C788',
   },
   matchesContainer: {
     paddingTop: 16,
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   matchesTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ff4b4b',
+    color: '#49C788',
     marginLeft: 20,
     marginBottom: 12,
   },
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 2,
-    borderColor: '#ff4b4b',
+    borderColor: '#49C788',
     padding: 2,
     justifyContent: 'center',
     alignItems: 'center',

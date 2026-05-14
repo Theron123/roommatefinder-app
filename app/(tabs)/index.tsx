@@ -150,11 +150,11 @@ export default function HomeScreen() {
           </View>
           {matchTag ? (
             <View style={[styles.badge, styles.badgeMatch]}>
-              <Text style={[styles.badgeText, {color: '#d4edda'}]}>{matchTag}</Text>
+              <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
             </View>
           ) : null}
           {item.hasListing ? (
-            <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#ffb703', borderWidth: 1 }]}>
+            <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
               <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
             </View>
           ) : null}
@@ -350,8 +350,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   badgeMatch: {
-    backgroundColor: '#155724',
-    borderColor: '#c3e6cb',
+    backgroundColor: '#1a3a28',
+    borderColor: '#49C788',
     borderWidth: 1,
   },
   badgeText: {
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   contentDealbreaker: {
     fontSize: 15,
-    color: '#ff6b6b',
+    color: '#49C788',
   },
   emptyText: {
     color: '#888',

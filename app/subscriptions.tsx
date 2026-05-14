@@ -18,7 +18,7 @@ export default function SubscriptionsScreen() {
 
       <View style={styles.premiumSection}>
         <View style={styles.premiumHeader}>
-          <IconSymbol name="star.fill" size={24} color="#FFD700" />
+          <IconSymbol name="star.fill" size={24} color="#49C788" />
           <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
         </View>
         
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   premiumTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFD700',
+    color: '#49C788',
   },
   subCard: {
     backgroundColor: '#111',

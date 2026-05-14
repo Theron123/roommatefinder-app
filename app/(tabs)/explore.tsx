@@ -209,7 +209,7 @@ export default function ExploreScreen() {
               <View style={styles.infoSection}>
                 <Text style={styles.subtitleDealbreaker}>Dealbreakers</Text>
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#ff4b4b" />
+                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#49C788" />
                   <Text style={styles.dealbreakerText} numberOfLines={2}>{card.dealbreakers}</Text>
                 </View>
               </View>
@@ -220,7 +220,7 @@ export default function ExploreScreen() {
                 style={[styles.actionButton, styles.buttonNope]} 
                 onPress={() => swiperRef.current?.swipeLeft()}
               >
-                <MaterialCommunityIcons name="close" size={24} color="#ff4b4b" />
+                <MaterialCommunityIcons name="close" size={24} color="#49C788" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -262,7 +262,7 @@ export default function ExploreScreen() {
       <View style={styles.swiperContainer}>
         {loading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#ff4b4b" size="large" />
+            <ActivityIndicator color="#49C788" size="large" />
             <Text style={styles.loadingText}>Finding people...</Text>
           </View>
         ) : allSwiped || profiles.length === 0 ? (
@@ -302,8 +302,8 @@ export default function ExploreScreen() {
                   style: {
                     label: {
                       backgroundColor: 'transparent',
-                      borderColor: '#ff4b4b',
-                      color: '#ff4b4b',
+                      borderColor: '#49C788',
+                      color: '#49C788',
                       borderWidth: 4,
                       fontSize: 32,
                     },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16, 
   },
   compatibilityBadge: {
-    backgroundColor: '#4ade80',
+    backgroundColor: '#49C788',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#ff4b4b',
+    backgroundColor: '#49C788',
     borderRadius: 25,
   },
   reloadButtonText: {
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   buttonNope: {
-    borderColor: '#ff4b4b',
+    borderColor: '#49C788',
   },
   buttonMessage: {
     width: 42,

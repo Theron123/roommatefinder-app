@@ -119,7 +119,7 @@ export default function ProfileDetailScreen() {
           <Text style={styles.tagsText}>{profile.preferences}</Text>
 
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Text style={[styles.tagsText, { color: '#ff6b6b' }]}>{profile.dealbreakers}</Text>
+          <Text style={[styles.tagsText, { color: '#49C788' }]}>{profile.dealbreakers}</Text>
           
           {profile.latOffset && profile.lngOffset && (
             <>
@@ -235,10 +235,10 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 3,
-    borderColor: '#4ade80',
+    borderColor: '#49C788',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#155724',
+    backgroundColor: '#1a3a28',
   },
   matchPercent: {
     color: '#fff',
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   matchLabel: {
-    color: '#4ade80',
+    color: '#49C788',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   listingPrice: {
-    color: '#4ade80',
+    color: '#49C788',
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,

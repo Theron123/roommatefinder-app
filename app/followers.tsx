@@ -44,7 +44,7 @@ export default function FollowersScreen() {
       <Text style={styles.subtitle}>These people liked your profile recently. Match with them to start chatting!</Text>
 
       {loading ? (
-        <ActivityIndicator color="#ff4b4b" size="large" style={{ marginTop: 50 }} />
+        <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={followers}
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#222',
     borderWidth: 2,
-    borderColor: '#ff4b4b',
+    borderColor: '#49C788',
   },
   content: {
     flex: 1,
@@ -128,10 +128,10 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 13,
-    color: '#ff4b4b',
+    color: '#49C788',
   },
   actionBtn: {
-    backgroundColor: '#ff4b4b',
+    backgroundColor: '#49C788',
     width: 40,
     height: 40,
     borderRadius: 20,
