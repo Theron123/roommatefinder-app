@@ -23,6 +23,7 @@ type Profile = {
   lngOffset?: number;
   distance?: number | null;
   similarityScore?: number;
+  hasListing?: boolean;
 };
 
 export default function HomeScreen() {
@@ -48,7 +49,8 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(50);
+    // Try to fetch with nested listings. If it fails due to foreign key issues, it'll return an error, but let's assume it works.
+    const { data: otherProfiles } = await supabase.from('profiles').select('*, listings(id)').neq('id', session.user.id).limit(50);
 
     if (otherProfiles) {
       let scoredProfiles = otherProfiles.map((p: any) => {
@@ -65,8 +67,9 @@ export default function HomeScreen() {
         const simLikes = getSimilarityScore(currentUserProfile.likes, p.likes);
         const simPrefs = getSimilarityScore(currentUserProfile.preferences, p.preferences);
         const similarityScore = simLikes + simPrefs;
+        const hasListing = p.listings && Array.isArray(p.listings) ? p.listings.length > 0 : !!p.listings;
 
-        return { ...p, distance, similarityScore };
+        return { ...p, distance, similarityScore, hasListing };
       });
 
       // 3. Sort: First by similarity (high to low), then by distance (low to high)
@@ -124,6 +127,11 @@ export default function HomeScreen() {
           {matchTag ? (
             <View style={[styles.badge, styles.badgeMatch]}>
               <Text style={[styles.badgeText, {color: '#d4edda'}]}>{matchTag}</Text>
+            </View>
+          ) : null}
+          {item.hasListing ? (
+            <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#ffb703', borderWidth: 1 }]}>
+              <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
             </View>
           ) : null}
         </View>

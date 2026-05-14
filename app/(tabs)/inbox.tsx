@@ -13,6 +13,7 @@ export default function InboxScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [matches, setMatches] = useState<any[]>([]);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -36,8 +37,38 @@ export default function InboxScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchConversations();
+      fetchMatches();
     }, [])
   );
+
+  const fetchMatches = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
+    const myId = session.user.id;
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('*')
+      .or(`user1.eq.${myId},user2.eq.${myId}`);
+
+    if (matchData && matchData.length > 0) {
+      const matchIds = matchData.map(m => m.user1 === myId ? m.user2 : m.user1);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, photoUrl')
+        .in('id', matchIds);
+
+      if (profiles) setMatches(profiles);
+    } else {
+      // Mock data just for UI preview if no matches exist yet
+      const { data: mockProfiles } = await supabase
+        .from('profiles')
+        .select('id, name, photoUrl')
+        .neq('id', myId)
+        .limit(4);
+      if (mockProfiles) setMatches(mockProfiles);
+    }
+  };
 
   const fetchConversations = async () => {
     if (conversations.length === 0) {
@@ -176,19 +207,45 @@ export default function InboxScreen() {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator color="#fff" size="large" />
         </View>
-      ) : conversations.length === 0 ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#888', fontSize: 16 }}>No messages yet.</Text>
-          <Text style={{ color: '#555', fontSize: 14, marginTop: 8 }}>Go to Home and start chatting!</Text>
-        </View>
       ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderConversation}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
+        <View style={{ flex: 1 }}>
+          {matches.length > 0 && (
+            <View style={styles.matchesContainer}>
+              <Text style={styles.matchesTitle}>New Matches</Text>
+              <FlatList
+                data={matches}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.matchesScroll}
+                renderItem={({ item }) => (
+                  <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
+                    <View style={styles.matchAvatarContainer}>
+                      <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" />
+                    </View>
+                    <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
+                  </Pressable>
+                )}
+              />
+            </View>
+          )}
+          
+          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>Messages</Text>
+          {conversations.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
+              <Text style={{ color: '#888', fontSize: 16 }}>No messages yet.</Text>
+              <Text style={{ color: '#555', fontSize: 14, marginTop: 8 }}>Start chatting with your matches!</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={conversations}
+              keyExtractor={(item) => item.id}
+              renderItem={renderConversation}
+              contentContainerStyle={styles.list}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+            />
+          )}
+        </View>
       )}
     </SafeAreaView>
   );
@@ -317,5 +374,48 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#ff4b4b',
+  },
+  matchesContainer: {
+    paddingTop: 16,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a24',
+  },
+  matchesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ff4b4b',
+    marginLeft: 20,
+    marginBottom: 12,
+  },
+  matchesScroll: {
+    paddingHorizontal: 16,
+  },
+  matchItem: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    width: 70,
+  },
+  matchAvatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#ff4b4b',
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  matchAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  matchName: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

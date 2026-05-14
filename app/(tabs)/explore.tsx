@@ -18,6 +18,7 @@ type Profile = {
   photoUrl?: string;
   name?: string;
   age?: number;
+  lifestyle?: any;
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
@@ -25,6 +26,7 @@ const LIMITS = { like: 30, reject: 30, skip: 5 };
 
 export default function ExploreScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -40,6 +42,11 @@ export default function ExploreScreen() {
     if (!session) {
       setLoading(false);
       return;
+    }
+
+    const { data: currentUserData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    if (currentUserData) {
+      setCurrentUser(currentUserData);
     }
 
     const { data, error } = await supabase
@@ -120,13 +127,41 @@ export default function ExploreScreen() {
     setAllSwiped(true);
   };
 
+  const calculateCompatibility = (user1: any, user2: any) => {
+    if (!user1?.lifestyle || !user2?.lifestyle) return null;
+    
+    const l1 = typeof user1.lifestyle === 'string' ? JSON.parse(user1.lifestyle) : user1.lifestyle;
+    const l2 = typeof user2.lifestyle === 'string' ? JSON.parse(user2.lifestyle) : user2.lifestyle;
+    
+    if (!l1 || !l2) return null;
+
+    let score = 0;
+    let totalFields = 0;
+
+    const keysToCompare = ['sleep', 'cleanliness', 'social', 'parties', 'pets', 'smoking', 'music', 'work', 'occupation', 'cooking'];
+    
+    for (const key of keysToCompare) {
+      if (l1[key] && l2[key]) {
+        totalFields++;
+        if (l1[key] === l2[key]) score += 1;
+      }
+    }
+
+    if (totalFields === 0) return null;
+    
+    let percentage = 40 + Math.round((score / totalFields) * 60);
+    return percentage;
+  };
+
   const renderCard = (card: Profile | null) => {
     if (!card) return null;
     
-    // Fallback image if user has no photoUrl
+    // Fallback image if user has no photoUrl (increased quality and resolution)
     const imageSource = card.photoUrl 
       ? { uri: card.photoUrl } 
-      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=800&auto=format&fit=crop' }; // Default striking image
+      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' }; // High-res default image
+
+    const compatibility = calculateCompatibility(currentUser, card);
 
     return (
       <View style={styles.cardContainer}>
@@ -135,9 +170,17 @@ export default function ExploreScreen() {
           style={[StyleSheet.absoluteFill, styles.cardImageRounded]}
           contentFit="cover"
           transition={200}
+          cachePolicy="memory-disk"
+          priority="high"
         />
         <View style={styles.cardContentWrapper}>
           <View style={styles.textOverlay}>
+            {compatibility !== null && (
+              <View style={styles.compatibilityBadge}>
+                <MaterialCommunityIcons name="star-four-points" size={14} color="#000" />
+                <Text style={styles.compatibilityText}>{compatibility}% compatible</Text>
+              </View>
+            )}
             <Text style={styles.cardTitle}>
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
             </Text>
@@ -454,6 +497,27 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     paddingTop: 12, 
     paddingBottom: 16, 
+  },
+  compatibilityBadge: {
+    backgroundColor: '#4ade80',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  compatibilityText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 12,
   },
   cardTitle: {
     fontSize: 26,

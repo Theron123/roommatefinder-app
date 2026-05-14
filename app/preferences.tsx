@@ -15,25 +15,37 @@ const HOBBIES = [
   '🎨 Art', '⚽ Sports'
 ];
 
-const LIFESTYLE = [
-  '🧹 Clean daily', '🗑️ Clean weekly', '🌅 Early bird', '🦉 Night owl', 
-  '🎉 Guests allowed', '🛑 No guests', '🤫 Quiet evenings', '🍷 Social drinker'
-];
-
 const DEALBREAKERS = [
   '🚬 Smoking indoors', '🔊 Loud music', '🗑️ Messy areas', 
   '🥳 Late parties', '🐈 Pets', '💸 Unpaid bills'
 ];
 
+const LIFESTYLE_OPTIONS = [
+  { key: 'sleep', title: 'Horario de sueño', options: ['Madrugador', 'Nocturno', 'Flexible'] },
+  { key: 'cleanliness', title: 'Limpieza', options: ['Relajado', 'Normal', 'Muy ordenado'] },
+  { key: 'social', title: 'Personalidad', options: ['Introvertido', 'Extrovertido', 'Ambivertido'] },
+  { key: 'parties', title: 'Fiestas', options: ['Nunca', 'A veces', 'Frecuentes'] },
+  { key: 'pets', title: 'Mascotas', options: ['Ninguna', 'Tengo mascotas', 'Amo las mascotas', 'Alérgico'] },
+  { key: 'smoking', title: 'Fumar', options: ['No', 'Sí', 'Solo afuera'] },
+  { key: 'music', title: 'Música alta', options: ['No', 'Sí'] },
+  { key: 'work', title: 'Trabajo', options: ['En oficina', 'Híbrido', 'Remoto'] },
+  { key: 'occupation', title: 'Ocupación', options: ['Estudiante', 'Trabajador', 'Ambos'] },
+  { key: 'budget', title: 'Presupuesto Mensual', options: ['< $500', '$500 - $1000', '$1000 - $1500', '> $1500'] },
+  { key: 'cooking', title: 'Cocina', options: ['Rara vez', 'A veces', 'Frecuente'] },
+];
+
+const LANGUAGES = ['Español', 'Inglés', 'Francés', 'Alemán', 'Portugués', 'Italiano'];
+
 export default function PreferencesScreen() {
   const [selectedLikes, setSelectedLikes] = useState<Set<string>>(new Set());
-  const [selectedPrefs, setSelectedPrefs] = useState<Set<string>>(new Set());
   const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
   
   const [otherLikes, setOtherLikes] = useState('');
-  const [otherPrefs, setOtherPrefs] = useState('');
   const [otherDeals, setOtherDeals] = useState('');
   
+  const [lifestyleData, setLifestyleData] = useState<Record<string, string>>({});
+  const [selectedLanguages, setSelectedLanguages] = useState<Set<string>>(new Set());
+
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -51,7 +63,7 @@ export default function PreferencesScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('likes, preferences, dealbreakers, latOffset, lngOffset')
+        .select('likes, dealbreakers, latOffset, lngOffset, lifestyle')
         .eq('id', session.user.id)
         .single();
 
@@ -63,19 +75,20 @@ export default function PreferencesScreen() {
           setSelectedLikes(new Set(known));
           setOtherLikes(unknown);
         }
-        if (data.preferences) {
-          const prefsArr = data.preferences.split(',').map((s: string) => s.trim()).filter(Boolean);
-          const known = prefsArr.filter((l: string) => LIFESTYLE.includes(l));
-          const unknown = prefsArr.filter((l: string) => !LIFESTYLE.includes(l)).join(', ');
-          setSelectedPrefs(new Set(known));
-          setOtherPrefs(unknown);
-        }
         if (data.dealbreakers) {
           const dealsArr = data.dealbreakers.split(',').map((s: string) => s.trim()).filter(Boolean);
           const known = dealsArr.filter((l: string) => DEALBREAKERS.includes(l));
           const unknown = dealsArr.filter((l: string) => !DEALBREAKERS.includes(l)).join(', ');
           setSelectedDeals(new Set(known));
           setOtherDeals(unknown);
+        }
+        
+        if (data.lifestyle) {
+           const parsed = typeof data.lifestyle === 'string' ? JSON.parse(data.lifestyle) : data.lifestyle;
+           setLifestyleData(parsed || {});
+           if (parsed?.languages) {
+             setSelectedLanguages(new Set(parsed.languages));
+           }
         }
         
         if (data.latOffset && data.lngOffset) {
@@ -120,6 +133,10 @@ export default function PreferencesScreen() {
     setFn(newSet);
   };
 
+  const setLifestyleField = (key: string, value: string) => {
+    setLifestyleData(prev => ({ ...prev, [key]: value }));
+  };
+
   const ChipGroup = ({ items, selectedSet, setFn }: { items: string[], selectedSet: Set<string>, setFn: any }) => (
     <View style={styles.chipContainer}>
       {items.map(item => {
@@ -139,6 +156,25 @@ export default function PreferencesScreen() {
     </View>
   );
 
+  const SingleChoiceGroup = ({ options, selectedValue, onSelect }: { options: string[], selectedValue: string, onSelect: (val: string) => void }) => (
+    <View style={styles.chipContainer}>
+      {options.map(item => {
+        const isSelected = selectedValue === item;
+        return (
+          <Pressable 
+            key={item} 
+            onPress={() => onSelect(item)}
+            style={[styles.chip, isSelected && { borderColor: '#00C9A7', backgroundColor: 'rgba(0, 201, 167, 0.1)' }]}
+          >
+            <Text style={[styles.chipText, isSelected && { color: '#00C9A7', fontWeight: 'bold' }]}>
+              {item}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
   const handleSave = async () => {
     setLoading(true);
 
@@ -149,8 +185,12 @@ export default function PreferencesScreen() {
     }
 
     const likes = [Array.from(selectedLikes).join(', '), otherLikes.trim()].filter(Boolean).join(', ');
-    const preferences = [Array.from(selectedPrefs).join(', '), otherPrefs.trim()].filter(Boolean).join(', ');
     const dealbreakers = [Array.from(selectedDeals).join(', '), otherDeals.trim()].filter(Boolean).join(', ');
+
+    const finalLifestyle = {
+      ...lifestyleData,
+      languages: Array.from(selectedLanguages),
+    };
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -162,8 +202,8 @@ export default function PreferencesScreen() {
     const updates: any = {
       id: session.user.id,
       likes,
-      preferences,
       dealbreakers,
+      lifestyle: finalLifestyle,
     };
 
     if (selectedLocation) {
@@ -203,7 +243,7 @@ export default function PreferencesScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>Your Preferences</Text>
-          <Text style={styles.subtitle}>Tap the tags that best describe you to help us find the perfect roommate match.</Text>
+          <Text style={styles.subtitle}>Fill out your lifestyle to find your perfect match.</Text>
 
           <Text style={styles.sectionTitle}>Where do you live?</Text>
           <View style={{ zIndex: 999, marginBottom: 16 }}>
@@ -219,46 +259,57 @@ export default function PreferencesScreen() {
             />
           </View>
 
-        <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
-        <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
-        <TextInput 
-          style={styles.otherInput} 
-          placeholder="Other hobbies... (e.g. Skiing)" 
-          placeholderTextColor="#555"
-          value={otherLikes}
-          onChangeText={setOtherLikes}
-        />
+          <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
+          <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
+          <TextInput 
+            style={styles.otherInput} 
+            placeholder="Other hobbies... (e.g. Skiing)" 
+            placeholderTextColor="#555"
+            value={otherLikes}
+            onChangeText={setOtherLikes}
+          />
 
-        <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
-        <ChipGroup items={LIFESTYLE} selectedSet={selectedPrefs} setFn={setSelectedPrefs} />
-        <TextInput 
-          style={styles.otherInput} 
-          placeholder="Other habits... (e.g. Vegan, Work from home)" 
-          placeholderTextColor="#555"
-          value={otherPrefs}
-          onChangeText={setOtherPrefs}
-        />
+          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
+          
+          {LIFESTYLE_OPTIONS.map(opt => (
+            <View key={opt.key} style={styles.lifestyleGroup}>
+              <Text style={styles.lifestyleLabel}>{opt.title}</Text>
+              <SingleChoiceGroup 
+                options={opt.options} 
+                selectedValue={lifestyleData[opt.key] || ''} 
+                onSelect={(val) => setLifestyleField(opt.key, val)} 
+              />
+            </View>
+          ))}
 
-        <Text style={styles.sectionTitle}>Dealbreakers</Text>
-        <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} />
-        <TextInput 
-          style={styles.otherInput} 
-          placeholder="Other dealbreakers... (e.g. Allergies)" 
-          placeholderTextColor="#555"
-          value={otherDeals}
-          onChangeText={setOtherDeals}
-        />
+          <View style={styles.lifestyleGroup}>
+            <Text style={styles.lifestyleLabel}>Idiomas</Text>
+            <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} />
+          </View>
 
-        <Pressable
-          style={[styles.button, loading && { opacity: 0.6 }]}
-          onPress={handleSave}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#000" />
-          ) : (
-            <Text style={styles.buttonText}>Save and Continue</Text>
-          )}
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionTitle}>Dealbreakers</Text>
+          <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} />
+          <TextInput 
+            style={styles.otherInput} 
+            placeholder="Other dealbreakers... (e.g. Allergies)" 
+            placeholderTextColor="#555"
+            value={otherDeals}
+            onChangeText={setOtherDeals}
+          />
+
+          <Pressable
+            style={[styles.button, loading && { opacity: 0.6 }]}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.buttonText}>Save and Continue</Text>
+            )}
           </Pressable>
         </ScrollView>
       )}
@@ -267,10 +318,7 @@ export default function PreferencesScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  safeArea: { flex: 1, backgroundColor: '#000' },
   header: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -278,44 +326,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1a1a1a',
   },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backText: {
-    color: '#6C63FF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  container: {
-    padding: 24,
-    backgroundColor: '#000',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#aaa',
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 16,
-    marginBottom: 12,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
-  },
+  backButton: { flexDirection: 'row', alignItems: 'center' },
+  backText: { color: '#6C63FF', fontSize: 16, fontWeight: '600', marginLeft: 4 },
+  container: { padding: 24, backgroundColor: '#000' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#aaa', marginBottom: 24 },
+  sectionTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginTop: 16, marginBottom: 16 },
+  divider: { height: 1, backgroundColor: '#222', marginVertical: 24 },
+  lifestyleGroup: { marginBottom: 16 },
+  lifestyleLabel: { fontSize: 16, fontWeight: '600', color: '#ccc', marginBottom: 8 },
+  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   chip: {
     backgroundColor: '#1a1a1a',
     paddingVertical: 10,
@@ -324,19 +344,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
   },
-  chipSelected: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
-  },
-  chipText: {
-    color: '#ccc',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  chipTextSelected: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
+  chipSelected: { backgroundColor: '#fff', borderColor: '#fff' },
+  chipText: { color: '#ccc', fontSize: 14, fontWeight: '500' },
+  chipTextSelected: { color: '#000', fontWeight: 'bold' },
   otherInput: {
     backgroundColor: '#111',
     borderWidth: 1,
@@ -356,14 +366,6 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 40,
   },
-  buttonText: {
-    color: '#000',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  locationSavedText: {
-    color: '#4ade80',
-    marginBottom: 8,
-    fontWeight: '600',
-  },
+  buttonText: { color: '#000', fontSize: 16, fontWeight: 'bold' },
+  locationSavedText: { color: '#4ade80', marginBottom: 8, fontWeight: '600' },
 });

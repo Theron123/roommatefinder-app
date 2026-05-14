@@ -13,6 +13,7 @@ export default function ProfileDetailScreen() {
 
   const [profile, setProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [listing, setListing] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,13 +25,15 @@ export default function ProfileDetailScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
-      const [profileRes, currentUserRes] = await Promise.all([
+      const [profileRes, currentUserRes, listingRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', id).single(),
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('listings').select('*').eq('user_id', id).single()
       ]);
       
       if (profileRes.data) setProfile(profileRes.data);
       if (currentUserRes.data) setCurrentUser(currentUserRes.data);
+      if (listingRes.data) setListing(listingRes.data);
     }
     setLoading(false);
   };
@@ -123,6 +126,27 @@ export default function ProfileDetailScreen() {
               <Text style={styles.sectionTitle}>Approximate Location</Text>
               <MapComponent lat={profile.latOffset} lng={profile.lngOffset} />
             </>
+          )}
+
+          {listing && (
+            <View style={styles.apartmentSection}>
+              <Text style={styles.sectionTitle}>Room / Apartment Available</Text>
+              <View style={styles.listingCard}>
+                {listing.images && listing.images.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageCarousel}>
+                    {listing.images.map((url: string, idx: number) => (
+                      <Image key={idx} source={{ uri: url }} style={styles.carouselImage} />
+                    ))}
+                  </ScrollView>
+                )}
+                <View style={styles.listingDetails}>
+                  <Text style={styles.listingTitle}>{listing.title || 'Untitled Room'}</Text>
+                  <Text style={styles.listingPrice}>${listing.price}/month {listing.utilities_included && '(Utilities Included)'}</Text>
+                  {listing.description && <Text style={styles.listingDesc}>{listing.description}</Text>}
+                  {listing.address && <Text style={styles.listingAddress}>📍 {listing.address}</Text>}
+                </View>
+              </View>
+            </View>
           )}
 
           <View style={{ height: 100 }} />
@@ -270,5 +294,49 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  apartmentSection: {
+    marginTop: 20,
+  },
+  listingCard: {
+    backgroundColor: '#111',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  imageCarousel: {
+    flexDirection: 'row',
+  },
+  carouselImage: {
+    width: 250,
+    height: 180,
+    marginRight: 2,
+  },
+  listingDetails: {
+    padding: 16,
+  },
+  listingTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  listingPrice: {
+    color: '#4ade80',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  listingDesc: {
+    color: '#ccc',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  listingAddress: {
+    color: '#888',
+    fontSize: 14,
   },
 });
