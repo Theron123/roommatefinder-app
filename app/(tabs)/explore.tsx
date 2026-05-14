@@ -19,6 +19,7 @@ type Profile = {
   name?: string;
   age?: number;
   lifestyle?: any;
+  role?: 'landlord' | 'host' | 'seeker';
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
@@ -53,6 +54,7 @@ export default function ExploreScreen() {
       .from('profiles')
       .select('*')
       .neq('id', session.user.id)
+      .neq('role', 'landlord')
       .limit(50);
       
     if (data) {

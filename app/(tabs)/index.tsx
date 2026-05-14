@@ -24,6 +24,7 @@ type Profile = {
   distance?: number | null;
   similarityScore?: number;
   hasListing?: boolean;
+  role?: 'landlord' | 'host' | 'seeker';
 };
 
 export default function HomeScreen() {
@@ -52,7 +53,12 @@ export default function HomeScreen() {
     }
 
     // Fetch profiles without the listings join since the foreign key is missing
-    const { data: otherProfiles } = await supabase.from('profiles').select('*').neq('id', session.user.id).limit(50);
+    const { data: otherProfiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .neq('id', session.user.id)
+      .neq('role', 'landlord')
+      .limit(50);
 
     if (otherProfiles) {
       let scoredProfiles = otherProfiles.map((p: any) => {

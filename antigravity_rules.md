@@ -66,6 +66,16 @@ La aplicación se organiza basándose en el enrutamiento de archivos de Expo Rou
 
 ---
 
+## 🎭 5. Sistema de Roles (Jerarquía)
+
+La aplicación maneja tres roles principales para diferenciar la intención de los usuarios:
+
+1. **`landlord` (Propietario):** Persona que tiene un apartamento para rentar, pero **NO** vive allí. Solo quiere publicar propiedades. *Regla de UI:* Los perfiles con rol `landlord` son filtrados (`.neq('role', 'landlord')`) de los feeds de "People" (Home/Explore), ya que no buscan roomies, solo inquilinos.
+2. **`host` (Roomie Anfitrión):** Persona que ya vive en un apartamento y está buscando un roomie para compartir los gastos.
+3. **`seeker` (Roomie Buscador):** Persona que no tiene apartamento y está buscando un lugar para vivir o alguien con quien rentar algo nuevo. Es el rol por defecto al registrarse.
+
+---
+
 ## 📝 Registro de Actualizaciones (Changelog)
 
 - **[1 de Mayo, 2026]:** Migración total de la app de Mocks Locales a Supabase (Auth, perfiles).
@@ -75,3 +85,12 @@ La aplicación se organiza basándose en el enrutamiento de archivos de Expo Rou
   - Búsqueda en vivo agregada a `inbox.tsx` usando `useFocusEffect` para trazabilidad de conversaciones.
   - Soporte para subida de fotos en el chat vía `chat_media` bucket.
   - Generación de scripts SQL para RLS en la tabla `messages`.
+- **[13-14 de Mayo, 2026] - Optimización de Rendimiento, Vercel SPA y UI:**
+  - Sustitución de componentes nativos de imagen por `expo-image` con caché habilitado en toda la app.
+  - Navegación fluida eliminando recargas innecesarias (`useFocusEffect` -> `useEffect`) para persistencia en memoria.
+  - Configuración para Producción (Vercel): Modo Single Page Application en `app.json` (`web.output: "single"`) y `vercel.json` con reescritura de rutas dinámicas.
+  - Modificación del algoritmo en Home Feed: **Prioridad 1:** Distancia (>1km) -> **Prioridad 2:** Similitud (Fallback) garantizando que la lista no quede vacía.
+  - UI de Perfil: Movidas las Suscripciones Premium a una pantalla dedicada `app/subscriptions.tsx` con acceso mediante un ícono de rueda dentada (⚙️) junto a la foto de perfil.
+  - UI de Home: Agregado un Segmented Control (Slider) para alternar entre feed de personas ("People") y anuncios ("Apartments").
+  - Estricta política global en Inglés: Traducción de labels restantes (Profile, Chats, Settings).
+  - Sistema de Roles: Añadido soporte lógico para roles `landlord`, `host` y `seeker` con filtros en consultas.
