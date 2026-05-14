@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Image, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -35,22 +34,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              overflow: 'hidden',
-              opacity: focused ? 1 : 0.5,
-              backgroundColor: '#fff'
-            }}>
-              <Image 
-                source={require('@/assets/images/logo-icon.jpeg')} 
-                style={{ width: '100%', height: '100%' }} 
-                resizeMode="cover"
-              />
-            </View>
-          ),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="lightbulb.fill" color={color} />,
         }}
       />
       <Tabs.Screen
