@@ -214,7 +214,7 @@ export default function HomeScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#6C63FF" size="large" />
+          <ActivityIndicator color="#49C788" size="large" />
         </View>
       ) : feedMode === 'people' ? (
         profiles.length === 0 ? (
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   toggleBtnActive: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
   },
   toggleText: {
     color: '#888',
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#333',
     borderWidth: 2,
-    borderColor: '#6C63FF',
+    borderColor: '#49C788',
   },
   cardTitle: {
     fontSize: 20,

@@ -14,7 +14,7 @@ const TUTORIAL_SLIDES = [
     title: 'Welcome to Roommate Finder!',
     description: 'Find your perfect roommate based on shared hobbies, lifestyles, and absolute dealbreakers.',
     icon: 'house.fill',
-    color: '#6C63FF',
+    color: '#49C788',
   },
   {
     id: '2',
@@ -108,7 +108,7 @@ export default function TutorialModal() {
               }}
             >
               <LinearGradient
-                colors={['#6C63FF', '#483D8B']}
+                colors={['#49C788', '#483D8B']}
                 start={{x: 0, y: 0}} end={{x: 1, y: 1}}
                 style={styles.buttonGradient}
               >
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   dotActive: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
     width: 24,
   },
   button: {

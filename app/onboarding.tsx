@@ -18,7 +18,7 @@ const SLIDES = [
     title: 'Find Your\nPerfect Roommate',
     subtitle:
       'Roommate Finder helps you connect with compatible people in your area. Say goodbye to awkward living situations.',
-    accent: '#6C63FF',
+    accent: '#49C788',
     bg: '#0d0b1e',
   },
   {

@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
     borderWidth: 2,
     borderColor: '#000',
   },

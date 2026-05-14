@@ -139,7 +139,7 @@ export default function ManageListingScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator color="#6C63FF" size="large" style={{ marginTop: 40 }} />
+        <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 40 }} />
       </SafeAreaView>
     );
   }
@@ -148,7 +148,7 @@ export default function ManageListingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
+          <IconSymbol name="chevron.left" size={24} color="#49C788" />
           <Text style={styles.headerTitle}>My Apartment</Text>
         </Pressable>
       </View>
@@ -187,7 +187,7 @@ export default function ManageListingScreen() {
             </View>
           ))}
           <Pressable style={styles.addImageBtn} onPress={pickImage} disabled={saving}>
-            <IconSymbol name="camera.fill" size={32} color="#6C63FF" />
+            <IconSymbol name="camera.fill" size={32} color="#49C788" />
             <Text style={styles.addImageText}>Add Photo</Text>
           </Pressable>
         </ScrollView>
@@ -216,16 +216,16 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#111', color: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#333', fontSize: 16 },
   textArea: { minHeight: 100, textAlignVertical: 'top' },
   toggleBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 8 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#6C63FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  checkboxActive: { backgroundColor: '#6C63FF' },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#49C788', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  checkboxActive: { backgroundColor: '#49C788' },
   toggleText: { color: '#fff', fontSize: 16 },
   imageScroll: { flexDirection: 'row', marginTop: 8 },
   imageWrapper: { marginRight: 12, position: 'relative' },
   image: { width: 120, height: 120, borderRadius: 12 },
   removeBtn: { position: 'absolute', top: -8, right: -8, backgroundColor: '#000', borderRadius: 12 },
-  addImageBtn: { width: 120, height: 120, borderRadius: 12, borderWidth: 2, borderColor: '#6C63FF', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(108, 99, 255, 0.05)' },
-  addImageText: { color: '#6C63FF', marginTop: 8, fontWeight: 'bold' },
-  saveBtn: { backgroundColor: '#6C63FF', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
+  addImageBtn: { width: 120, height: 120, borderRadius: 12, borderWidth: 2, borderColor: '#49C788', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(108, 99, 255, 0.05)' },
+  addImageText: { color: '#49C788', marginTop: 8, fontWeight: 'bold' },
+  saveBtn: { backgroundColor: '#49C788', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteBtn: { marginTop: 16, padding: 16, alignItems: 'center' },
   deleteBtnText: { color: '#FF6B6B', fontSize: 16, fontWeight: 'bold' },

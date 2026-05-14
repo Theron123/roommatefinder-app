@@ -231,14 +231,14 @@ export default function PreferencesScreen() {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <Pressable onPress={() => router.replace('/(tabs)/myprofile')} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
+          <IconSymbol name="chevron.left" size={24} color="#49C788" />
           <Text style={styles.backText}>Cancel</Text>
         </Pressable>
       </View>
 
       {initialLoad ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color="#6C63FF" size="large" />
+          <ActivityIndicator color="#49C788" size="large" />
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1a1a1a',
   },
   backButton: { flexDirection: 'row', alignItems: 'center' },
-  backText: { color: '#6C63FF', fontSize: 16, fontWeight: '600', marginLeft: 4 },
+  backText: { color: '#49C788', fontSize: 16, fontWeight: '600', marginLeft: 4 },
   container: { padding: 24, backgroundColor: '#000' },
   title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#aaa', marginBottom: 24 },

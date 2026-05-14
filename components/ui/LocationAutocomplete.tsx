@@ -80,7 +80,7 @@ export default function LocationAutocomplete({ apiKey, placeholder, onSelect, st
             setShowDropdown(true);
           }}
         />
-        {loading && <ActivityIndicator color="#6C63FF" style={styles.loader} />}
+        {loading && <ActivityIndicator color="#49C788" style={styles.loader} />}
       </View>
 
       {showDropdown && predictions.length > 0 && (

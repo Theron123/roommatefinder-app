@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Activi
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -150,20 +151,30 @@ export default function MyProfileScreen() {
         
         {/* Header with avatar */}
         <LinearGradient colors={['#1a1a24', '#000']} style={styles.heroSection}>
-          <Pressable onPress={pickImage} style={styles.avatarWrapper} disabled={uploading}>
-            {uploading ? (
-              <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
-                <ActivityIndicator color="#6C63FF" />
-              </View>
-            ) : profile?.photoUrl ? (
-              <Image source={{ uri: profile.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-            ) : (
-              <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
-                <IconSymbol name="person.crop.circle.fill" size={60} color="#666" />
-              </View>
-            )}
-            <View style={styles.onlineDot} />
-          </Pressable>
+          <View style={styles.avatarWrapper}>
+            <Pressable onPress={pickImage} disabled={uploading}>
+              {uploading ? (
+                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
+                  <ActivityIndicator color="#49C788" />
+                </View>
+              ) : profile?.photoUrl ? (
+                <Image source={{ uri: profile.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
+              ) : (
+                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
+                  <IconSymbol name="person.crop.circle.fill" size={60} color="#666" />
+                </View>
+              )}
+              <View style={styles.onlineDot} />
+            </Pressable>
+
+            {/* Premium Wheel */}
+            <Pressable 
+              style={styles.premiumWheelBtn} 
+              onPress={() => router.push('/subscriptions')}
+            >
+              <MaterialCommunityIcons name="cog" size={16} color="#FFD700" />
+            </Pressable>
+          </View>
 
           {editing ? (
             <View style={styles.editInfoContainer}>
@@ -288,7 +299,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>My Hobbies & Interests</Text>
           <Pressable onPress={() => router.push('/preferences')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#6C63FF" />
+            <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
@@ -298,7 +309,7 @@ export default function MyProfileScreen() {
             </View>
           )) : (
             <Pressable onPress={() => router.push('/preferences')} style={styles.addChip}>
-              <IconSymbol name="plus" size={16} color="#6C63FF" />
+              <IconSymbol name="plus" size={16} color="#49C788" />
               <Text style={styles.addChipText}>Add Hobbies</Text>
             </Pressable>
           )}
@@ -356,44 +367,7 @@ export default function MyProfileScreen() {
           )}
         </View>
 
-        <View style={styles.divider} />
 
-        {/* Premium Subscriptions */}
-        <View style={styles.premiumSection}>
-          <View style={styles.premiumHeader}>
-            <IconSymbol name="star.fill" size={20} color="#FFD700" />
-            <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
-          </View>
-          
-          <Pressable style={styles.subCard}>
-            <View>
-              <Text style={styles.subDuration}>15 Days</Text>
-              <Text style={styles.subDesc}>Short term access</Text>
-            </View>
-            <Text style={styles.subPrice}>$4.99</Text>
-          </Pressable>
-          
-          <Pressable style={[styles.subCard, styles.subCardPopular]}>
-            <View style={styles.popularBadge}>
-              <Text style={styles.popularText}>MOST POPULAR</Text>
-            </View>
-            <View>
-              <Text style={styles.subDuration}>Quarterly</Text>
-              <Text style={styles.subDesc}>3 months of benefits</Text>
-            </View>
-            <Text style={styles.subPrice}>$14.99</Text>
-          </Pressable>
-
-          <Pressable style={styles.subCard}>
-            <View>
-              <Text style={styles.subDuration}>Annual</Text>
-              <Text style={styles.subDesc}>Best overall value</Text>
-            </View>
-            <Text style={styles.subPrice}>$49.99</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.divider} />
 
         {/* Edit Preferences CTA */}
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
@@ -434,11 +408,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   setupBtn: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
     borderRadius: 25,
     paddingHorizontal: 30,
     paddingVertical: 14,
-    shadowColor: '#6C63FF',
+    shadowColor: '#49C788',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -459,12 +433,26 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
+  premiumWheelBtn: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#333',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+    zIndex: 10,
+  },
   avatar: {
     width: 110,
     height: 110,
     borderRadius: 55,
     borderWidth: 3,
-    borderColor: '#6C63FF',
+    borderColor: '#49C788',
   },
   onlineDot: {
     position: 'absolute',
@@ -497,13 +485,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     borderBottomWidth: 2,
-    borderBottomColor: '#6C63FF',
+    borderBottomColor: '#49C788',
     paddingVertical: 4,
     paddingHorizontal: 8,
     minWidth: 140,
   },
   saveBtn: {
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -595,7 +583,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(108, 99, 255, 0.05)',
     borderWidth: 1,
-    borderColor: '#6C63FF',
+    borderColor: '#49C788',
     borderStyle: 'dashed',
     borderRadius: 25,
     paddingHorizontal: 16,
@@ -603,7 +591,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   addChipText: {
-    color: '#6C63FF',
+    color: '#49C788',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -696,14 +684,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   subCardPopular: {
-    borderColor: '#6C63FF',
+    borderColor: '#49C788',
     backgroundColor: 'rgba(108, 99, 255, 0.1)',
   },
   popularBadge: {
     position: 'absolute',
     top: -10,
     right: 20,
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#49C788',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,

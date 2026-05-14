@@ -412,7 +412,7 @@ export default function ChatScreen() {
             />
           ) : item.media_type === 'file' && item.media_url ? (
             <Pressable onPress={() => downloadImage(item.media_url)} style={styles.audioContainer}>
-              <IconSymbol name="doc.fill" size={24} color={isMine ? '#fff' : '#6C63FF'} />
+              <IconSymbol name="doc.fill" size={24} color={isMine ? '#fff' : '#49C788'} />
               <Text style={[styles.audioText, isMine ? {color: '#fff'} : {color: '#ccc'}]}>Archivo Adjunto</Text>
             </Pressable>
           ) : item.media_type === 'audio' && item.media_url ? (
@@ -420,7 +420,7 @@ export default function ChatScreen() {
               <IconSymbol
                 name={playingId === item.id ? 'stop.fill' : 'play.fill'}
                 size={18}
-                color={isMine ? '#fff' : '#6C63FF'}
+                color={isMine ? '#fff' : '#49C788'}
               />
               <Text style={[styles.audioText, isMine ? styles.myMsgText : styles.theirMsgText]}>
                 {playingId === item.id ? 'Reproduciendo...' : (item.content === '🎵 Audio' ? '🎵 Audio MP3' : '🎙️ Mensaje de voz')}
@@ -455,7 +455,7 @@ export default function ChatScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <IconSymbol name="chevron.left" size={24} color="#6C63FF" />
+          <IconSymbol name="chevron.left" size={24} color="#49C788" />
         </Pressable>
         
         <Pressable style={styles.headerUserContainer} onPress={() => router.push(`/profile/${id}`)}>
@@ -499,7 +499,7 @@ export default function ChatScreen() {
         {/* Input Row */}
         <View style={styles.inputRow}>
           <Pressable onPress={() => setShowAttachMenu(true)} style={styles.attachBtn}>
-            <IconSymbol name="plus" size={24} color="#6C63FF" />
+            <IconSymbol name="plus" size={24} color="#49C788" />
           </Pressable>
           {isRecording ? (
             <View style={styles.recordingBar}>
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
 
   // Message Bubble
   msgBubble: { maxWidth: '80%', padding: 12, borderRadius: 20, marginBottom: 10 },
-  myMsg: { alignSelf: 'flex-end', backgroundColor: '#6C63FF', borderBottomRightRadius: 4 },
+  myMsg: { alignSelf: 'flex-end', backgroundColor: '#49C788', borderBottomRightRadius: 4 },
   theirMsg: { alignSelf: 'flex-start', backgroundColor: '#1a1a24', borderBottomLeftRadius: 4 },
   msgText: { fontSize: 16 },
   myMsgText: { color: '#fff' },
@@ -714,7 +714,7 @@ const styles = StyleSheet.create({
   replyBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#1a1a2e', paddingHorizontal: 16, paddingVertical: 8,
-    borderTopWidth: 1, borderTopColor: '#6C63FF',
+    borderTopWidth: 1, borderTopColor: '#49C788',
   },
   replyBannerText: { color: '#aaa', fontSize: 13, flex: 1 },
   replyBannerCancel: { color: '#ff4444', fontSize: 18, marginLeft: 12 },
@@ -731,12 +731,12 @@ const styles = StyleSheet.create({
   },
   attachBtn: { padding: 8, marginRight: 8 },
   sendBtn: {
-    marginLeft: 12, backgroundColor: '#6C63FF',
+    marginLeft: 12, backgroundColor: '#49C788',
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
   micBtn: {
-    marginLeft: 12, backgroundColor: '#6C63FF',
+    marginLeft: 12, backgroundColor: '#49C788',
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
   },
   forwardUserAvatar: {
     width: 42, height: 42, borderRadius: 21,
-    backgroundColor: '#6C63FF', justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    backgroundColor: '#49C788', justifyContent: 'center', alignItems: 'center', marginRight: 14,
   },
   forwardUserName: { color: '#fff', fontSize: 16 },
   forwardCancelBtn: {
