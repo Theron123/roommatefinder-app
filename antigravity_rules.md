@@ -10,6 +10,13 @@ Este documento es la **fuente de la verdad** técnica y arquitectónica del proy
 - **Enrutamiento:** Expo Router v6 (File-based routing en la carpeta `app/`).
 - **BaaS (Backend):** Supabase (`@supabase/supabase-js` v2.91).
 - **Estilos y UI:** StyleSheet nativo, `@expo/vector-icons`, gradientes (`expo-linear-gradient`), y carga de imágenes nativa (`expo-image-picker`).
+- **Paleta de Colores (Brand):**
+  - Primary Accent: `#49C788` (Verde vibrante, extraído del logo).
+  - Secondary/Dark: `#246D4B` (Verde bosque, para gradientes).
+  - Background: `#000` / `#0a0a0a` (Dark mode global).
+  - Surface: `#111` / `#1a1a24` (Tarjetas, modales).
+  - Text: `#fff` (Primary), `#aaa` / `#888` (Secondary).
+  - **IMPORTANTE:** No usar `#6C63FF` (morado antiguo). Todo acento debe ser `#49C788`.
 
 ---
 
