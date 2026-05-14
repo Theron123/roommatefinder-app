@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   contentDealbreaker: {
     fontSize: 15,
-    color: '#49C788',
+    color: '#FF4B4B',
   },
   emptyText: {
     color: '#888',

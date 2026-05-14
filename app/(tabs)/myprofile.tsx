@@ -265,7 +265,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>My Apartment</Text>
           <Pressable onPress={() => router.push('/manage-listing')}>
-            <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#49C788" />
+            <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#FFB800" />
           </Pressable>
         </View>
 
@@ -286,9 +286,9 @@ export default function MyProfileScreen() {
               </View>
             </Pressable>
           ) : (
-            <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#49C788', marginHorizontal: 20 }]}>
-              <IconSymbol name="house.fill" size={16} color="#49C788" />
-              <Text style={[styles.addChipText, { color: '#49C788' }]}>List your room or apartment</Text>
+            <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#FFB800', marginHorizontal: 20 }]}>
+              <IconSymbol name="house.fill" size={16} color="#FFB800" />
+              <Text style={[styles.addChipText, { color: '#FFB800' }]}>List your room or apartment</Text>
             </Pressable>
           )}
         </View>
@@ -351,18 +351,18 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
           <Pressable onPress={() => router.push('/preferences')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
+            <IconSymbol name="plus.circle.fill" size={24} color="#FF4B4B" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
           {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string) => (
-            <View key={tag} style={[styles.chip, { backgroundColor: '#0a1a12', borderColor: '#49C788' }]}>
-              <Text style={[styles.chipText, { color: '#49C788' }]}>{tag}</Text>
+            <View key={tag} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
+              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{tag}</Text>
             </View>
           ))}</>) : (
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#49C788' }]}>
-              <IconSymbol name="plus" size={16} color="#49C788" />
-              <Text style={[styles.addChipText, { color: '#49C788' }]}>Add Dealbreakers</Text>
+            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
+              <IconSymbol name="plus" size={16} color="#FF4B4B" />
+              <Text style={[styles.addChipText, { color: '#FF4B4B' }]}>Add Dealbreakers</Text>
             </Pressable>
           )}
         </View>
@@ -650,10 +650,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 107, 107, 0.3)',
+    borderColor: 'rgba(255, 75, 75, 0.3)',
   },
   logoutBtnText: {
-    color: '#49C788',
+    color: '#FF4B4B',
     fontWeight: 'bold',
     fontSize: 16,
   },

@@ -119,7 +119,7 @@ export default function ProfileDetailScreen() {
           <Text style={styles.tagsText}>{profile.preferences}</Text>
 
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Text style={[styles.tagsText, { color: '#49C788' }]}>{profile.dealbreakers}</Text>
+          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{profile.dealbreakers}</Text>
           
           {profile.latOffset && profile.lngOffset && (
             <>
