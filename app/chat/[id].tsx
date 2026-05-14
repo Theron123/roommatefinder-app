@@ -660,15 +660,15 @@ export default function ChatScreen() {
       <Modal visible={showAttachMenu} transparent animationType="fade" onRequestClose={() => setShowAttachMenu(false)}>
         <Pressable style={styles.actionMenuOverlay} onPress={() => setShowAttachMenu(false)}>
           <View style={styles.actionMenu}>
-            <Text style={styles.actionMenuTitle}>Adjuntar Archivo</Text>
+            <Text style={styles.actionMenuTitle}>Attach File</Text>
             <Pressable style={styles.actionMenuItem} onPress={pickMedia}>
-              <Text style={styles.actionMenuItemText}>🖼  Foto o Video (Galería)</Text>
+              <Text style={styles.actionMenuItemText}>🖼  Photo or Video (Gallery)</Text>
             </Pressable>
             <Pressable style={styles.actionMenuItem} onPress={pickDocument}>
-              <Text style={styles.actionMenuItemText}>🎵  Audio o Documento</Text>
+              <Text style={styles.actionMenuItemText}>🎵  Audio or Document</Text>
             </Pressable>
             <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowAttachMenu(false)}>
-              <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancelar</Text>
+              <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
             </Pressable>
           </View>
         </Pressable>

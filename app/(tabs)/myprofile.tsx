@@ -252,7 +252,7 @@ export default function MyProfileScreen() {
 
         {/* My Apartment Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Mi Apartamento</Text>
+          <Text style={styles.sectionTitle}>My Apartment</Text>
           <Pressable onPress={() => router.push('/manage-listing')}>
             <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#FF9F1C" />
           </Pressable>
@@ -270,14 +270,14 @@ export default function MyProfileScreen() {
               )}
               <View style={styles.listingDetails}>
                 <Text style={styles.listingTitle} numberOfLines={1}>{listing.title || 'Untitled Room'}</Text>
-                <Text style={styles.listingPrice}>${listing.price}/mes</Text>
+                <Text style={styles.listingPrice}>${listing.price}/month</Text>
                 {listing.address && <Text style={styles.listingAddress} numberOfLines={1}>{listing.address}</Text>}
               </View>
             </Pressable>
           ) : (
             <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#FF9F1C', marginHorizontal: 20 }]}>
               <IconSymbol name="house.fill" size={16} color="#FF9F1C" />
-              <Text style={[styles.addChipText, { color: '#FF9F1C' }]}>Publica tu cuarto o apartamento</Text>
+              <Text style={[styles.addChipText, { color: '#FF9F1C' }]}>List your room or apartment</Text>
             </Pressable>
           )}
         </View>
