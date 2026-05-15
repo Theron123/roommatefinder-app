@@ -21,21 +21,21 @@ export default function LoginScreen() {
   const checkProfileAndRedirect = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, role')
       .eq('id', userId)
       .single();
 
-    if (data) {
+    if (data && data.role) {
       router.replace('/(tabs)');
     } else {
-      router.replace('/preferences');
+      router.replace('/role-select');
     }
   };
 
   const handleSignIn = async () => {
     setMessage({ text: '', type: '' });
     if (!email || !password) {
-      setMessage({ text: 'Por favor, ingresa tu correo y contraseña.', type: 'error' });
+      setMessage({ text: 'Please enter your email and password.', type: 'error' });
       return;
     }
 

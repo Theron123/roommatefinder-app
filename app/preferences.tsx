@@ -21,20 +21,20 @@ const DEALBREAKERS = [
 ];
 
 const LIFESTYLE_OPTIONS = [
-  { key: 'sleep', title: 'Horario de sueño', options: ['Madrugador', 'Nocturno', 'Flexible'] },
-  { key: 'cleanliness', title: 'Limpieza', options: ['Relajado', 'Normal', 'Muy ordenado'] },
-  { key: 'social', title: 'Personalidad', options: ['Introvertido', 'Extrovertido', 'Ambivertido'] },
-  { key: 'parties', title: 'Fiestas', options: ['Nunca', 'A veces', 'Frecuentes'] },
-  { key: 'pets', title: 'Mascotas', options: ['Ninguna', 'Tengo mascotas', 'Amo las mascotas', 'Alérgico'] },
-  { key: 'smoking', title: 'Fumar', options: ['No', 'Sí', 'Solo afuera'] },
-  { key: 'music', title: 'Música alta', options: ['No', 'Sí'] },
-  { key: 'work', title: 'Trabajo', options: ['En oficina', 'Híbrido', 'Remoto'] },
-  { key: 'occupation', title: 'Ocupación', options: ['Estudiante', 'Trabajador', 'Ambos'] },
-  { key: 'budget', title: 'Presupuesto Mensual', options: ['< $500', '$500 - $1000', '$1000 - $1500', '> $1500'] },
-  { key: 'cooking', title: 'Cocina', options: ['Rara vez', 'A veces', 'Frecuente'] },
+  { key: 'sleep', title: 'Sleep Schedule', options: ['Early bird', 'Night owl', 'Flexible'] },
+  { key: 'cleanliness', title: 'Cleanliness', options: ['Relaxed', 'Normal', 'Very tidy'] },
+  { key: 'social', title: 'Personality', options: ['Introvert', 'Extrovert', 'Ambivert'] },
+  { key: 'parties', title: 'Parties', options: ['Never', 'Sometimes', 'Frequent'] },
+  { key: 'pets', title: 'Pets', options: ['None', 'I have pets', 'Love pets', 'Allergic'] },
+  { key: 'smoking', title: 'Smoking', options: ['No', 'Yes', 'Outdoors only'] },
+  { key: 'music', title: 'Loud Music', options: ['No', 'Yes'] },
+  { key: 'work', title: 'Work Style', options: ['In office', 'Hybrid', 'Remote'] },
+  { key: 'occupation', title: 'Occupation', options: ['Student', 'Working', 'Both'] },
+  { key: 'budget', title: 'Monthly Budget', options: ['< $500', '$500 - $1000', '$1000 - $1500', '> $1500'] },
+  { key: 'cooking', title: 'Cooking', options: ['Rarely', 'Sometimes', 'Frequently'] },
 ];
 
-const LANGUAGES = ['Español', 'Inglés', 'Francés', 'Alemán', 'Portugués', 'Italiano'];
+const LANGUAGES = ['Spanish', 'English', 'French', 'German', 'Portuguese', 'Italian'];
 
 export default function PreferencesScreen() {
   const [selectedLikes, setSelectedLikes] = useState<Set<string>>(new Set());
@@ -284,7 +284,7 @@ export default function PreferencesScreen() {
           ))}
 
           <View style={styles.lifestyleGroup}>
-            <Text style={styles.lifestyleLabel}>Idiomas</Text>
+            <Text style={styles.lifestyleLabel}>Languages</Text>
             <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} />
           </View>
 

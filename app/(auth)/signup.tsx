@@ -21,21 +21,21 @@ export default function SignUpScreen() {
   const checkProfileAndRedirect = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, role')
       .eq('id', userId)
       .single();
 
-    if (data) {
+    if (data && data.role) {
       router.replace('/(tabs)');
     } else {
-      router.replace('/preferences');
+      router.replace('/role-select');
     }
   };
 
   const handleSignUp = async () => {
     setMessage({ text: '', type: '' });
     if (!email || !password || !name) {
-      setMessage({ text: 'Por favor, ingresa tu nombre, correo y contraseña.', type: 'error' });
+      setMessage({ text: 'Please enter your name, email, and password.', type: 'error' });
       return;
     }
 
@@ -53,7 +53,7 @@ export default function SignUpScreen() {
     }
 
     if (!data.session) {
-      setMessage({ text: '¡Cuenta creada! Por favor revisa tu bandeja de entrada para verificar tu correo electrónico.', type: 'success' });
+      setMessage({ text: 'Account created! Please check your inbox to verify your email.', type: 'success' });
       setLoading(false);
       return;
     }
@@ -66,10 +66,10 @@ export default function SignUpScreen() {
       });
     }
 
-    setMessage({ text: '¡Cuenta Creada Exitosamente! Redirigiendo...', type: 'success' });
-    // Short delay so they can see the message
-    setTimeout(async () => {
-      await checkProfileAndRedirect(data.user!.id);
+    setMessage({ text: 'Account created successfully! Redirecting...', type: 'success' });
+    // New signups always go through role selection
+    setTimeout(() => {
+      router.replace('/role-select');
       setLoading(false);
     }, 1500);
   };

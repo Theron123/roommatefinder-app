@@ -209,7 +209,7 @@ export default function ExploreScreen() {
               <View style={styles.infoSection}>
                 <Text style={styles.subtitleDealbreaker}>Dealbreakers</Text>
                 <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#49C788" />
+                  <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF4B4B" />
                   <Text style={styles.dealbreakerText} numberOfLines={2}>{card.dealbreakers}</Text>
                 </View>
               </View>
@@ -220,7 +220,7 @@ export default function ExploreScreen() {
                 style={[styles.actionButton, styles.buttonNope]} 
                 onPress={() => swiperRef.current?.swipeLeft()}
               >
-                <MaterialCommunityIcons name="close" size={24} color="#49C788" />
+                <MaterialCommunityIcons name="close" size={24} color="#FF4B4B" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -302,8 +302,8 @@ export default function ExploreScreen() {
                   style: {
                     label: {
                       backgroundColor: 'transparent',
-                      borderColor: '#49C788',
-                      color: '#49C788',
+                      borderColor: '#FF4B4B',
+                      color: '#FF4B4B',
                       borderWidth: 4,
                       fontSize: 32,
                     },
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   buttonNope: {
-    borderColor: '#49C788',
+    borderColor: '#FF4B4B',
   },
   buttonMessage: {
     width: 42,
