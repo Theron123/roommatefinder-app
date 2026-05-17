@@ -7,8 +7,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Swiper from 'react-native-deck-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
+import * as Location from 'expo-location';
+import { getActiveFilters } from '@/app/explore/filters';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 type Profile = {
   id: string;
@@ -20,6 +23,8 @@ type Profile = {
   age?: number;
   lifestyle?: any;
   role?: 'landlord' | 'host' | 'seeker';
+  latitude?: number;
+  longitude?: number;
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
@@ -31,6 +36,8 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
+  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
 
@@ -50,12 +57,18 @@ export default function ExploreScreen() {
       setCurrentUser(currentUserData);
     }
 
-    const { data, error } = await supabase
+    const filters = getActiveFilters();
+    let query = supabase
       .from('profiles')
       .select('*')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
       .limit(50);
+
+    if (filters.role !== 'all') query = query.eq('role', filters.role);
+    if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
+
+    const { data, error } = await query;
       
     if (data) {
       // Shuffle or sort the profiles to make the explore feed dynamic
@@ -67,7 +80,31 @@ export default function ExploreScreen() {
       if (urlsToPrefetch.length > 0) {
         Image.prefetch(urlsToPrefetch);
       }
-      setProfiles(shuffledProfiles);
+      
+      // Request location to center map and generate mock coordinates if null
+      let loc = { latitude: 19.4326, longitude: -99.1332 }; // Default to Mexico City
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let location = await Location.getCurrentPositionAsync({});
+          loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+          setUserLocation(loc);
+        }
+      } catch (e) {
+        console.log('Location error', e);
+      }
+      
+      const mapReadyProfiles = shuffledProfiles.map((p, index) => {
+        // If they don't have lat/lon, randomly scatter them within ~10km of user
+        if (!p.latitude || !p.longitude) {
+          const latOffset = (Math.random() - 0.5) * 0.1;
+          const lngOffset = (Math.random() - 0.5) * 0.1;
+          return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
+        }
+        return p;
+      });
+
+      setProfiles(mapReadyProfiles);
     }
     setLoading(false);
   };
@@ -254,8 +291,33 @@ export default function ExploreScreen() {
     <View style={styles.container}>
       <SafeAreaView style={styles.headerContainer} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.mainTitle}>Explore</Text>
-          <Text style={styles.subTitle}>Find your ideal roommate.</Text>
+          <View>
+            <Text style={styles.mainTitle}>Explore</Text>
+            <Text style={styles.subTitle}>Find your ideal roommate.</Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
+              onPress={() => router.push('/explore/filters')}
+            >
+              <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
+            </TouchableOpacity>
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
+                onPress={() => setViewMode('swipe')}
+              >
+                <MaterialCommunityIcons name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
+                onPress={() => setViewMode('map')}
+              >
+                <MaterialCommunityIcons name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </SafeAreaView>
 
@@ -265,6 +327,46 @@ export default function ExploreScreen() {
             <ActivityIndicator color="#49C788" size="large" />
             <Text style={styles.loadingText}>Finding people...</Text>
           </View>
+        ) : viewMode === 'map' ? (
+          <MapView
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={{
+              latitude: userLocation?.latitude || 19.4326,
+              longitude: userLocation?.longitude || -99.1332,
+              latitudeDelta: 0.1,
+              longitudeDelta: 0.1,
+            }}
+            showsUserLocation={true}
+            userInterfaceStyle="dark"
+          >
+            {profiles.map(profile => {
+              if (!profile.latitude || !profile.longitude) return null;
+              return (
+                <Marker
+                  key={profile.id}
+                  coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
+                >
+                  <View style={styles.markerContainer}>
+                    <Image 
+                      source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
+                      style={styles.markerImage} 
+                    />
+                    <View style={styles.markerBadge}>
+                      <MaterialCommunityIcons name="home-search" size={10} color="#000" />
+                    </View>
+                  </View>
+                  <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
+                    <View style={styles.calloutContainer}>
+                      <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
+                      <Text style={styles.calloutRole}>{profile.role === 'host' ? 'Tiene cuarto' : 'Busca cuarto'}</Text>
+                      <Text style={styles.calloutAction}>Ver perfil</Text>
+                    </View>
+                  </Callout>
+                </Marker>
+              );
+            })}
+          </MapView>
         ) : allSwiped || profiles.length === 0 ? (
           <View style={styles.center}>
             <MaterialCommunityIcons name="account-search-outline" size={60} color="#555" />
@@ -428,6 +530,82 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#333'
+  },
+  toggleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  toggleBtnActive: {
+    backgroundColor: '#49C788',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  markerContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#49C788',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  markerImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  markerBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#49C788',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#000'
+  },
+  calloutContainer: {
+    width: 140,
+    padding: 8,
+    alignItems: 'center',
+  },
+  calloutName: {
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginBottom: 2
+  },
+  calloutRole: {
+    color: '#666',
+    fontSize: 12,
+    marginBottom: 6
+  },
+  calloutAction: {
+    color: '#0A84FF',
+    fontWeight: '700',
+    fontSize: 12
   },
   swiperContainer: {
     flex: 1,

@@ -1,0 +1,129 @@
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
+import { supabase } from '@/lib/supabase';
+
+// ── Configure how notifications appear when app is in foreground ──
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+/**
+ * Requests permission and returns the Expo push token.
+ * Saves the token to the user's profile in Supabase.
+ */
+export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    console.log('[Notifications] Push notifications are not configured for web in dev mode.');
+    return null;
+  }
+
+  if (!Device.isDevice) {
+    console.log('[Notifications] Push tokens are only available on physical devices.');
+    return null;
+  }
+
+  // Check/request permissions
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    console.log('[Notifications] Permission not granted.');
+    return null;
+  }
+
+  // Android channel
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#49C788',
+    });
+  }
+
+  // Get Expo push token
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+  });
+
+  const token = tokenData.data;
+
+  // Save to Supabase profile
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      await supabase
+        .from('profiles')
+        .update({ push_token: token })
+        .eq('id', session.user.id);
+    }
+  } catch (e) {
+    console.error('[Notifications] Error saving token to Supabase:', e);
+  }
+
+  return token;
+}
+
+/**
+ * Schedules a local notification immediately.
+ */
+export async function sendLocalNotification(
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data: data || {},
+      sound: true,
+    },
+    trigger: null, // Fire immediately
+  });
+}
+
+/**
+ * Helper to notify user of a new message locally (real-time feel).
+ */
+export async function notifyNewMessage(senderName: string, messagePreview: string, senderId: string) {
+  await sendLocalNotification(
+    `💬 ${senderName}`,
+    messagePreview.slice(0, 80),
+    { type: 'new_message', senderId }
+  );
+}
+
+/**
+ * Helper to notify user of a new match.
+ */
+export async function notifyNewMatch(matchedUserName: string, matchedUserId: string) {
+  await sendLocalNotification(
+    `🎉 ¡Nuevo Match!`,
+    `${matchedUserName} también está interesado en conectar contigo.`,
+    { type: 'new_match', matchedUserId }
+  );
+}
+
+/**
+ * Helper to notify about contract update.
+ */
+export async function notifyContractUpdate(contractId: string, message: string) {
+  await sendLocalNotification(
+    `📄 Actualización de Contrato`,
+    message,
+    { type: 'contract_update', contractId }
+  );
+}

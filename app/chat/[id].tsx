@@ -12,6 +12,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { Audio, Video, ResizeMode } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
+import { notifyNewMessage } from '@/lib/notifications';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -121,6 +122,10 @@ export default function ChatScreen() {
       setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
     } else if (data) {
       setMessages(prev => prev.map(m => m.id === tempId ? { ...data, status: 'sent' } : m));
+      // Trigger local push notification for the receiver
+      if (otherUser?.name) {
+        await notifyNewMessage(otherUser.name, textToSend, id as string);
+      }
     }
   };
 
