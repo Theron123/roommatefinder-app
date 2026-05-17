@@ -171,22 +171,54 @@ export default function HomeScreen() {
   };
 
   const renderListing = ({ item }: { item: any }) => (
-    <Pressable style={styles.cardContainer}>
-      <LinearGradient
-        colors={['#1a1a24', '#0a0a0f']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.card}
-      >
-        {item.images && item.images.length > 0 ? (
-          <Image source={{ uri: item.images[0] }} style={{width: '100%', height: 150, borderRadius: 12, marginBottom: 12}} contentFit="cover" />
-        ) : (
-          <View style={{width: '100%', height: 150, borderRadius: 12, marginBottom: 12, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center'}}>
-            <IconSymbol name="house.fill" size={40} color="#666" />
+    <Pressable 
+      style={styles.listingCardContainer}
+      onPress={() => router.push(`/listing/${item.id}`)}
+    >
+      <View style={styles.listingCard}>
+        {/* Full bleed image with gradient overlay */}
+        <View style={styles.listingImageWrapper}>
+          {item.images && item.images.length > 0 ? (
+            <Image source={{ uri: item.images[0] }} style={styles.listingImage} contentFit="cover" transition={300} />
+          ) : (
+            <View style={[styles.listingImage, { backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' }]}>
+              <IconSymbol name="house.fill" size={50} color="#555" />
+            </View>
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.listingGradient}
+          />
+          
+          {/* Floating Price Tag */}
+          <View style={styles.priceTag}>
+            <Text style={styles.priceText}>${item.price}</Text>
+            <Text style={styles.pricePeriod}>/mo</Text>
           </View>
-        )}
-        <Text style={styles.cardTitle}>{item.title || 'Apartment'}</Text>
-        <Text style={styles.cardSubtitle}>${item.price}/month • {item.address}</Text>
-      </LinearGradient>
+          
+          {/* Utilities Badge */}
+          {item.utilities_included && (
+            <View style={styles.utilitiesBadge}>
+              <IconSymbol name="bolt.fill" size={12} color="#000" />
+              <Text style={styles.utilitiesText}>Utilities Inc.</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Content details */}
+        <View style={styles.listingContent}>
+          <Text style={styles.listingTitle} numberOfLines={1}>{item.title || 'Beautiful Apartment'}</Text>
+          
+          <View style={styles.listingLocationRow}>
+            <IconSymbol name="mappin.and.ellipse" size={14} color="#888" />
+            <Text style={styles.listingAddress} numberOfLines={1}>{item.address || 'Location not specified'}</Text>
+          </View>
+          
+          {item.description && (
+            <Text style={styles.listingDesc} numberOfLines={2}>{item.description}</Text>
+          )}
+        </View>
+      </View>
     </Pressable>
   );
 
@@ -378,5 +410,96 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#888',
     fontSize: 16,
+  },
+  listingCardContainer: {
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  listingCard: {
+    backgroundColor: '#111',
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  listingImageWrapper: {
+    position: 'relative',
+    height: 220,
+    width: '100%',
+  },
+  listingImage: {
+    width: '100%',
+    height: '100%',
+  },
+  listingGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 80,
+  },
+  priceTag: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  priceText: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '900',
+  },
+  pricePeriod: {
+    color: '#ccc',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 2,
+  },
+  utilitiesBadge: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    backgroundColor: '#49C788',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  utilitiesText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  listingContent: {
+    padding: 16,
+  },
+  listingTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  listingLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  listingAddress: {
+    color: '#aaa',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  listingDesc: {
+    color: '#888',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

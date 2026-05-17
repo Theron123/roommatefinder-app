@@ -145,6 +145,21 @@ export default function MyProfileScreen() {
   const lifestyleEntries = Object.entries(lifestyleObj).filter(([k, v]) => k !== 'languages' && v);
   const languagesArr = lifestyleObj.languages || [];
 
+  // Label mapping for lifestyle keys → human-readable category names with emojis
+  const LIFESTYLE_LABELS: Record<string, { label: string; emoji: string }> = {
+    sleep: { label: 'Sleep', emoji: '🌙' },
+    cleanliness: { label: 'Cleanliness', emoji: '🧹' },
+    social: { label: 'Personality', emoji: '🧠' },
+    parties: { label: 'Parties', emoji: '🎉' },
+    pets: { label: 'Pets', emoji: '🐾' },
+    smoking: { label: 'Smoking', emoji: '🚬' },
+    music: { label: 'Loud Music', emoji: '🎵' },
+    work: { label: 'Work Style', emoji: '💼' },
+    occupation: { label: 'Occupation', emoji: '👔' },
+    budget: { label: 'Budget', emoji: '💰' },
+    cooking: { label: 'Cooking', emoji: '🍳' },
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -322,30 +337,58 @@ export default function MyProfileScreen() {
             <IconSymbol name="plus.circle.fill" size={24} color="#00C9A7" />
           </Pressable>
         </View>
-        <View style={styles.chipWrap}>
-          {prefsArr.length > 0 && prefsArr.map((tag: string) => (
-            <View key={tag} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-              <Text style={[styles.chipText, { color: '#00C9A7' }]}>{tag}</Text>
-            </View>
-          ))}
-          {lifestyleEntries.length > 0 && lifestyleEntries.map(([key, val]: any) => (
-            <View key={key} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-              <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{val}</Text>
-            </View>
-          ))}
-          {languagesArr.length > 0 && languagesArr.map((lang: string) => (
-            <View key={`lang-${lang}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-              <Text style={[styles.chipText, { color: '#00C9A7' }]}>🗣️ {lang}</Text>
-            </View>
-          ))}
-          
-          {prefsArr.length === 0 && lifestyleEntries.length === 0 && languagesArr.length === 0 && (
+
+        {lifestyleEntries.length > 0 || prefsArr.length > 0 || languagesArr.length > 0 ? (
+          <View style={styles.lifestyleSection}>
+            {/* Categorized lifestyle entries */}
+            {lifestyleEntries.map(([key, val]: any) => {
+              const meta = LIFESTYLE_LABELS[key] || { label: key, emoji: '📌' };
+              return (
+                <View key={key} style={styles.lifestyleCategoryRow}>
+                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {meta.label}</Text>
+                  <View style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
+                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{val}</Text>
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Languages */}
+            {languagesArr.length > 0 && (
+              <View style={styles.lifestyleCategoryRow}>
+                <Text style={styles.lifestyleCategoryLabel}>🗣️ Languages</Text>
+                <View style={styles.chipWrapInline}>
+                  {languagesArr.map((lang: string) => (
+                    <View key={`lang-${lang}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
+                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{lang}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Legacy preferences array (if any) */}
+            {prefsArr.length > 0 && (
+              <View style={styles.lifestyleCategoryRow}>
+                <Text style={styles.lifestyleCategoryLabel}>📋 Other</Text>
+                <View style={styles.chipWrapInline}>
+                  {prefsArr.map((tag: string) => (
+                    <View key={tag} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
+                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.chipWrap}>
             <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
               <IconSymbol name="plus" size={16} color="#00C9A7" />
               <Text style={[styles.addChipText, { color: '#00C9A7' }]}>Add Lifestyle Details</Text>
             </Pressable>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Dealbreakers */}
         <View style={styles.sectionHeaderRow}>
@@ -552,6 +595,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 8,
     marginBottom: 20,
+  },
+  lifestyleSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  lifestyleCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  lifestyleCategoryLabel: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 120,
+  },
+  chipWrapInline: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   chip: {
     backgroundColor: 'rgba(255,255,255,0.05)',
