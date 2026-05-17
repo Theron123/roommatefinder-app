@@ -23,6 +23,11 @@ export default function RootLayout() {
         <Stack.Screen name="role-select" options={{ headerShown: false }} />
         <Stack.Screen name="preferences" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="contracts/index" options={{ headerShown: false }} />
+        <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
+        <Stack.Screen name="contracts/review" options={{ headerShown: false }} />
+        <Stack.Screen name="contracts/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="terms" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

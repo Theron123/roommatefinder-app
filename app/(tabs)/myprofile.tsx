@@ -18,6 +18,8 @@ export default function MyProfileScreen() {
   const [bio, setBio] = useState<string>('');
   const [age, setAge] = useState<string>('');
   const [listing, setListing] = useState<any>(null);
+  const [contractCount, setContractCount] = useState<number>(0);
+  const [pendingCount, setPendingCount] = useState<number>(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +46,16 @@ export default function MyProfileScreen() {
         setListing(listingData);
       } else {
         setListing(null);
+      }
+
+      // Fetch contract counts
+      const { data: contracts } = await supabase
+        .from('contracts')
+        .select('id, status')
+        .or(`initiator_id.eq.${session.user.id},counterparty_id.eq.${session.user.id}`);
+      if (contracts) {
+        setContractCount(contracts.length);
+        setPendingCount(contracts.filter((c: any) => c.status === 'pending_authorization').length);
       }
     }
     setLoading(false);
@@ -416,6 +428,44 @@ export default function MyProfileScreen() {
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
           <IconSymbol name="slider.horizontal.3" size={20} color="#000" />
           <Text style={styles.editBtnText}>Edit My Preferences</Text>
+        </Pressable>
+
+        <View style={{ height: 16 }} />
+
+        {/* ── Legal & Agreements ── */}
+        <View style={styles.divider} />
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Legal & Acuerdos</Text>
+          <Pressable onPress={() => router.push('/terms')}>
+            <MaterialCommunityIcons name="shield-outline" size={22} color="#49C788" />
+          </Pressable>
+        </View>
+        <Pressable style={styles.legalCard} onPress={() => router.push('/contracts')}>
+          <View style={styles.legalIconWrap}>
+            <MaterialCommunityIcons name="file-sign" size={28} color="#49C788" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.legalTitle}>Mis Contratos</Text>
+            <Text style={styles.legalSub}>
+              {contractCount === 0
+                ? 'Sin contratos aún — crea uno con un match'
+                : `${contractCount} contrato${contractCount !== 1 ? 's' : ''}${pendingCount > 0 ? ` · ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}` : ''}`
+              }
+            </Text>
+          </View>
+          {pendingCount > 0 && (
+            <View style={styles.legalBadge}>
+              <Text style={styles.legalBadgeText}>{pendingCount}</Text>
+            </View>
+          )}
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
+        </Pressable>
+        <Pressable
+          style={[styles.legalSection, { marginTop: 8 }]}
+          onPress={() => router.push('/contracts/new')}
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#49C788" />
+          <Text style={[styles.addChipText, { color: '#49C788' }]}>Crear nuevo acuerdo</Text>
         </Pressable>
 
         <View style={{ height: 16 }} />
@@ -795,6 +845,55 @@ const styles = StyleSheet.create({
   listingImage: {
     width: 100,
     height: 100,
+  },
+  legalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d1117',
+    borderWidth: 1,
+    borderColor: 'rgba(73,199,136,0.25)',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    gap: 14,
+  },
+  legalIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(73,199,136,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legalTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  legalSub: {
+    color: '#666',
+    fontSize: 12,
+  },
+  legalBadge: {
+    backgroundColor: '#FFB800',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  legalBadgeText: {
+    color: '#000',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  legalSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
   },
   listingImagePlaceholder: {
     backgroundColor: '#222',
