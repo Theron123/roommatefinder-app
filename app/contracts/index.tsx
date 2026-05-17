@@ -46,7 +46,9 @@ export default function ContractsIndexScreen() {
   );
 
   const fetchContracts = async () => {
-    setLoading(true);
+    if (contracts.length === 0) {
+      setLoading(true);
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
     setUserId(session.user.id);

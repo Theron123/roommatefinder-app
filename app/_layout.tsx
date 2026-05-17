@@ -28,6 +28,9 @@ export default function RootLayout() {
         <Stack.Screen name="contracts/review" options={{ headerShown: false }} />
         <Stack.Screen name="contracts/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="terms" options={{ headerShown: false }} />
+        <Stack.Screen name="trust/index" options={{ headerShown: false }} />
+        <Stack.Screen name="trust/verify" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="trust/report" options={{ headerShown: false, presentation: 'modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

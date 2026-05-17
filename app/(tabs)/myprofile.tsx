@@ -228,9 +228,14 @@ export default function MyProfileScreen() {
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setEditing(true)} style={styles.nameRow}>
-              <Text style={styles.profileName}>{name}{profile.age ? `, ${profile.age}` : ''}</Text>
-              <IconSymbol name="pencil" size={18} color="#888" />
+            <Pressable onPress={() => setEditing(true)} style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
+              <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
+              {profile?.trust_score >= 80 ? (
+                <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
+              ) : profile?.trust_score >= 40 ? (
+                <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
+              ) : null}
+              <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
             </Pressable>
           )}
 
@@ -428,6 +433,26 @@ export default function MyProfileScreen() {
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
           <IconSymbol name="slider.horizontal.3" size={20} color="#000" />
           <Text style={styles.editBtnText}>Edit My Preferences</Text>
+        </Pressable>
+
+        <View style={{ height: 16 }} />
+
+        {/* ── Trust & Safety ── */}
+        <View style={styles.divider} />
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Trust & Safety Center</Text>
+          <MaterialCommunityIcons name="shield-check" size={22} color="#0A84FF" />
+        </View>
+        <Pressable style={s.trustCard} onPress={() => router.push('/trust')}>
+          <View style={s.trustIconWrap}>
+            <MaterialCommunityIcons name="shield-account" size={32} color="#0A84FF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.trustTitle}>Centro de Confianza</Text>
+            <Text style={s.trustSub}>Tu Trust Score: <Text style={{fontWeight: '800', color: profile?.trust_score > 75 ? '#34C759' : '#FFD60A'}}>{profile?.trust_score || 20}/100</Text></Text>
+            <Text style={s.trustHint}>Completa tu perfil para destacar más</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
         </Pressable>
 
         <View style={{ height: 16 }} />
@@ -921,4 +946,47 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 12,
   },
+});
+
+const s = StyleSheet.create({
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  trustCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d1117',
+    borderWidth: 1,
+    borderColor: 'rgba(10, 132, 255, 0.3)',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 20,
+    gap: 14,
+  },
+  trustIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(10, 132, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  trustTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  trustSub: {
+    color: '#aaa',
+    fontSize: 13,
+  },
+  trustHint: {
+    color: '#666',
+    fontSize: 11,
+    marginTop: 4,
+  }
 });

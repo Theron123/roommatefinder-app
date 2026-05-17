@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   draft:                 { label: 'Borrador',   color: '#888',    bg: '#111',                    icon: 'pencil-outline' },
@@ -60,6 +62,7 @@ export default function ContractDetailScreen() {
   useEffect(() => { if (id) fetchContract(); }, [id]);
 
   const fetchContract = async () => {
+    if (!contract) setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     setUserId(session?.user?.id || null);
 
@@ -110,30 +113,124 @@ export default function ContractDetailScreen() {
   };
 
   const handleGenerateAndDownload = async () => {
+    if (!contract) return;
     setGenerating(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const c = contract.clauses || {};
+      const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
+      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
-      const { data: urlData } = await supabase.functions.invoke('generate-contract-pdf', {
-        body: { contract_id: id },
-      });
+      // Build rows for the PDF
+      const rows = [
+        { label: 'Renta Mensual', val: c.rent ? `$${c.rent.amount} (Día ${c.rent.due_day})` : 'N/A' },
+        { label: 'Depósito de Seguridad', val: c.security_deposit ? `$${c.security_deposit.amount}` : 'N/A' },
+        { label: 'Mascotas', val: c.pets?.allowed ? 'Permitidas' : 'No permitidas' },
+        { label: 'Fumar', val: c.smoking?.allowed ? 'Permitido' : 'No permitido' },
+        { label: 'Visitas Nocturnas', val: c.visitors?.overnight_allowed ? `Máx. ${c.visitors.max_nights} noches` : 'No permitidas' },
+        { label: 'Horas de Silencio', val: c.noise ? `${c.noise.quiet_hours_start} - ${c.noise.quiet_hours_end}` : 'N/A' },
+        { label: 'Turno de Limpieza', val: c.cleaning?.schedule === 'daily' ? 'Diaria' : c.cleaning?.schedule === 'weekly' ? 'Semanal' : 'Quincenal' },
+        { label: 'Aviso de Mudanza', val: c.move_out ? `${c.move_out.notice_days} días` : '30 días' },
+      ];
 
-      if (urlData?.url) {
-        await fetchContract();
-        Alert.alert(
-          '📄 Documento listo',
-          'El contrato fue generado exitosamente.',
-          [
-            { text: 'Abrir', onPress: () => Linking.openURL(urlData.url) },
-            { text: 'OK' }
-          ]
-        );
-      } else {
-        Alert.alert('Error', 'No se pudo generar el documento.');
-      }
+      const customRows = (contract.selected_custom_clauses || []).map((key: string) => `
+        <tr>
+          <td style="padding:12px; border-bottom:1px solid #eaeaea; color:#333;" colspan="2">
+            &bull; ${OPTIONAL_CLAUSE_LABELS[key] || key}
+          </td>
+        </tr>
+      `).join('');
+
+      const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Contrato ${contract.id}</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #222; margin: 0; padding: 40px; background: #fff; }
+          .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #49C788; padding-bottom: 20px; }
+          .header h1 { margin: 0; color: #1a1a2e; font-size: 28px; letter-spacing: -0.5px; }
+          .header p { color: #666; font-size: 14px; margin-top: 8px; }
+          .badge { display: inline-block; background: #e0f2e9; color: #1e8751; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-top: 10px; }
+          .parties { display: flex; justify-content: space-between; margin-bottom: 40px; }
+          .party-box { width: 45%; padding: 20px; background: #fafafa; border-radius: 8px; border-left: 4px solid #49C788; }
+          .party-box p { margin: 0; font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+          .party-box h3 { margin: 8px 0 0; font-size: 20px; color: #1a1a2e; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+          th { text-align: left; background: #1a1a2e; color: #fff; padding: 12px; font-size: 14px; }
+          td { padding: 12px; border-bottom: 1px solid #eaeaea; font-size: 14px; color: #444; }
+          td:first-child { font-weight: bold; color: #1a1a2e; width: 40%; }
+          .disclaimer { font-size: 12px; color: #666; padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; margin-top: 40px; line-height: 1.5; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
+          .sig-line { width: 45%; border-top: 1px solid #333; padding-top: 10px; }
+          .sig-line p { margin: 0; font-size: 14px; font-weight: bold; color: #1a1a2e; }
+          .sig-line span { font-size: 12px; color: #888; }
+          .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${TYPE_LABELS[contract.type] || 'Acuerdo'}</h1>
+          <p>Generado vía RoommateFinder App</p>
+          <div class="badge">ESTADO: ${STATUS_CONFIG[contract.status]?.label?.toUpperCase() || 'ACTIVO'}</div>
+        </div>
+
+        <div class="parties">
+          <div class="party-box">
+            <p>Iniciador</p>
+            <h3>${initiatorName}</h3>
+          </div>
+          <div class="party-box">
+            <p>Contraparte</p>
+            <h3>${counterpartyName}</h3>
+          </div>
+        </div>
+
+        <p style="font-size: 14px; color: #444; margin-bottom: 20px;">
+          <strong>ID del Contrato:</strong> <span style="font-family: monospace;">${contract.id}</span><br>
+          <strong>Fecha Efectiva:</strong> ${effectiveDate}
+        </p>
+
+        <table>
+          <tr>
+            <th colspan="2">Términos Acordados</th>
+          </tr>
+          ${rows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+          ${customRows ? `<tr><th colspan="2" style="background:#49C788;">Cláusulas Adicionales</th></tr>${customRows}` : ''}
+        </table>
+
+        <div class="disclaimer">
+          <strong>Aviso Legal:</strong> Este documento fue generado a través de la plataforma RoommateFinder. RoommateFinder actúa únicamente como herramienta intermediaria y no sustituye el asesoramiento legal profesional. Las firmas electrónicas a continuación representan la aceptación de las partes dentro de la aplicación.
+        </div>
+
+        <div class="signatures">
+          <div class="sig-line">
+            <p>${initiatorName}</p>
+            <span>Firmado electrónicamente (RoommateFinder)</span>
+          </div>
+          <div class="sig-line">
+            <p>${counterpartyName}</p>
+            <span>Firmado electrónicamente (RoommateFinder)</span>
+          </div>
+        </div>
+
+        <div class="footer">
+          Generado el ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Página 1 de 1
+        </div>
+      </body>
+      </html>
+      `;
+
+      // Generate PDF
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      
+      // Share/Download PDF
+      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Descargar Contrato' });
+
     } catch (err) {
-      Alert.alert('Error', 'Ocurrió un error al generar el documento.');
+      console.error(err);
+      Alert.alert('Error', 'Ocurrió un error al generar el documento PDF.');
     } finally {
       setGenerating(false);
     }
@@ -253,20 +350,10 @@ export default function ContractDetailScreen() {
               {generating
                 ? <ActivityIndicator color="#49C788" />
                 : <>
-                    <MaterialCommunityIcons name="file-download-outline" size={20} color="#49C788" />
-                    <Text style={s.downloadBtnText}>
-                      {contract.pdf_url ? 'Descargar Documento' : 'Generar Documento'}
-                    </Text>
+                    <MaterialCommunityIcons name="file-pdf-box" size={20} color="#49C788" />
+                    <Text style={s.downloadBtnText}>Descargar PDF</Text>
                   </>
               }
-            </Pressable>
-          )}
-
-          {/* Open existing URL */}
-          {contract.pdf_url && (
-            <Pressable style={s.openUrlBtn} onPress={() => Linking.openURL(contract.pdf_url!)}>
-              <MaterialCommunityIcons name="open-in-new" size={18} color="#888" />
-              <Text style={s.openUrlText}>Abrir documento generado</Text>
             </Pressable>
           )}
 
