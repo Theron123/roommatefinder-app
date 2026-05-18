@@ -252,35 +252,7 @@ export default function ExploreScreen() {
               </View>
             ) : null}
 
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonNope]} 
-                onPress={() => swiperRef.current?.swipeLeft()}
-              >
-                <MaterialCommunityIcons name="close" size={24} color="#FF4B4B" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonSkip]} 
-                onPress={() => swiperRef.current?.swipeBottom()}
-              >
-                <MaterialCommunityIcons name="skip-next" size={24} color="#ff9800" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonMessage]} 
-                onPress={() => router.push(`/chat/${card.id}`)}
-              >
-                <MaterialCommunityIcons name="message-text" size={20} color="#2196f3" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonLike]} 
-                onPress={() => swiperRef.current?.swipeRight()}
-              >
-                <MaterialCommunityIcons name="heart" size={24} color="#4caf50" />
-              </TouchableOpacity>
-            </View>
+            {/* Action buttons removed from here to fix web clicking */}
           </View>
         </View>
       </View>
@@ -392,10 +364,14 @@ export default function ExploreScreen() {
               backgroundColor="transparent"
               stackSize={3}
               stackSeparation={15}
-              animateCardOpacity
               swipeBackCard
-              overlayOpacityHorizontalThreshold={10}
-              overlayOpacityVerticalThreshold={10}
+              animateOverlayLabelsOpacity
+              overlayOpacityHorizontalThreshold={1}
+              overlayOpacityVerticalThreshold={1}
+              inputOverlayLabelsOpacityRangeX={[-width / 3, -width / 6, 0, width / 6, width / 3]}
+              outputOverlayLabelsOpacityRangeX={[1, 0.3, 0, 0.3, 1]}
+              inputOverlayLabelsOpacityRangeY={[-height / 3, -height / 6, 0, height / 6, height / 3]}
+              outputOverlayLabelsOpacityRangeY={[1, 0.3, 0, 0.3, 1]}
               containerStyle={styles.swiper}
               cardStyle={styles.cardStyle}
               overlayLabels={{
@@ -507,6 +483,39 @@ export default function ExploreScreen() {
                 }
               }}
             />
+            
+            <View style={styles.floatingActionButtons} pointerEvents="box-none">
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonNope]} 
+                onPress={() => swiperRef.current?.swipeLeft()}
+              >
+                <MaterialCommunityIcons name="close" size={28} color="#FF4B4B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonSkip]} 
+                onPress={() => swiperRef.current?.swipeBottom()}
+              >
+                <MaterialCommunityIcons name="skip-next" size={28} color="#ff9800" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonMessage]} 
+                onPress={() => {
+                  const card = profiles[currentIndex];
+                  if (card) router.push(`/chat/${card.id}`);
+                }}
+              >
+                <MaterialCommunityIcons name="message-text" size={24} color="#2196f3" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonLike]} 
+                onPress={() => swiperRef.current?.swipeRight()}
+              >
+                <MaterialCommunityIcons name="heart" size={28} color="#4caf50" />
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </View>
@@ -676,7 +685,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 12, 
-    paddingBottom: 16, 
+    paddingBottom: 90, 
   },
   compatibilityBadge: {
     backgroundColor: '#49C788',
@@ -769,17 +778,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  actionButtons: {
+  floatingActionButtons: {
+    position: 'absolute',
+    bottom: 20,
+    width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingTop: 8,
-    width: '100%',
+    paddingHorizontal: 20,
+    zIndex: 100,
   },
   actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',

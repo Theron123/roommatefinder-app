@@ -9,7 +9,8 @@ export const PROVIDER_GOOGLE = 'google';
 export function Marker(_props: any) { return null; }
 export function Callout(_props: any) { return null; }
 
-export default function MapView({ style, children }: { style?: any; children?: any }) {
+export default function MapView(props: any) {
+  const { style, children } = props;
   return (
     <View style={[styles.container, style]}>
       <MaterialCommunityIcons name="map-outline" size={64} color="#333" />

@@ -1,12 +1,14 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
+import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Profile = {
   id: string;
@@ -31,12 +33,22 @@ export default function HomeScreen() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [feedMode, setFeedMode] = useState<'people' | 'apartments'>('people');
+  const [isPremium, setIsPremium] = useState(false);
   const router = useRouter();
 
-  const fetchMatches = async () => {
-    if (profiles.length === 0) {
+  const fetchMatches = async (isRefresh = false) => {
+    if (profiles.length === 0 && !isRefresh) {
       setLoading(true);
+    }
+    if (isRefresh) setRefreshing(true);
+
+    try {
+      const stored = await AsyncStorage.getItem('mock_premium');
+      setIsPremium(stored === 'true');
+    } catch (e) {
+      // error reading value
     }
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -49,6 +61,7 @@ export default function HomeScreen() {
     
     if (!currentUserProfile) {
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
@@ -102,13 +115,18 @@ export default function HomeScreen() {
     }
     
     setLoading(false);
+    setRefreshing(false);
   };
 
-  const fetchListings = async () => {
-    if (listings.length === 0) setLoading(true);
+  const fetchListings = async (isRefresh = false) => {
+    if (listings.length === 0 && !isRefresh) setLoading(true);
+    if (isRefresh) setRefreshing(true);
+    
     const { data } = await supabase.from('listings').select('*').limit(50);
     if (data) setListings(data);
+    
     setLoading(false);
+    setRefreshing(false);
   };
 
   useFocusEffect(
@@ -121,51 +139,76 @@ export default function HomeScreen() {
     }, [feedMode])
   );
 
-  const renderProfile = ({ item }: { item: Profile }) => {
+  const renderProfile = ({ item, index }: { item: Profile, index: number }) => {
+    const isBlurred = index >= 5 && !isPremium;
     const distanceText = item.distance != null ? `${item.distance.toFixed(1)} km away` : 'Location unknown';
     const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
 
     return (
-      <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.cardContainer}>
-        <LinearGradient
-          colors={['#1a1a24', '#0a0a0f']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.card}
-        >
-          <View style={styles.cardHeader}>
-          {item.photoUrl ? (
-            <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
-          ) : (
-            <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+      <Pressable 
+        onPress={() => {
+          if (isBlurred) {
+            router.push('/subscriptions');
+          } else {
+            router.push(`/profile/${item.id}`);
+          }
+        }} 
+        style={styles.cardContainer}
+      >
+        <View style={{ borderRadius: 20, overflow: 'hidden', backgroundColor: '#0a0a0f' }}>
+          <LinearGradient
+            colors={['#1a1a24', '#0a0a0f']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.card}
+          >
+            <View style={styles.cardHeader}>
+            {item.photoUrl ? (
+              <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
+            ) : (
+              <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+            )}
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.cardTitle}>{item.name || 'Roommate'}, {item.age || '?'}</Text>
+              <Text style={styles.cardSubtitle}>Tap to view profile</Text>
+            </View>
+          </View>
+
+          <View style={styles.metaRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{distanceText}</Text>
+            </View>
+            {matchTag ? (
+              <View style={[styles.badge, styles.badgeMatch]}>
+                <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
+              </View>
+            ) : null}
+            {item.hasListing ? (
+              <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
+                <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
+              </View>
+            ) : null}
+          </View>
+          
+          <Text style={styles.label}>Likes & Hobbies</Text>
+          <Text style={styles.content} numberOfLines={2}>{item.likes || 'Not specified'}</Text>
+
+          <Text style={styles.label}>Preferences</Text>
+          <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
+          </LinearGradient>
+          
+          {isBlurred && (
+            <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill}>
+              <View style={styles.blurOverlayContent}>
+                <IconSymbol name="lock.fill" size={40} color="#49C788" />
+                <Text style={styles.blurTitle}>Premium Match</Text>
+                <Text style={styles.blurDesc}>Upgrade your plan to unlock more potential roommates and see their full profiles.</Text>
+                <View style={styles.blurBtn}>
+                  <Text style={styles.blurBtnText}>Unlock Premium</Text>
+                </View>
+              </View>
+            </BlurView>
           )}
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.cardTitle}>{item.name || 'Roommate'}, {item.age || '?'}</Text>
-            <Text style={styles.cardSubtitle}>Tap to view profile</Text>
-          </View>
         </View>
-
-        <View style={styles.metaRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{distanceText}</Text>
-          </View>
-          {matchTag ? (
-            <View style={[styles.badge, styles.badgeMatch]}>
-              <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
-            </View>
-          ) : null}
-          {item.hasListing ? (
-            <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
-              <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
-            </View>
-          ) : null}
-        </View>
-        
-        <Text style={styles.label}>Likes & Hobbies</Text>
-        <Text style={styles.content} numberOfLines={2}>{item.likes || 'Not specified'}</Text>
-
-        <Text style={styles.label}>Preferences</Text>
-        <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
-        </LinearGradient>
       </Pressable>
     );
   };
@@ -259,6 +302,9 @@ export default function HomeScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderProfile}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchMatches(true)} tintColor="#49C788" />
+            }
           />
         )
       ) : (
@@ -272,6 +318,9 @@ export default function HomeScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderListing}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchListings(true)} tintColor="#49C788" />
+            }
           />
         )
       )}
@@ -501,5 +550,36 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14,
     lineHeight: 20,
+  },
+  blurOverlayContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  blurTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  blurDesc: {
+    color: '#ccc',
+    textAlign: 'center',
+    fontSize: 14,
+    marginTop: 8,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  blurBtn: {
+    backgroundColor: '#49C788',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  blurBtnText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

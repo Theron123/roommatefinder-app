@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   View, Text, StyleSheet, TextInput, Pressable, FlatList,
-  KeyboardAvoidingView, Platform, Image, Modal, Alert,
+  KeyboardAvoidingView, Platform, Image, Modal, Alert, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -24,9 +24,10 @@ export default function ChatScreen() {
   const [myId, setMyId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
-  // Image Viewer Modal
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageScale, setImageScale] = useState(1);
+  const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
   // Forward Modal
   const [showForwardModal, setShowForwardModal] = useState(false);
