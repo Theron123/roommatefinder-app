@@ -101,3 +101,9 @@ La aplicación maneja tres roles principales para diferenciar la intención de l
   - UI de Home: Agregado un Segmented Control (Slider) para alternar entre feed de personas ("People") y anuncios ("Apartments").
   - Estricta política global en Inglés: Traducción de labels restantes (Profile, Chats, Settings).
   - Sistema de Roles: Añadido soporte lógico para roles `landlord`, `host` y `seeker` con filtros en consultas.
+- **[17-18 de Mayo, 2026] - Optimización de UX, Swiper y Paywall Mock:**
+  - **Swiper Fix & Parches:** Se corrigieron los problemas de la interpolación de opacidad en `react-native-deck-swiper` para los botones LIKE/NOPE aplicando un parche permanente mediante `patch-package` y un script `postinstall`.
+  - **Interacciones Web:** Se añadió `pointerEvents="box-none"` a los botones flotantes sobre el Swiper para prevenir que bloqueen el gesto de deslizamiento (swipe) en navegadores web.
+  - **Paywall en Home Feed:** Se implementó una lógica de muro de pago. Los usuarios gratuitos (Free) ahora verán difuminados (`expo-blur`) los perfiles recomendados a partir de la quinta (5ta) posición, invitándolos a mejorar su plan.
+  - **Manejo de Suscripción Mockeada:** Se actualizó la vista `subscriptions.tsx` para incluir un "Switch" que simula la activación del plan Premium, guardando el estado en `AsyncStorage` para probar fácilmente el paywall del Home Feed sin necesidad de afectar el backend (RLS de Supabase).
+  - **Pull-to-Refresh:** Se añadió el gesto nativo de jalar para recargar (`RefreshControl`) en las listas de `index.tsx` para forzar la sincronización del estado visual de la suscripción.
