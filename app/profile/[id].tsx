@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, ScrollView, Pressable, ActivityIndicator
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import MapComponent from '@/components/ui/MapComponent';
@@ -77,6 +78,13 @@ export default function ProfileDetailScreen() {
     }
   }
 
+  const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
+    looking_urgent: { label: 'Buscando Urgente', color: '#34C759', icon: 'lightning-bolt' },
+    exploring: { label: 'Solo Explorando', color: '#FFCC00', icon: 'compass' },
+    have_room: { label: 'Tengo Cuarto', color: '#0A84FF', icon: 'home-account' }
+  };
+  const statusConfig = profile.availability_status ? STATUS_MAP[profile.availability_status] : null;
+
   return (
     <View style={styles.container}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
@@ -96,6 +104,12 @@ export default function ProfileDetailScreen() {
             <View>
               <Text style={styles.name}>{profile.name}, {profile.age}</Text>
               <Text style={styles.distanceBadge}>{distanceText}</Text>
+              {statusConfig && (
+                <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '22', borderColor: statusConfig.color }]}>
+                  <MaterialCommunityIcons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
+                  <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+                </View>
+              )}
             </View>
 
             {/* Match Circle */}
@@ -229,6 +243,21 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginTop: 4,
     fontWeight: '500',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   matchCircle: {
     width: 60,

@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'TU_CLAVE_AQUI';
@@ -51,6 +51,8 @@ export default function PreferencesScreen() {
 
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationName, setLocationName] = useState('');
+
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
 
   useEffect(() => {
     loadExistingPreferences();
@@ -178,7 +180,7 @@ export default function PreferencesScreen() {
   const handleSave = async () => {
     setLoading(true);
 
-    if (!selectedLocation) {
+    if (!focus && !selectedLocation) {
       Alert.alert('Location Required', 'Please search and select your city to continue.');
       setLoading(false);
       return;
@@ -242,63 +244,83 @@ export default function PreferencesScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>Your Preferences</Text>
-          <Text style={styles.subtitle}>Fill out your lifestyle to find your perfect match.</Text>
+          <Text style={styles.title}>
+            {focus === 'hobbies' ? 'Hobbies & Interests' : focus === 'lifestyle' ? 'Lifestyle Details' : focus === 'dealbreakers' ? 'Dealbreakers' : 'Your Preferences'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {focus ? 'Add specifics to find a better match.' : 'Fill out your lifestyle to find your perfect match.'}
+          </Text>
 
-          <Text style={styles.sectionTitle}>Where do you live?</Text>
-          <View style={{ zIndex: 999, marginBottom: 16 }}>
-            {locationName ? <Text style={styles.locationSavedText}>Saved: {locationName}</Text> : null}
-            <LocationAutocomplete
-              apiKey={GOOGLE_API_KEY}
-              placeholder="Search city, neighborhood, or zip..."
-              onSelect={(lat, lng, description) => {
-                setSelectedLocation({ lat, lng });
-                setLocationName(description);
-              }}
-              style={{ marginBottom: 16 }}
-            />
-          </View>
+          {(!focus) && (
+            <>
+              <Text style={styles.sectionTitle}>Where do you live?</Text>
+              <View style={{ zIndex: 999, marginBottom: 16 }}>
+                {locationName ? <Text style={styles.locationSavedText}>Saved: {locationName}</Text> : null}
+                <LocationAutocomplete
+                  apiKey={GOOGLE_API_KEY}
+                  placeholder="Search city, neighborhood, or zip..."
+                  onSelect={(lat, lng, description) => {
+                    setSelectedLocation({ lat, lng });
+                    setLocationName(description);
+                  }}
+                  style={{ marginBottom: 16 }}
+                />
+              </View>
+            </>
+          )}
 
-          <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
-          <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
-          <TextInput 
-            style={styles.otherInput} 
-            placeholder="Other hobbies... (e.g. Skiing)" 
-            placeholderTextColor="#555"
-            value={otherLikes}
-            onChangeText={setOtherLikes}
-          />
-
-          <View style={styles.divider} />
-          <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
-          
-          {LIFESTYLE_OPTIONS.map(opt => (
-            <View key={opt.key} style={styles.lifestyleGroup}>
-              <Text style={styles.lifestyleLabel}>{opt.title}</Text>
-              <SingleChoiceGroup 
-                options={opt.options} 
-                selectedValue={lifestyleData[opt.key] || ''} 
-                onSelect={(val) => setLifestyleField(opt.key, val)} 
+          {(!focus || focus === 'hobbies') && (
+            <>
+              {!focus && <Text style={styles.sectionTitle}>Hobbies & Interests</Text>}
+              <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
+              <TextInput 
+                style={styles.otherInput} 
+                placeholder="Other hobbies... (e.g. Skiing)" 
+                placeholderTextColor="#555"
+                value={otherLikes}
+                onChangeText={setOtherLikes}
               />
-            </View>
-          ))}
+            </>
+          )}
 
-          <View style={styles.lifestyleGroup}>
-            <Text style={styles.lifestyleLabel}>Languages</Text>
-            <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} />
-          </View>
+          {!focus && <View style={styles.divider} />}
+          
+          {(!focus || focus === 'lifestyle') && (
+            <>
+              {!focus && <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>}
+              {LIFESTYLE_OPTIONS.map(opt => (
+                <View key={opt.key} style={styles.lifestyleGroup}>
+                  <Text style={styles.lifestyleLabel}>{opt.title}</Text>
+                  <SingleChoiceGroup 
+                    options={opt.options} 
+                    selectedValue={lifestyleData[opt.key] || ''} 
+                    onSelect={(val) => setLifestyleField(opt.key, val)} 
+                  />
+                </View>
+              ))}
 
-          <View style={styles.divider} />
+              <View style={styles.lifestyleGroup}>
+                <Text style={styles.lifestyleLabel}>Languages</Text>
+                <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} />
+              </View>
+            </>
+          )}
 
-          <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} />
-          <TextInput 
-            style={styles.otherInput} 
-            placeholder="Other dealbreakers... (e.g. Allergies)" 
-            placeholderTextColor="#555"
-            value={otherDeals}
-            onChangeText={setOtherDeals}
-          />
+          {!focus && <View style={styles.divider} />}
+
+          {(!focus || focus === 'dealbreakers') && (
+            <>
+              {!focus && <Text style={styles.sectionTitle}>Dealbreakers</Text>}
+              <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} />
+              <TextInput 
+                style={styles.otherInput} 
+                placeholder="Other dealbreakers... (e.g. Allergies)" 
+                placeholderTextColor="#555"
+                value={otherDeals}
+                onChangeText={setOtherDeals}
+              />
+            </>
+          )}
 
           <Pressable
             style={[styles.button, loading && { opacity: 0.6 }]}

@@ -20,6 +20,13 @@ export default function MyProfileScreen() {
   const [listing, setListing] = useState<any>(null);
   const [contractCount, setContractCount] = useState<number>(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const [status, setStatus] = useState<string>('exploring');
+
+  const STATUS_OPTIONS = [
+    { id: 'looking_urgent', label: 'Buscando Urgente', color: '#34C759', icon: 'lightning-bolt' },
+    { id: 'exploring', label: 'Solo Explorando', color: '#FFCC00', icon: 'compass' },
+    { id: 'have_room', label: 'Tengo Cuarto', color: '#0A84FF', icon: 'home-account' }
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -39,6 +46,7 @@ export default function MyProfileScreen() {
         setName(data.name || 'You');
         setBio(data.bio || '');
         setAge(data.age ? data.age.toString() : '');
+        setStatus(data.availability_status || 'exploring');
       }
 
       const { data: listingData } = await supabase.from('listings').select('*').eq('user_id', session.user.id).single();
@@ -72,6 +80,14 @@ export default function MyProfileScreen() {
     }
     setEditing(false);
     Alert.alert('Saved!', 'Your profile has been updated.');
+  };
+
+  const updateStatus = async (newStatus: string) => {
+    setStatus(newStatus);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('profiles').update({ availability_status: newStatus }).eq('id', session.user.id);
+    }
   };
 
   const pickImage = async () => {
@@ -239,6 +255,21 @@ export default function MyProfileScreen() {
             </Pressable>
           )}
 
+          <View style={styles.statusChipsContainer}>
+            {STATUS_OPTIONS.map(opt => (
+              <Pressable
+                key={opt.id}
+                onPress={() => updateStatus(opt.id)}
+                style={[styles.statusChip, status === opt.id && { backgroundColor: opt.color + '22', borderColor: opt.color }]}
+              >
+                <MaterialCommunityIcons name={opt.icon as any} size={14} color={status === opt.id ? opt.color : '#666'} />
+                <Text style={[styles.statusChipText, { color: status === opt.id ? opt.color : '#666' }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
           <Text style={styles.profileSub}>Your profile is visible to nearby roommates</Text>
         </LinearGradient>
 
@@ -330,7 +361,7 @@ export default function MyProfileScreen() {
         {/* Hobbies */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>My Hobbies & Interests</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Pressable onPress={() => router.push('/preferences?focus=hobbies')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
           </Pressable>
         </View>
@@ -340,7 +371,7 @@ export default function MyProfileScreen() {
               <Text style={styles.chipText}>{tag}</Text>
             </View>
           )) : (
-            <Pressable onPress={() => router.push('/preferences')} style={styles.addChip}>
+            <Pressable onPress={() => router.push('/preferences?focus=hobbies')} style={styles.addChip}>
               <IconSymbol name="plus" size={16} color="#49C788" />
               <Text style={styles.addChipText}>Add Hobbies</Text>
             </Pressable>
@@ -350,7 +381,7 @@ export default function MyProfileScreen() {
         {/* Lifestyle */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Pressable onPress={() => router.push('/preferences?focus=lifestyle')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#00C9A7" />
           </Pressable>
         </View>
@@ -400,7 +431,7 @@ export default function MyProfileScreen() {
           </View>
         ) : (
           <View style={styles.chipWrap}>
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
+            <Pressable onPress={() => router.push('/preferences?focus=lifestyle')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
               <IconSymbol name="plus" size={16} color="#00C9A7" />
               <Text style={[styles.addChipText, { color: '#00C9A7' }]}>Add Lifestyle Details</Text>
             </Pressable>
@@ -410,7 +441,7 @@ export default function MyProfileScreen() {
         {/* Dealbreakers */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#FF4B4B" />
           </Pressable>
         </View>
@@ -420,7 +451,7 @@ export default function MyProfileScreen() {
               <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{tag}</Text>
             </View>
           ))}</>) : (
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
+            <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
               <IconSymbol name="plus" size={16} color="#FF4B4B" />
               <Text style={[styles.addChipText, { color: '#FF4B4B' }]}>Add Dealbreakers</Text>
             </Pressable>
@@ -953,6 +984,29 @@ const styles = StyleSheet.create({
   actionChipText: {
     color: '#49C788',
     fontSize: 14,
+    fontWeight: '700',
+  },
+  statusChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  statusChipText: {
+    fontSize: 12,
     fontWeight: '700',
   },
 });

@@ -25,6 +25,7 @@ type Profile = {
   role?: 'landlord' | 'host' | 'seeker';
   latitude?: number;
   longitude?: number;
+  availability_status?: string;
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
@@ -202,6 +203,13 @@ export default function ExploreScreen() {
 
     const compatibility = calculateCompatibility(currentUser, card);
 
+    const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
+      looking_urgent: { label: 'Buscando Urgente', color: '#34C759', icon: 'lightning-bolt' },
+      exploring: { label: 'Solo Explorando', color: '#FFCC00', icon: 'compass' },
+      have_room: { label: 'Tengo Cuarto', color: '#0A84FF', icon: 'home-account' }
+    };
+    const statusConfig = card.availability_status ? STATUS_MAP[card.availability_status] : null;
+
     return (
       <View style={styles.cardContainer}>
         <Image 
@@ -214,12 +222,20 @@ export default function ExploreScreen() {
         />
         <View style={styles.cardContentWrapper}>
           <View style={styles.textOverlay}>
-            {compatibility !== null && (
-              <View style={styles.compatibilityBadge}>
-                <MaterialCommunityIcons name="star-four-points" size={14} color="#000" />
-                <Text style={styles.compatibilityText}>{compatibility}% compatible</Text>
-              </View>
-            )}
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              {compatibility !== null && (
+                <View style={styles.compatibilityBadge}>
+                  <MaterialCommunityIcons name="star-four-points" size={14} color="#000" />
+                  <Text style={styles.compatibilityText}>{compatibility}% compatible</Text>
+                </View>
+              )}
+              {statusConfig && (
+                <View style={[styles.compatibilityBadge, { backgroundColor: statusConfig.color, marginBottom: 0 }]}>
+                  <MaterialCommunityIcons name={statusConfig.icon as any} size={14} color="#000" />
+                  <Text style={styles.compatibilityText}>{statusConfig.label}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.cardTitle}>
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
             </Text>
@@ -693,7 +709,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
-    marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
