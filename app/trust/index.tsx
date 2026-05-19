@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 
@@ -10,9 +10,11 @@ export default function TrustAndSafetyHub() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const fetchData = async () => {
     if (!profile) setLoading(true);
@@ -20,7 +22,7 @@ export default function TrustAndSafetyHub() {
     if (session?.user?.id) {
       const { data } = await supabase
         .from('profiles')
-        .select('trust_score, is_identity_verified, is_university_verified, is_workplace_verified, is_income_verified')
+        .select('trust_score, is_identity_verified, is_university_verified, is_workplace_verified, is_income_verified, is_social_verified')
         .eq('id', session.user.id)
         .single();
       setProfile(data);
@@ -122,12 +124,20 @@ export default function TrustAndSafetyHub() {
           type="income"
         />
 
+        <VerificationItem 
+          icon="instagram" 
+          title="Redes Sociales" 
+          desc="Conecta tu Instagram o Facebook" 
+          verified={profile?.is_social_verified}
+          type="social"
+        />
+
         <View style={s.footerLinks}>
-          <Pressable style={s.footerBtn}>
+          <Pressable style={s.footerBtn} onPress={() => router.push('/trust/tips')}>
             <MaterialCommunityIcons name="book-open-outline" size={18} color="#888" />
             <Text style={s.footerBtnText}>Consejos de Seguridad</Text>
           </Pressable>
-          <Pressable style={s.footerBtn}>
+          <Pressable style={s.footerBtn} onPress={() => router.push('/terms')}>
             <MaterialCommunityIcons name="gavel" size={18} color="#888" />
             <Text style={s.footerBtnText}>Políticas de Moderación</Text>
           </Pressable>

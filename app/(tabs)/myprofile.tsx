@@ -457,23 +457,22 @@ export default function MyProfileScreen() {
 
         <View style={{ height: 16 }} />
 
-        {/* ── Legal & Agreements ── */}
+        {/* ── Legal Hub ── */}
         <View style={styles.divider} />
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Legal & Acuerdos</Text>
-          <Pressable onPress={() => router.push('/terms')}>
-            <MaterialCommunityIcons name="shield-outline" size={22} color="#49C788" />
-          </Pressable>
+          <Text style={styles.sectionTitle}>Legal Hub</Text>
+          <MaterialCommunityIcons name="gavel" size={22} color="#49C788" />
         </View>
         <Pressable style={styles.legalCard} onPress={() => router.push('/contracts')}>
+          <LinearGradient colors={['rgba(73,199,136,0.15)', 'transparent']} style={StyleSheet.absoluteFillObject} />
           <View style={styles.legalIconWrap}>
             <MaterialCommunityIcons name="file-sign" size={28} color="#49C788" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.legalTitle}>Mis Contratos</Text>
+            <Text style={styles.legalTitle}>Contratos y Acuerdos</Text>
             <Text style={styles.legalSub}>
               {contractCount === 0
-                ? 'Sin contratos aún — crea uno con un match'
+                ? 'Protege tu convivencia formalizando acuerdos'
                 : `${contractCount} contrato${contractCount !== 1 ? 's' : ''}${pendingCount > 0 ? ` · ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}` : ''}`
               }
             </Text>
@@ -485,13 +484,16 @@ export default function MyProfileScreen() {
           )}
           <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
         </Pressable>
-        <Pressable
-          style={[styles.legalSection, { marginTop: 8 }]}
-          onPress={() => router.push('/contracts/new')}
-        >
-          <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#49C788" />
-          <Text style={[styles.addChipText, { color: '#49C788' }]}>Crear nuevo acuerdo</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, marginHorizontal: 20 }}>
+          <Pressable style={[styles.actionChip, { flex: 1 }]} onPress={() => router.push('/contracts/new')}>
+             <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#49C788" />
+             <Text style={styles.actionChipText}>Nuevo</Text>
+          </Pressable>
+          <Pressable style={[styles.actionChip, { flex: 1, borderColor: '#E53935' }]} onPress={() => router.push('/trust/report')}>
+             <MaterialCommunityIcons name="shield-alert-outline" size={18} color="#E53935" />
+             <Text style={[styles.actionChipText, { color: '#E53935' }]}>Reportar</Text>
+          </Pressable>
+        </View>
 
         <View style={{ height: 16 }} />
 
@@ -945,6 +947,22 @@ const styles = StyleSheet.create({
   listingAddress: {
     color: '#888',
     fontSize: 12,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0d1117',
+    borderWidth: 1,
+    borderColor: '#49C788',
+    borderRadius: 20,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  actionChipText: {
+    color: '#49C788',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 

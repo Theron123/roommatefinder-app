@@ -34,6 +34,13 @@ const VERIFY_CONFIG: any = {
     desc: 'Sube tu recibo de nómina más reciente o estado de cuenta. Esta información es 100% privada y solo se usará para confirmar solvencia.',
     btnLabel: 'Subir Documento PDF',
     color: '#FF9F0A'
+  },
+  social: {
+    title: 'Conectar Redes Sociales',
+    icon: 'instagram',
+    desc: 'Vincula tu cuenta de Instagram o Facebook para demostrar que eres una persona real y generar mayor confianza en la comunidad.',
+    btnLabel: 'Conectar con Instagram',
+    color: '#E1306C'
   }
 };
 
@@ -48,7 +55,7 @@ export default function VerificationWizard() {
   const handleAction = async () => {
     if (type === 'identity' || type === 'income') {
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       });
@@ -57,6 +64,8 @@ export default function VerificationWizard() {
         setImageUri(result.assets[0].uri);
         submitVerification();
       }
+    } else if (type === 'social') {
+      submitVerification();
     } else {
       if (!inputValue.includes('@')) {
         Alert.alert('Error', 'Ingresa un correo electrónico válido.');
@@ -86,6 +95,7 @@ export default function VerificationWizard() {
       if (type === 'university') updateData.is_university_verified = true;
       if (type === 'workplace') updateData.is_workplace_verified = true;
       if (type === 'income') updateData.is_income_verified = true;
+      if (type === 'social') updateData.is_social_verified = true;
 
       // Increase trust score
       const { data: profile } = await supabase.from('profiles').select('trust_score').eq('id', session.user.id).single();
