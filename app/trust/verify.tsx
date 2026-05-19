@@ -174,7 +174,7 @@ const s = StyleSheet.create({
   header: { padding: 20 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
   content: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginTop: -60 },
-  iconBox: { width: 100, height: 100, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  iconBox: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
   title: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
   desc: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10, marginBottom: 24 },
   secureBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 8, marginBottom: 40 },
@@ -182,10 +182,10 @@ const s = StyleSheet.create({
   
   inputWrapper: { width: '100%', marginBottom: 20 },
   inputLabel: { color: '#888', fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  input: { backgroundColor: '#111', color: '#fff', padding: 16, borderRadius: 12, fontSize: 16, borderWidth: 1, borderColor: '#333' },
+  input: { backgroundColor: '#111', color: '#fff', padding: 16, borderRadius: 20, fontSize: 16, borderWidth: 1, borderColor: '#333' },
 
   footer: { padding: 24, paddingBottom: 40 },
-  mainBtn: { padding: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+  mainBtn: { padding: 18, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   mainBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   footerNote: { color: '#555', fontSize: 11, textAlign: 'center', marginTop: 16, lineHeight: 16 }
 });

@@ -406,14 +406,14 @@ const s = StyleSheet.create({
   stepContent:      { gap: 16 },
   sectionHint:      { color: '#888', fontSize: 14, marginBottom: 8, lineHeight: 20 },
 
-  typeCard:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 16, padding: 20, position: 'relative' },
+  typeCard:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 20, position: 'relative' },
   typeCardActive:   { borderColor: '#49C788' },
   typeTitle:        { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
   typeDesc:         { color: '#888', fontSize: 13, lineHeight: 18 },
 
-  matchCard:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 16, padding: 16, gap: 12 },
+  matchCard:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 16, gap: 12 },
   matchCardActive:  { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.05)' },
-  matchAvatar:      { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
+  matchAvatar:      { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
   matchInitial:     { color: '#fff', fontWeight: '800', fontSize: 18 },
   matchName:        { color: '#fff', fontSize: 16, fontWeight: '600', flex: 1 },
 
@@ -423,25 +423,25 @@ const s = StyleSheet.create({
 
   inputGroup:       { marginBottom: 8 },
   fieldLabel:       { color: '#888', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  input:            { backgroundColor: '#0d1117', color: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', fontSize: 16 },
-  inputWrapper:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 14, borderWidth: 1, borderColor: '#1a1a2e' },
+  input:            { backgroundColor: '#0d1117', color: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', fontSize: 16 },
+  inputWrapper:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e' },
   inputIcon:        { paddingLeft: 16 },
   inputWithIcon:    { flex: 1, color: '#fff', padding: 16, fontSize: 16 },
   row:              { flexDirection: 'row' },
 
-  toggleRow:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', gap: 12 },
-  toggleIconWrap:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
+  toggleRow:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', gap: 12 },
+  toggleIconWrap:   { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
   toggleLabel:      { color: '#fff', fontSize: 15, fontWeight: '600', flex: 1 },
 
-  segmented:        { flexDirection: 'row', backgroundColor: '#0d1117', borderRadius: 14, borderWidth: 1, borderColor: '#1a1a2e', overflow: 'hidden' },
+  segmented:        { flexDirection: 'row', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e', overflow: 'hidden' },
   segment:          { flex: 1, paddingVertical: 14, alignItems: 'center' },
   segmentActive:    { backgroundColor: '#49C788' },
   segmentText:      { color: '#888', fontWeight: '700', fontSize: 13 },
 
-  aiBanner:         { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10, 132, 255, 0.1)', padding: 14, borderRadius: 12, gap: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.2)' },
+  aiBanner:         { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10, 132, 255, 0.1)', padding: 16, borderRadius: 30, gap: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.2)' },
   aiText:           { color: '#0A84FF', fontSize: 13, fontWeight: '600', flex: 1 },
 
-  clauseCard:       { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  clauseCard:       { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   clauseCardActive: { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.05)' },
   clauseLabel:      { color: '#aaa', fontSize: 15, fontWeight: '700', marginBottom: 4 },
   clauseDesc:       { color: '#666', fontSize: 13, lineHeight: 18 },

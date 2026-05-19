@@ -77,9 +77,7 @@ export default function AgreementsHubScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </Pressable>
         <Text style={s.headerTitle}>Legal Hub</Text>
-        <Pressable onPress={() => router.push('/trust/report')} style={s.actionBtn}>
-          <MaterialCommunityIcons name="shield-alert-outline" size={22} color="#888" />
-        </Pressable>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Modern Tabs / Chips */}

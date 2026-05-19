@@ -484,16 +484,7 @@ export default function MyProfileScreen() {
           )}
           <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
         </Pressable>
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, marginHorizontal: 20 }}>
-          <Pressable style={[styles.actionChip, { flex: 1 }]} onPress={() => router.push('/contracts/new')}>
-             <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#49C788" />
-             <Text style={styles.actionChipText}>Nuevo</Text>
-          </Pressable>
-          <Pressable style={[styles.actionChip, { flex: 1, borderColor: '#E53935' }]} onPress={() => router.push('/trust/report')}>
-             <MaterialCommunityIcons name="shield-alert-outline" size={18} color="#E53935" />
-             <Text style={[styles.actionChipText, { color: '#E53935' }]}>Reportar</Text>
-          </Pressable>
-        </View>
+
 
         <View style={{ height: 16 }} />
 
