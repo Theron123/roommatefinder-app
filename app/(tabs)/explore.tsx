@@ -67,7 +67,7 @@ export default function ExploreScreen() {
       return;
     }
 
-    const { data: currentUserData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    const { data: currentUserData } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences, dealbreakers').eq('id', session.user.id).single();
     if (currentUserData) {
       setCurrentUser(currentUserData);
     }
@@ -75,7 +75,7 @@ export default function ExploreScreen() {
     const filters = getActiveFilters();
     let query = supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
       .limit(50);
@@ -595,6 +595,7 @@ const styles = StyleSheet.create({
     // @ts-ignore - Required for web dragging PanResponder
     touchAction: 'none',
     userSelect: 'none',
+    // @ts-ignore
     WebkitUserSelect: 'none',
   },
   headerContainer: {
