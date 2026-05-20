@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, FlatList, Image, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -15,24 +15,17 @@ export default function FollowersScreen() {
   }, []);
 
   const fetchMockFollowers = async () => {
-    // Fetch 3 random profiles to mock recent followers
+    // We don't have a likes/followers table yet, so we return empty instead of mocking
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, name, age, photoUrl')
-      .neq('id', session.user.id)
-      .limit(3);
-      
-    if (data) {
-      setFollowers(data);
-    }
+    setFollowers([]);
     setLoading(false);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
@@ -45,6 +38,8 @@ export default function FollowersScreen() {
 
       {loading ? (
         <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 50 }} />
+      ) : followers.length === 0 ? (
+        <Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No new followers yet.</Text>
       ) : (
         <FlatList
           data={followers}

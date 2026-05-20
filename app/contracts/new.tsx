@@ -67,8 +67,7 @@ export default function NewContractScreen() {
     const { data } = await supabase
       .from('matches')
       .select('user1, user2')
-      .or(`user1.eq.${uid},user2.eq.${uid}`)
-      .eq('status', 'matched');
+      .or(`user1.eq.${uid},user2.eq.${uid}`);
 
     if (data && data.length > 0) {
       const otherIds = data.map((m: any) => m.user1 === uid ? m.user2 : m.user1);

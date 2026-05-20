@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -88,6 +88,7 @@ export default function ListingDetailScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
         
         {/* Header Image Gallery */}
@@ -200,8 +201,12 @@ export default function ListingDetailScreen() {
           <Text style={styles.bottomSuffix}>/mo</Text>
         </View>
         <View style={styles.bottomActionRow}>
-          <Pressable style={styles.messageBtn} onPress={handleMessageHost}>
-            <IconSymbol name="message.fill" size={20} color="#000" />
+          <Pressable style={[styles.messageBtn, { overflow: 'hidden' }]} onPress={handleMessageHost}>
+            {host?.photoUrl ? (
+              <Image source={{ uri: host.photoUrl }} style={{ width: 50, height: 50 }} contentFit="cover" />
+            ) : (
+              <IconSymbol name="person.circle.fill" size={30} color="#000" />
+            )}
           </Pressable>
           <Pressable style={styles.rentBtn} onPress={handleRentNow}>
             <Text style={styles.rentBtnText}>Rent Now</Text>

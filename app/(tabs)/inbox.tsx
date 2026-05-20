@@ -59,14 +59,6 @@ export default function InboxScreen() {
         .in('id', matchIds);
 
       if (profiles) setMatches(profiles);
-    } else {
-      // Mock data just for UI preview if no matches exist yet
-      const { data: mockProfiles } = await supabase
-        .from('profiles')
-        .select('id, name, photoUrl')
-        .neq('id', myId)
-        .limit(4);
-      if (mockProfiles) setMatches(mockProfiles);
     }
   };
 
