@@ -4,17 +4,18 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     StyleSheet,
     Text,
     TextInput,
     View,
 } from 'react-native';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -78,14 +79,19 @@ export default function LoginScreen() {
         style={styles.input}
       />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          style={styles.passwordInput}
+        />
+        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
+        </Pressable>
+      </View>
 
       <Pressable
         style={[styles.button, loading && { opacity: 0.6 }]}
@@ -133,6 +139,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     color: '#fff',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    color: '#fff',
+  },
+  eyeIcon: {
+    padding: 14,
   },
   button: {
     backgroundColor: '#fff',

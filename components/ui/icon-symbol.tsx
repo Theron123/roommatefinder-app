@@ -31,6 +31,8 @@ const MAPPING = {
   'clock': 'access-time',
   'checkmark': 'check',
   'exclamationmark.triangle.fill': 'error',
+  'eye.fill': 'visibility',
+  'eye.slash.fill': 'visibility-off',
 } as IconMapping;
 
 /**

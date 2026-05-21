@@ -114,21 +114,32 @@ export default function ChatScreen() {
       created_at: new Date().toISOString(), status: 'pending',
     }]);
 
-    const { data, error } = await supabase.from('messages').insert({
-      sender_id: myId, receiver_id: id,
-      content: textToSend, reply_to_id: replyId,
-    }).select().single();
+    try {
+      const { data, error } = await supabase.from('messages').insert({
+        sender_id: myId, receiver_id: id,
+        content: textToSend, reply_to_id: replyId,
+      }).select().single();
 
-    if (error) {
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
-    } else if (data) {
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...data, status: 'sent' } : m));
-      // Trigger local push notification for the receiver
-      if (otherUser?.name) {
-        await notifyNewMessage(otherUser.name, textToSend, id as string);
+      if (error) throw error;
+
+      if (data) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...data, status: 'sent' } : m));
+        // Trigger local push notification for the receiver
+        if (otherUser?.name) {
+          try {
+            await notifyNewMessage(otherUser.name, textToSend, id as string);
+          } catch (notifErr) {
+            console.error('Notification error', notifErr);
+          }
+        }
       }
+    } catch (e) {
+      console.error('sendMessage error', e);
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
     }
   };
+
+  // scrollToEnd is removed because we use inverted FlatList
 
   // ─── Voice Recording ──────────────────────────────────────────
   const startRecording = async () => {
@@ -479,14 +490,15 @@ export default function ChatScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={[...messages].reverse()}
+          inverted
           keyExtractor={item => item.id}
           renderItem={renderMessage}
           contentContainerStyle={styles.list}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
           ListEmptyComponent={() => (
-            <Text style={styles.emptyText}>Send a message to say hi! 👋</Text>
+            <View style={{ transform: [{ scaleY: -1 }] }}>
+              <Text style={styles.emptyText}>Send a message to say hi! 👋</Text>
+            </View>
           )}
         />
 
@@ -694,7 +706,7 @@ const styles = StyleSheet.create({
   headerUserContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   headerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   headerName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  list: { padding: 16, flexGrow: 1, justifyContent: 'flex-end' },
+  list: { padding: 16, flexGrow: 1 },
   emptyText: { color: '#666', textAlign: 'center', marginTop: 40, fontSize: 16 },
 
   // Message Bubble

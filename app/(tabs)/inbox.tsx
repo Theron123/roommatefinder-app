@@ -72,11 +72,15 @@ export default function InboxScreen() {
       const myId = session.user.id;
 
       // 1. Fetch messages
-      const { data: msgs } = await supabase
+      const { data: msgs, error: msgsError } = await supabase
         .from('messages')
-        .select('id, sender_id, receiver_id, text, created_at, is_read')
+        .select('*')
         .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
         .order('created_at', { ascending: false });
+
+      if (msgsError) {
+        console.error("Error fetching messages for inbox:", msgsError);
+      }
 
       if (msgs && msgs.length > 0) {
         const uniqueUserIds = new Set<string>();
@@ -107,7 +111,7 @@ export default function InboxScreen() {
               name: p.name || 'Roommate',
               age: p.age,
               photoUrl: p.photoUrl,
-              lastMessage: lastMsg.content,
+              lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
               unread: false,
             };
