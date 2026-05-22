@@ -225,14 +225,18 @@ export default function PreferencesScreen() {
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      router.replace('/(tabs)');
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)');
+      }
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.replace('/(tabs)/myprofile')} style={styles.backButton}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/myprofile')} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color="#49C788" />
           <Text style={styles.backText}>Cancel</Text>
         </Pressable>

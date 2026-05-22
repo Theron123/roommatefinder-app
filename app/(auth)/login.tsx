@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-
 import { useState } from 'react';
 import {
     ActivityIndicator,
@@ -11,10 +10,12 @@ import {
     TextInput,
     View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -78,14 +79,27 @@ export default function LoginScreen() {
         style={styles.input}
       />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+          style={styles.passwordInput}
+        />
+        <Pressable
+          onPress={() => setShowPassword(!showPassword)}
+          style={styles.eyeButton}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            color="#aaa"
+          />
+        </Pressable>
+      </View>
 
       <Pressable
         style={[styles.button, loading && { opacity: 0.6 }]}
@@ -181,5 +195,22 @@ const styles = StyleSheet.create({
   },
   messageTextSuccess: {
     color: '#00C9A7',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    marginBottom: 16,
+    paddingRight: 14,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    color: '#fff',
+  },
+  eyeButton: {
+    padding: 4,
   },
 });

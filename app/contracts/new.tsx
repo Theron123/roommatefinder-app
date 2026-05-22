@@ -180,8 +180,7 @@ export default function NewContractScreen() {
                 >
                   <LinearGradient 
                     colors={contractType === type ? ['rgba(73,199,136,0.15)', 'transparent'] : ['transparent', 'transparent']} 
-                    style={StyleSheet.absoluteFillObject} 
-                    borderRadius={16}
+                    style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]} 
                   />
                   <MaterialCommunityIcons
                     name={type === 'roommate_agreement' ? 'account-group' : 'home-city-outline'}

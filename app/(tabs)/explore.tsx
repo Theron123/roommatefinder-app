@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
 import * as Location from 'expo-location';
 import { getActiveFilters } from '@/app/explore/filters';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { height, width } = Dimensions.get('window');
 
@@ -19,6 +20,7 @@ type Profile = {
   preferences: string;
   dealbreakers: string;
   photoUrl?: string;
+  photos?: string[];
   name?: string;
   age?: number;
   lifestyle?: any;
@@ -37,6 +39,7 @@ export default function ExploreScreen() {
   const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
@@ -196,10 +199,15 @@ export default function ExploreScreen() {
   const renderCard = (card: Profile | null) => {
     if (!card) return null;
     
-    // Fallback image if user has no photoUrl (increased quality and resolution)
-    const imageSource = card.photoUrl 
-      ? { uri: card.photoUrl } 
-      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' }; // High-res default image
+    const photosList = Array.isArray(card.photos) && card.photos.length > 0
+      ? card.photos
+      : [card.photoUrl].filter(Boolean);
+
+    const activePhotoIdx = cardPhotoIndices[card.id] || 0;
+
+    const imageSource = photosList[activePhotoIdx]
+      ? { uri: photosList[activePhotoIdx] }
+      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' };
 
     const compatibility = calculateCompatibility(currentUser, card);
 
@@ -220,8 +228,76 @@ export default function ExploreScreen() {
           cachePolicy="memory-disk"
           priority="high"
         />
-        <View style={styles.cardContentWrapper}>
-          <View style={styles.textOverlay}>
+
+        {/* Instagram-style progress indicators */}
+        {photosList.length > 1 && (
+          <View style={styles.indicatorContainer}>
+            {photosList.map((_: any, idx: number) => (
+              <View
+                key={idx}
+                style={[
+                  styles.indicatorBar,
+                  {
+                    backgroundColor: idx === activePhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.4)',
+                    width: `${100 / photosList.length - 2}%`,
+                  }
+                ]}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Tap navigation overlays */}
+        {photosList.length > 1 ? (
+          <View style={styles.tapNavigationOverlay}>
+            <Pressable
+              style={styles.tapSide}
+              onPress={() => {
+                setCardPhotoIndices(prev => ({
+                  ...prev,
+                  [card.id]: Math.max(0, activePhotoIdx - 1)
+                }));
+              }}
+            />
+            <Pressable
+              style={styles.tapMiddle}
+              onPress={() => {
+                router.push(`/profile/${card.id}`);
+              }}
+            />
+            <Pressable
+              style={styles.tapSide}
+              onPress={() => {
+                setCardPhotoIndices(prev => ({
+                  ...prev,
+                  [card.id]: Math.min(photosList.length - 1, activePhotoIdx + 1)
+                }));
+              }}
+            />
+          </View>
+        ) : (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              router.push(`/profile/${card.id}`);
+            }}
+          />
+        )}
+
+        {/* Counter badge */}
+        {photosList.length > 1 && (
+          <View style={styles.pageBadge}>
+            <Text style={styles.pageBadgeText}>{activePhotoIdx + 1} / {photosList.length}</Text>
+          </View>
+        )}
+
+        <View style={styles.cardContentWrapper} pointerEvents="box-none">
+          <Pressable 
+            style={styles.textOverlay}
+            onPress={() => {
+              router.push(`/profile/${card.id}`);
+            }}
+          >
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
               {compatibility !== null && (
                 <View style={styles.compatibilityBadge}>
@@ -267,9 +343,7 @@ export default function ExploreScreen() {
                 </View>
               </View>
             ) : null}
-
-            {/* Action buttons removed from here to fix web clicking */}
-          </View>
+          </Pressable>
         </View>
       </View>
     );
@@ -277,37 +351,43 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.headerContainer} edges={['top']}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.mainTitle}>Explore</Text>
-            <Text style={styles.subTitle}>Find your ideal roommate.</Text>
-          </View>
-          
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
-              onPress={() => router.push('/explore/filters')}
-            >
-              <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
-            </TouchableOpacity>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity 
-                style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
-                onPress={() => setViewMode('swipe')}
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.4)', 'rgba(0, 0, 0, 0)']}
+        locations={[0, 0.5, 1]}
+        style={styles.headerContainer}
+      >
+        <SafeAreaView edges={['top']}>
+          <View style={styles.header}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.mainTitle}>Explore</Text>
+              <Text style={styles.subTitle} numberOfLines={1}>Find your ideal roommate.</Text>
+            </View>
+            
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              <TouchableOpacity
+                style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
+                onPress={() => router.push('/explore/filters')}
               >
-                <MaterialCommunityIcons name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+                <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
-                onPress={() => setViewMode('map')}
-              >
-                <MaterialCommunityIcons name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
-              </TouchableOpacity>
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity 
+                  style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
+                  onPress={() => setViewMode('swipe')}
+                >
+                  <MaterialCommunityIcons name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
+                  onPress={() => setViewMode('map')}
+                >
+                  <MaterialCommunityIcons name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
 
       <View style={styles.swiperContainer}>
         {loading ? (
@@ -544,6 +624,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a',
   },
+  indicatorContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  indicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  tapNavigationOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  tapSide: {
+    width: '35%',
+    height: '100%',
+  },
+  tapMiddle: {
+    width: '30%',
+    height: '100%',
+  },
+  pageBadge: {
+    position: 'absolute',
+    top: 24,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    zIndex: 10,
+  },
+  pageBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   headerContainer: {
     zIndex: 10,
     backgroundColor: 'transparent',
@@ -557,7 +682,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start'
+    alignItems: 'center'
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -658,21 +783,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   mainTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#000',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Bold' : 'sans-serif-medium',
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subTitle: {
-    fontSize: 16,
-    color: '#000',
+    fontSize: 13,
+    color: '#ccc',
     marginTop: 2,
-    fontWeight: '800',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Medium' : 'sans-serif',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   cardContainer: {
     flex: 1,

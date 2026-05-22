@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -17,6 +18,16 @@ export default function ListingDetailScreen() {
   const [listing, setListing] = useState<any>(null);
   const [host, setHost] = useState<any>(null);
   const [myId, setMyId] = useState<string | null>(null);
+
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [isLightboxVisible, setIsLightboxVisible] = useState(false);
+  const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
+
+  const photosList = listing
+    ? (Array.isArray(listing.images) && listing.images.length > 0
+      ? listing.images
+      : [])
+    : [];
 
   useEffect(() => {
     fetchListingDetails();
@@ -92,27 +103,88 @@ export default function ListingDetailScreen() {
         
         {/* Header Image Gallery */}
         <View style={styles.galleryContainer}>
-          {listing.images && listing.images.length > 0 ? (
-            <ScrollView 
-              horizontal 
-              pagingEnabled 
-              showsHorizontalScrollIndicator={false}
-              style={styles.galleryScroll}
-            >
-              {listing.images.map((img: string, index: number) => (
-                <View key={index} style={styles.imageWrapper}>
-                  <Image source={{ uri: img }} style={styles.heroImage} contentFit="cover" transition={300} />
-                  <LinearGradient
-                    colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)']}
-                    style={styles.heroGradient}
-                  />
-                </View>
-              ))}
-            </ScrollView>
+          {photosList.length > 0 ? (
+            <View style={styles.imageWrapper}>
+              <Image source={{ uri: photosList[activePhotoIdx] }} style={styles.heroImage} contentFit="cover" transition={200} />
+              <LinearGradient
+                colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)']}
+                style={styles.heroGradient}
+              />
+            </View>
           ) : (
             <View style={[styles.heroImage, styles.heroPlaceholder]}>
               <IconSymbol name="house.fill" size={60} color="#333" />
             </View>
+          )}
+
+          {/* Top Story-style progressive indicators */}
+          {photosList.length > 1 && (
+            <View style={styles.indicatorContainer}>
+              {photosList.map((_: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.indicatorBar,
+                    {
+                      backgroundColor: idx === activePhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.4)',
+                      width: `${100 / photosList.length - 2}%`,
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Left/Right press navigation overlays */}
+          {photosList.length > 1 ? (
+            <View style={styles.tapNavigationOverlay}>
+              <Pressable
+                style={styles.tapSide}
+                onPress={() => setActivePhotoIdx((prev) => Math.max(0, prev - 1))}
+              />
+              <Pressable
+                style={styles.tapMiddle}
+                onPress={() => {
+                  setLightboxPhotoIdx(activePhotoIdx);
+                  setIsLightboxVisible(true);
+                }}
+              />
+              <Pressable
+                style={styles.tapSide}
+                onPress={() => setActivePhotoIdx((prev) => Math.min(photosList.length - 1, prev + 1))}
+              />
+            </View>
+          ) : (
+            photosList.length > 0 && (
+              <Pressable
+                style={styles.tapNavigationOverlay}
+                onPress={() => {
+                  setLightboxPhotoIdx(activePhotoIdx);
+                  setIsLightboxVisible(true);
+                }}
+              />
+            )
+          )}
+
+          {/* Counter badge (bottom-right) */}
+          {photosList.length > 1 && (
+            <View style={styles.pageBadge}>
+              <Text style={styles.pageBadgeText}>{activePhotoIdx + 1} / {photosList.length}</Text>
+            </View>
+          )}
+
+          {/* Glassmorphic Expand button (bottom-left) */}
+          {photosList.length > 0 && (
+            <Pressable
+              style={styles.expandBadge}
+              onPress={() => {
+                setLightboxPhotoIdx(activePhotoIdx);
+                setIsLightboxVisible(true);
+              }}
+            >
+              <MaterialCommunityIcons name="arrow-expand" size={14} color="#fff" />
+              <Text style={styles.expandBadgeText}>Ampliar</Text>
+            </Pressable>
           )}
 
           {/* Top Actions: Back Button */}
@@ -120,11 +192,6 @@ export default function ListingDetailScreen() {
             <Pressable style={styles.backBtn} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={24} color="#fff" />
             </Pressable>
-            {listing.images && listing.images.length > 1 && (
-              <View style={styles.photoCountBadge}>
-                <Text style={styles.photoCountText}>1 / {listing.images.length}</Text>
-              </View>
-            )}
           </SafeAreaView>
         </View>
 
@@ -208,6 +275,88 @@ export default function ListingDetailScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* Fullscreen Lightbox Modal */}
+      <Modal
+        visible={isLightboxVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => {
+          setActivePhotoIdx(lightboxPhotoIdx);
+          setIsLightboxVisible(false);
+        }}
+      >
+        <View style={styles.lightboxContainer}>
+          {/* Top Story indicators */}
+          {photosList.length > 1 && (
+            <View style={styles.lightboxIndicatorContainer}>
+              {photosList.map((_: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.lightboxIndicatorBar,
+                    {
+                      backgroundColor: idx === lightboxPhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.3)',
+                      width: `${100 / photosList.length - 2}%`,
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Close button (top right) */}
+          <Pressable
+            style={styles.lightboxCloseBtn}
+            onPress={() => {
+              setActivePhotoIdx(lightboxPhotoIdx);
+              setIsLightboxVisible(false);
+            }}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="#fff" />
+          </Pressable>
+
+          {/* Zoomable Image Container */}
+          <ScrollView
+            maximumZoomScale={3}
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.lightboxImageWrapper}
+          >
+            <Image
+              source={{ uri: photosList[lightboxPhotoIdx] }}
+              style={styles.lightboxImage}
+              contentFit="contain"
+              transition={200}
+            />
+          </ScrollView>
+
+          {/* Left/Right press navigation overlays inside lightbox */}
+          {photosList.length > 1 && (
+            <View style={styles.lightboxTapOverlay}>
+              <Pressable
+                style={styles.lightboxTapSide}
+                onPress={() => setLightboxPhotoIdx((prev) => Math.max(0, prev - 1))}
+              />
+              <View style={{ flex: 1 }} pointerEvents="none" />
+              <Pressable
+                style={styles.lightboxTapSide}
+                onPress={() => setLightboxPhotoIdx((prev) => Math.min(photosList.length - 1, prev + 1))}
+              />
+            </View>
+          )}
+
+          {/* Bottom Counter badge */}
+          {photosList.length > 1 && (
+            <View style={styles.lightboxPageBadge}>
+              <Text style={styles.lightboxPageBadgeText}>
+                {lightboxPhotoIdx + 1} / {photosList.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -448,6 +597,144 @@ const styles = StyleSheet.create({
   rentBtnText: {
     color: '#000',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  indicatorContainer: {
+    position: 'absolute',
+    top: 52,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  indicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  tapNavigationOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  tapSide: {
+    width: '30%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  tapMiddle: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  pageBadge: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  pageBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  expandBadge: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  expandBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  lightboxContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  lightboxIndicatorContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  lightboxIndicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  lightboxCloseBtn: {
+    position: 'absolute',
+    top: 65,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  lightboxImageWrapper: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxImage: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+  },
+  lightboxTapOverlay: {
+    position: 'absolute',
+    top: 120,
+    bottom: 120,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  lightboxTapSide: {
+    width: '40%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  lightboxPageBadge: {
+    position: 'absolute',
+    bottom: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 10,
+  },
+  lightboxPageBadgeText: {
+    color: '#fff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

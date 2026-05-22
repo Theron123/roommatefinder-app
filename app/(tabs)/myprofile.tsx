@@ -90,7 +90,9 @@ export default function MyProfileScreen() {
     }
   };
 
-  const pickImage = async () => {
+  const pickImage = async (slotIndex?: number) => {
+    const targetIdx = typeof slotIndex === 'number' ? slotIndex : 0;
+    
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -110,9 +112,9 @@ export default function MyProfileScreen() {
         const response = await fetch(photoUri);
         const blob = await response.blob();
 
-        // Create unique filename based on user ID and timestamp
+        // Create unique filename based on user ID, timestamp, and slot index
         const fileExt = photoUri.split('.').pop() || 'jpeg';
-        const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
         // Upload to Supabase Storage 'Roommate' bucket
         const { error: uploadError } = await supabase.storage
@@ -130,9 +132,35 @@ export default function MyProfileScreen() {
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
 
+        // Fetch current profile to get latest photos array
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('photos, photoUrl')
+          .eq('id', session.user.id)
+          .single();
+
+        let updatedPhotos = Array.isArray(currentProfile?.photos) ? [...currentProfile.photos] : [];
+        
+        // Pad the array to ensure we can set at the specific index
+        while (updatedPhotos.length < 5) {
+          updatedPhotos.push(updatedPhotos.length === 0 ? (currentProfile?.photoUrl || '') : '');
+        }
+
+        // Update photo at targeted index
+        updatedPhotos[targetIdx] = publicUrl;
+
+        const updatePayload: any = { photos: updatedPhotos };
+        if (targetIdx === 0) {
+          updatePayload.photoUrl = publicUrl;
+        }
+
         // Save URL to profile
-        await supabase.from('profiles').update({ photoUrl: publicUrl }).eq('id', session.user.id);
-        setProfile({ ...profile, photoUrl: publicUrl });
+        await supabase.from('profiles').update(updatePayload).eq('id', session.user.id);
+        
+        setProfile((prev: any) => ({
+          ...prev,
+          ...updatePayload
+        }));
 
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -195,7 +223,7 @@ export default function MyProfileScreen() {
         {/* Header with avatar */}
         <LinearGradient colors={['#1a1a24', '#000']} style={styles.heroSection}>
           <View style={styles.avatarWrapper}>
-            <Pressable onPress={pickImage} disabled={uploading}>
+            <Pressable onPress={() => pickImage(0)} disabled={uploading}>
               {uploading ? (
                 <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
                   <ActivityIndicator color="#49C788" />
@@ -294,9 +322,51 @@ export default function MyProfileScreen() {
         {/* Divider */}
         <View style={styles.divider} />
 
-        {/* About Me / Bio */}
+        {/* Biografía (Bio & Profile Photos) */}
+        <Text style={styles.sectionTitle}>Biografía</Text>
+        <View style={styles.photosManagerContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScrollContent}>
+            {(() => {
+              const photosList = Array.isArray(profile?.photos) ? [...profile.photos] : [];
+              const slots = Array.from({ length: 5 }, (_, i) => photosList[i] || (i === 0 ? profile?.photoUrl : null));
+              
+              return slots.map((uri, index) => (
+                <Pressable
+                  key={index}
+                  style={[styles.photoSlot, !uri && styles.emptyPhotoSlot]}
+                  onPress={() => pickImage(index)}
+                  disabled={uploading}
+                >
+                  {uri ? (
+                    <>
+                      <Image source={{ uri }} style={styles.slotImage} contentFit="cover" />
+                      <View style={styles.slotBadge}>
+                        <Text style={styles.slotBadgeText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.editCameraOverlay}>
+                        <MaterialCommunityIcons name="camera" size={14} color="#fff" />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.emptySlotContent}>
+                      <View style={styles.emptySlotPlusCircle}>
+                        <MaterialCommunityIcons name="plus" size={18} color="#49C788" />
+                      </View>
+                      <Text style={styles.emptySlotText}>Slot {index + 1}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ));
+            })()}
+          </ScrollView>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Sobre Mí / Bio */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>About Me</Text>
+          <Text style={styles.sectionTitle}>Sobre mí</Text>
           {!editing && (
             <Pressable onPress={() => setEditing(true)}>
               <IconSymbol name="pencil" size={20} color="#888" />
@@ -1007,6 +1077,86 @@ const styles = StyleSheet.create({
   },
   statusChipText: {
     fontSize: 12,
+    fontWeight: '700',
+  },
+  photosManagerContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  photosScrollContent: {
+    gap: 12,
+    paddingRight: 20,
+  },
+  photoSlot: {
+    width: 100,
+    height: 130,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  emptyPhotoSlot: {
+    borderStyle: 'dashed',
+    borderColor: '#49C788',
+    backgroundColor: 'rgba(73, 199, 136, 0.05)',
+  },
+  slotImage: {
+    width: '100%',
+    height: '100%',
+  },
+  slotBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  slotBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  editCameraOverlay: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#49C788',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+    zIndex: 10,
+  },
+  emptySlotContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptySlotPlusCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(73, 199, 136, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySlotText: {
+    color: '#49C788',
+    fontSize: 11,
     fontWeight: '700',
   },
 });

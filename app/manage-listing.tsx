@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ManageListingScreen() {
   const [loading, setLoading] = useState(true);
@@ -51,13 +52,14 @@ export default function ManageListingScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    const cleanImages = images.filter(Boolean);
     const listingData = {
       user_id: session.user.id,
       title,
       description,
       price: parseFloat(price),
       address,
-      images,
+      images: cleanImages,
       utilities_included: utilities,
       status: 'available',
     };
@@ -93,12 +95,13 @@ export default function ManageListingScreen() {
     ]);
   };
 
-  const pickImage = async () => {
+  const pickImage = async (slotIndex?: number) => {
+    const targetIdx = typeof slotIndex === 'number' ? slotIndex : 0;
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
+      aspect: [3, 4],
+      quality: 0.9,
     });
 
     if (!result.canceled && result.assets[0].uri) {
@@ -111,10 +114,11 @@ export default function ManageListingScreen() {
         const response = await fetch(photoUri);
         const blob = await response.blob();
         const fileExt = photoUri.split('.').pop() || 'jpeg';
-        const fileName = `listing-${session.user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `listing-${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage.from('Roommate').upload(fileName, blob, {
           contentType: `image/${fileExt}`,
+          upsert: true,
         });
 
         if (uploadError) throw uploadError;
@@ -122,7 +126,14 @@ export default function ManageListingScreen() {
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
 
-        setImages(prev => [...prev, publicUrl]);
+        setImages(prev => {
+          let updated = Array.isArray(prev) ? [...prev] : [];
+          while (updated.length < 5) {
+            updated.push('');
+          }
+          updated[targetIdx] = publicUrl;
+          return updated;
+        });
       } catch (error) {
         console.error(error);
         Alert.alert('Error', 'Could not upload image');
@@ -130,10 +141,6 @@ export default function ManageListingScreen() {
         setSaving(false);
       }
     }
-  };
-
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   if (loading) {
@@ -177,20 +184,42 @@ export default function ManageListingScreen() {
         </Pressable>
 
         <Text style={styles.label}>Photos</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
-          {images.map((url, idx) => (
-            <View key={idx} style={styles.imageWrapper}>
-              <Image source={{ uri: url }} style={styles.image} contentFit="cover" />
-              <Pressable style={styles.removeBtn} onPress={() => removeImage(idx)}>
-                <IconSymbol name="xmark.circle.fill" size={24} color="#49C788" />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable style={styles.addImageBtn} onPress={pickImage} disabled={saving}>
-            <IconSymbol name="camera.fill" size={32} color="#49C788" />
-            <Text style={styles.addImageText}>Add Photo</Text>
-          </Pressable>
-        </ScrollView>
+        <View style={styles.photosManagerContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScrollContent}>
+            {(() => {
+              const photosList = Array.isArray(images) ? [...images] : [];
+              const slots = Array.from({ length: 5 }, (_, i) => photosList[i] || '');
+              
+              return slots.map((uri, index) => (
+                <Pressable
+                  key={index}
+                  style={[styles.photoSlot, !uri && styles.emptyPhotoSlot]}
+                  onPress={() => pickImage(index)}
+                  disabled={saving}
+                >
+                  {uri ? (
+                    <>
+                      <Image source={{ uri }} style={styles.slotImage} contentFit="cover" />
+                      <View style={styles.slotBadge}>
+                        <Text style={styles.slotBadgeText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.editCameraOverlay}>
+                        <MaterialCommunityIcons name="camera" size={14} color="#fff" />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.emptySlotContent}>
+                      <View style={styles.emptySlotPlusCircle}>
+                        <MaterialCommunityIcons name="plus" size={18} color="#49C788" />
+                      </View>
+                      <Text style={styles.emptySlotText}>Slot {index + 1}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ));
+            })()}
+          </ScrollView>
+        </View>
 
         <Pressable style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
           {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Listing</Text>}
@@ -219,12 +248,84 @@ const styles = StyleSheet.create({
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#49C788', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   checkboxActive: { backgroundColor: '#49C788' },
   toggleText: { color: '#fff', fontSize: 16 },
-  imageScroll: { flexDirection: 'row', marginTop: 8 },
-  imageWrapper: { marginRight: 12, position: 'relative' },
-  image: { width: 120, height: 120, borderRadius: 12 },
-  removeBtn: { position: 'absolute', top: -8, right: -8, backgroundColor: '#000', borderRadius: 12 },
-  addImageBtn: { width: 120, height: 120, borderRadius: 12, borderWidth: 2, borderColor: '#49C788', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(108, 99, 255, 0.05)' },
-  addImageText: { color: '#49C788', marginTop: 8, fontWeight: 'bold' },
+  photosManagerContainer: {
+    marginBottom: 20,
+  },
+  photosScrollContent: {
+    gap: 12,
+  },
+  photoSlot: {
+    width: 100,
+    height: 130,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  emptyPhotoSlot: {
+    borderStyle: 'dashed',
+    borderColor: '#49C788',
+    backgroundColor: 'rgba(73, 199, 136, 0.05)',
+  },
+  slotImage: {
+    width: '100%',
+    height: '100%',
+  },
+  slotBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  slotBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  editCameraOverlay: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#49C788',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+    zIndex: 10,
+  },
+  emptySlotContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptySlotPlusCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(73, 199, 136, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySlotText: {
+    color: '#49C788',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   saveBtn: { backgroundColor: '#49C788', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteBtn: { marginTop: 16, padding: 16, alignItems: 'center' },
