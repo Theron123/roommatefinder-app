@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
+import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -57,7 +58,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: currentUserProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    const { data: currentUserProfile } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences').eq('id', session.user.id).single();
     
     if (!currentUserProfile) {
       setLoading(false);
@@ -68,7 +69,7 @@ export default function HomeScreen() {
     // Fetch profiles without the listings join since the foreign key is missing
     const { data: otherProfiles } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, age, photoUrl, likes, preferences, dealbreakers, latOffset, lngOffset')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
       .limit(50);
@@ -122,7 +123,7 @@ export default function HomeScreen() {
     if (listings.length === 0 && !isRefresh) setLoading(true);
     if (isRefresh) setRefreshing(true);
     
-    const { data } = await supabase.from('listings').select('*').limit(50);
+    const { data } = await supabase.from('listings').select('id, images, price, utilities_included, title, address, description').limit(50);
     if (data) setListings(data);
     
     setLoading(false);
@@ -139,7 +140,7 @@ export default function HomeScreen() {
     }, [feedMode])
   );
 
-  const renderProfile = ({ item, index }: { item: Profile, index: number }) => {
+  const renderProfile = useCallback(({ item, index }: { item: Profile, index: number }) => {
     const isBlurred = index >= 5 && !isPremium;
     const distanceText = item.distance != null ? `${item.distance.toFixed(1)} km away` : 'Location unknown';
     const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
@@ -211,9 +212,9 @@ export default function HomeScreen() {
         </View>
       </Pressable>
     );
-  };
+  }, [isPremium, router]);
 
-  const renderListing = ({ item }: { item: any }) => (
+  const renderListing = useCallback(({ item }: { item: any }) => (
     <Pressable 
       style={styles.listingCardContainer}
       onPress={() => router.push(`/listing/${item.id}`)}
@@ -263,7 +264,7 @@ export default function HomeScreen() {
         </View>
       </View>
     </Pressable>
-  );
+  ), [router]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -297,7 +298,7 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>No matches found.</Text>
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={profiles}
             keyExtractor={(item) => item.id}
             renderItem={renderProfile}
@@ -313,7 +314,7 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>No apartments found.</Text>
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={listings}
             keyExtractor={(item) => item.id}
             renderItem={renderListing}

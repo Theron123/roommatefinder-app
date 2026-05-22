@@ -3,14 +3,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     Pressable,
     StyleSheet,
     Text,
     TextInput,
     View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -88,16 +87,8 @@ export default function LoginScreen() {
           onChangeText={setPassword}
           style={styles.passwordInput}
         />
-        <Pressable
-          onPress={() => setShowPassword(!showPassword)}
-          style={styles.eyeButton}
-          hitSlop={8}
-        >
-          <MaterialCommunityIcons
-            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-            size={22}
-            color="#aaa"
-          />
+        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
+          <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
         </Pressable>
       </View>
 
@@ -148,6 +139,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#fff',
   },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    color: '#fff',
+  },
+  eyeIcon: {
+    padding: 14,
+  },
   button: {
     backgroundColor: '#fff',
     paddingVertical: 14,
@@ -195,22 +202,5 @@ const styles = StyleSheet.create({
   },
   messageTextSuccess: {
     color: '#00C9A7',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingRight: 14,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 14,
-    color: '#fff',
-  },
-  eyeButton: {
-    padding: 4,
   },
 });

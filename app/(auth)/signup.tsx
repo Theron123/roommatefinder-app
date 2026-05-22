@@ -9,13 +9,16 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { validateNationalId } from 'idnumbers';
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
+  const [countryCode, setCountryCode] = useState('CRI');
+  const [nationalId, setNationalId] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
@@ -35,8 +38,35 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     setMessage({ text: '', type: '' });
-    if (!email || !password || !name) {
-      setMessage({ text: 'Please enter your name, email, and password.', type: 'error' });
+    if (!email || !password || !name || !nationalId || !countryCode) {
+      setMessage({ text: 'Please fill in all fields.', type: 'error' });
+      return;
+    }
+
+    try {
+      let isValid = false;
+      const cleanCountry = countryCode.trim().toUpperCase();
+      const cleanId = nationalId.trim();
+
+      if (cleanCountry === 'CRI') {
+        // Costa Rica cedula format: 9 digits
+        isValid = /^\d{9}$/.test(cleanId);
+      } else {
+        const validation = validateNationalId(cleanCountry, cleanId);
+        if (validation.errorMessage && validation.errorMessage.includes('Unsupported country code')) {
+          // Generic fallback for unsupported countries (5 to 20 alphanumeric chars)
+          isValid = /^[A-Z0-9-]{5,20}$/i.test(cleanId);
+        } else {
+          isValid = validation.isValid;
+        }
+      }
+
+      if (!isValid) {
+        setMessage({ text: 'Invalid National ID for the selected country.', type: 'error' });
+        return;
+      }
+    } catch (e) {
+      setMessage({ text: 'Error validating ID.', type: 'error' });
       return;
     }
 
@@ -63,7 +93,9 @@ export default function SignUpScreen() {
       await supabase.from('profiles').upsert({
         id: data.user.id,
         name: name.trim(),
-        age: 20
+        age: 20,
+        country_code: countryCode.trim().toUpperCase(),
+        national_id: nationalId.trim(),
       });
     }
 
@@ -95,6 +127,25 @@ export default function SignUpScreen() {
         style={styles.input}
       />
 
+      <View style={styles.idRow}>
+        <TextInput
+          placeholder="Country (e.g. CRI, USA)"
+          placeholderTextColor="#999"
+          autoCapitalize="characters"
+          maxLength={3}
+          value={countryCode}
+          onChangeText={setCountryCode}
+          style={[styles.input, styles.countryInput]}
+        />
+        <TextInput
+          placeholder="National ID / Cédula"
+          placeholderTextColor="#999"
+          value={nationalId}
+          onChangeText={setNationalId}
+          style={[styles.input, styles.idInput]}
+        />
+      </View>
+
       <TextInput
         placeholder="Email address"
         placeholderTextColor="#999"
@@ -114,16 +165,8 @@ export default function SignUpScreen() {
           onChangeText={setPassword}
           style={styles.passwordInput}
         />
-        <Pressable
-          onPress={() => setShowPassword(!showPassword)}
-          style={styles.eyeButton}
-          hitSlop={8}
-        >
-          <MaterialCommunityIcons
-            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-            size={22}
-            color="#aaa"
-          />
+        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
+          <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
         </Pressable>
       </View>
 
@@ -174,6 +217,32 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#fff',
   },
+  idRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  countryInput: {
+    flex: 1,
+  },
+  idInput: {
+    flex: 2,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    color: '#fff',
+  },
+  eyeIcon: {
+    padding: 14,
+  },
   button: {
     backgroundColor: '#fff',
     paddingVertical: 14,
@@ -221,22 +290,5 @@ const styles = StyleSheet.create({
   },
   messageTextSuccess: {
     color: '#00C9A7',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingRight: 14,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 14,
-    color: '#fff',
-  },
-  eyeButton: {
-    padding: 4,
   },
 });

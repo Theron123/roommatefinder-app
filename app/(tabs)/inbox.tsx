@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInp
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -48,7 +49,7 @@ export default function InboxScreen() {
     const myId = session.user.id;
     const { data: matchData } = await supabase
       .from('matches')
-      .select('*')
+      .select('user1, user2')
       .or(`user1.eq.${myId},user2.eq.${myId}`);
 
     if (matchData && matchData.length > 0) {
@@ -59,14 +60,6 @@ export default function InboxScreen() {
         .in('id', matchIds);
 
       if (profiles) setMatches(profiles);
-    } else {
-      // Mock data just for UI preview if no matches exist yet
-      const { data: mockProfiles } = await supabase
-        .from('profiles')
-        .select('id, name, photoUrl')
-        .neq('id', myId)
-        .limit(4);
-      if (mockProfiles) setMatches(mockProfiles);
     }
   };
 
@@ -79,11 +72,15 @@ export default function InboxScreen() {
       const myId = session.user.id;
 
       // 1. Fetch messages
-      const { data: msgs } = await supabase
+      const { data: msgs, error: msgsError } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
         .order('created_at', { ascending: false });
+
+      if (msgsError) {
+        console.error("Error fetching messages for inbox:", msgsError);
+      }
 
       if (msgs && msgs.length > 0) {
         const uniqueUserIds = new Set<string>();
@@ -114,7 +111,7 @@ export default function InboxScreen() {
               name: p.name || 'Roommate',
               age: p.age,
               photoUrl: p.photoUrl,
-              lastMessage: lastMsg.content,
+              lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
               unread: false,
             };
@@ -136,12 +133,12 @@ export default function InboxScreen() {
     setLoading(false);
   };
 
-  const renderConversation = ({ item }: { item: any }) => (
+  const renderConversation = useCallback(({ item }: { item: any }) => (
     <Pressable
       onPress={() => router.push(`/chat/${item.id}`)}
       style={styles.row}
     >
-      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
+      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       
       {item.unread && <View style={styles.unreadDot} />}
 
@@ -158,7 +155,26 @@ export default function InboxScreen() {
         </Text>
       </View>
     </Pressable>
-  );
+  ), [router]);
+
+  const renderSearchItem = useCallback(({ item }: { item: any }) => (
+    <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
+      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+      <View style={styles.content}>
+         <Text style={styles.name}>{item.name}, {item.age}</Text>
+         <Text style={styles.lastMessage}>Tap to view profile</Text>
+      </View>
+    </Pressable>
+  ), [router]);
+
+  const renderMatchItem = useCallback(({ item }: { item: any }) => (
+    <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
+      <View style={styles.matchAvatarContainer}>
+        <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" cachePolicy="memory-disk" />
+      </View>
+      <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
+    </Pressable>
+  ), [router]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -187,18 +203,10 @@ export default function InboxScreen() {
       </LinearGradient>
 
       {searchQuery.trim().length > 1 ? (
-        <FlatList
+        <FlashList
           data={searchResults}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
-              <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-              <View style={styles.content}>
-                 <Text style={styles.name}>{item.name}, {item.age}</Text>
-                 <Text style={styles.lastMessage}>Tap to view profile</Text>
-              </View>
-            </Pressable>
-          )}
+          renderItem={renderSearchItem}
           ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No users found</Text>}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -210,22 +218,15 @@ export default function InboxScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           {matches.length > 0 && (
-            <View style={styles.matchesContainer}>
+            <View style={styles.matchesSection}>
               <Text style={styles.matchesTitle}>New Matches</Text>
-              <FlatList
+              <FlashList
                 data={matches}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.matchesScroll}
-                renderItem={({ item }) => (
-                  <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
-                    <View style={styles.matchAvatarContainer}>
-                      <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" />
-                    </View>
-                    <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
-                  </Pressable>
-                )}
+                renderItem={renderMatchItem}
               />
             </View>
           )}
@@ -233,17 +234,19 @@ export default function InboxScreen() {
           <Text style={[styles.matchesTitle, { marginTop: 16 }]}>Messages</Text>
           {conversations.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-              <Text style={{ color: '#888', fontSize: 16 }}>No messages yet.</Text>
-              <Text style={{ color: '#555', fontSize: 14, marginTop: 8 }}>Start chatting with your matches!</Text>
+              <MaterialCommunityIcons name="message-text-outline" size={60} color="#333" />
+              <Text style={styles.emptyText}>No messages yet.</Text>
             </View>
           ) : (
-            <FlatList
-              data={conversations}
-              keyExtractor={(item) => item.id}
-              renderItem={renderConversation}
-              contentContainerStyle={styles.list}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-            />
+            <View style={{ flex: 1 }}>
+              <FlashList
+                data={conversations}
+                keyExtractor={(item) => item.id}
+                renderItem={renderConversation}
+                contentContainerStyle={styles.list}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            </View>
           )}
         </View>
       )}
@@ -286,6 +289,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 4,
+  },
+  matchesSection: {
+    paddingVertical: 10,
+  },
+  emptyText: {
+    color: '#888',
+    fontSize: 16,
+    marginTop: 15,
   },
   list: {
     paddingVertical: 8,

@@ -45,6 +45,20 @@ export default function ExploreScreen() {
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
 
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Prevent browser native gestures (pull-to-refresh, back navigation) from cancelling swipes
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+    }
+    return () => {
+      if (Platform.OS === 'web') {
+        document.body.style.overscrollBehavior = 'auto';
+        document.body.style.touchAction = 'auto';
+      }
+    };
+  }, []);
+
   const fetchProfiles = async () => {
     setLoading(true);
     setAllSwiped(false);
@@ -56,7 +70,7 @@ export default function ExploreScreen() {
       return;
     }
 
-    const { data: currentUserData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    const { data: currentUserData } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences, dealbreakers').eq('id', session.user.id).single();
     if (currentUserData) {
       setCurrentUser(currentUserData);
     }
@@ -64,7 +78,7 @@ export default function ExploreScreen() {
     const filters = getActiveFilters();
     let query = supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
       .limit(50);
@@ -152,7 +166,34 @@ export default function ExploreScreen() {
 
   const onSwipedRight = async (index: number) => {
     const allowed = await checkQuota('like');
-    if (allowed) console.log('Liked', profiles[index].id);
+    if (allowed) {
+      const likedProfile = profiles[index];
+      console.log('Liked', likedProfile.id);
+      
+      // Get authenticated user session directly
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        Alert.alert('Error', 'No authenticated session found. Please log in again.');
+        return;
+      }
+      
+      const myId = session.user.id;
+      console.log('My auth ID:', myId, 'Liked user:', likedProfile.id);
+      
+      // FOR TESTING: Instantly create a match when swiping right
+      const { data, error } = await supabase.from('matches').insert({
+        user1: myId,
+        user2: likedProfile.id,
+      }).select();
+      
+      if (error) {
+        console.error('Match insert error:', error.code, error.message);
+        Alert.alert('Match Error', `${error.message}\n\nCode: ${error.code}\nUser1: ${myId}\nUser2: ${likedProfile.id}`);
+      } else {
+        console.log('Match created!', data);
+        Alert.alert('Match!', `You matched with ${likedProfile.name || 'someone'}! 🎉`);
+      }
+    }
   };
 
   const onSwipedBottom = async (index: number) => {
@@ -222,13 +263,14 @@ export default function ExploreScreen() {
       <View style={styles.cardContainer}>
         <Image 
           source={imageSource} 
-          style={[StyleSheet.absoluteFill, styles.cardImageRounded]}
+          style={[StyleSheet.absoluteFill, styles.cardImageRounded, { userSelect: 'none', WebkitUserDrag: 'none' } as any]}
           contentFit="cover"
           transition={200}
           cachePolicy="memory-disk"
           priority="high"
+          //@ts-ignore
+          draggable={false}
         />
-
         {/* Instagram-style progress indicators */}
         {photosList.length > 1 && (
           <View style={styles.indicatorContainer}>
@@ -291,7 +333,7 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        <View style={styles.cardContentWrapper} pointerEvents="box-none">
+        <View style={[styles.cardContentWrapper, { userSelect: 'none' } as any]} pointerEvents="box-none">
           <Pressable 
             style={styles.textOverlay}
             onPress={() => {
@@ -356,8 +398,8 @@ export default function ExploreScreen() {
         locations={[0, 0.5, 1]}
         style={styles.headerContainer}
       >
-        <SafeAreaView edges={['top']}>
-          <View style={styles.header}>
+        <SafeAreaView edges={['top']} pointerEvents="box-none">
+          <View style={styles.header} pointerEvents="box-none">
             <View style={{ flex: 1, marginRight: 10 }}>
               <Text style={styles.mainTitle}>Explore</Text>
               <Text style={styles.subTitle} numberOfLines={1}>Find your ideal roommate.</Text>
@@ -370,6 +412,7 @@ export default function ExploreScreen() {
               >
                 <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
               </TouchableOpacity>
+              
               <View style={styles.toggleContainer}>
                 <TouchableOpacity 
                   style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
@@ -461,14 +504,15 @@ export default function ExploreScreen() {
               stackSize={3}
               stackSeparation={15}
               swipeBackCard
+              useViewOverflow={false}
               animateOverlayLabelsOpacity
-              overlayOpacityHorizontalThreshold={1}
-              overlayOpacityVerticalThreshold={1}
-              inputOverlayLabelsOpacityRangeX={[-width / 3, -width / 6, 0, width / 6, width / 3]}
-              outputOverlayLabelsOpacityRangeX={[1, 0.3, 0, 0.3, 1]}
-              inputOverlayLabelsOpacityRangeY={[-height / 3, -height / 6, 0, height / 6, height / 3]}
-              outputOverlayLabelsOpacityRangeY={[1, 0.3, 0, 0.3, 1]}
-              containerStyle={styles.swiper}
+              overlayOpacityHorizontalThreshold={10}
+              overlayOpacityVerticalThreshold={10}
+              inputOverlayLabelsOpacityRangeX={[-150, -75, 0, 75, 150]}
+              outputOverlayLabelsOpacityRangeX={[1, 0.5, 0, 0.5, 1]}
+              inputOverlayLabelsOpacityRangeY={[-150, -75, 0, 75, 150]}
+              outputOverlayLabelsOpacityRangeY={[1, 0.5, 0, 0.5, 1]}
+              containerStyle={[styles.swiper, { touchAction: 'none' } as any]}
               cardStyle={styles.cardStyle}
               overlayLabels={{
                 left: {
@@ -487,7 +531,7 @@ export default function ExploreScreen() {
                       justifyContent: 'flex-start',
                       paddingTop: 40,
                       paddingRight: 40,
-                      backgroundColor: 'rgba(255, 75, 75, 0.4)',
+                      backgroundColor: 'rgba(255, 75, 75, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -514,7 +558,7 @@ export default function ExploreScreen() {
                       justifyContent: 'flex-start',
                       paddingTop: 40,
                       paddingLeft: 40,
-                      backgroundColor: 'rgba(76, 175, 80, 0.4)',
+                      backgroundColor: 'rgba(76, 175, 80, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -540,7 +584,7 @@ export default function ExploreScreen() {
                       alignItems: 'center',
                       justifyContent: 'flex-end',
                       paddingBottom: 60,
-                      backgroundColor: 'rgba(33, 150, 243, 0.4)',
+                      backgroundColor: 'rgba(33, 150, 243, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -566,7 +610,7 @@ export default function ExploreScreen() {
                       alignItems: 'center',
                       justifyContent: 'flex-start',
                       paddingTop: 60,
-                      backgroundColor: 'rgba(255, 152, 0, 0.4)',
+                      backgroundColor: 'rgba(255, 152, 0, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -607,7 +651,12 @@ export default function ExploreScreen() {
 
               <TouchableOpacity 
                 style={[styles.actionButton, styles.buttonLike]} 
-                onPress={() => swiperRef.current?.swipeRight()}
+                onPress={async () => {
+                  const idx = currentIndex;
+                  // Call match logic directly (swiper callback may not fire on web)
+                  await onSwipedRight(idx);
+                  swiperRef.current?.swipeRight();
+                }}
               >
                 <MaterialCommunityIcons name="heart" size={28} color="#4caf50" />
               </TouchableOpacity>
@@ -622,7 +671,12 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000',
+    // @ts-ignore - Required for web dragging PanResponder
+    touchAction: 'none',
+    userSelect: 'none',
+    // @ts-ignore
+    WebkitUserSelect: 'none',
   },
   indicatorContainer: {
     position: 'absolute',
@@ -814,6 +868,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8,
     backgroundColor: '#1a1a1a', 
+    // @ts-ignore
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
   },
   cardContentWrapper: {
     flex: 1,
