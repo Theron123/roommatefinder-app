@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import MapComponent from '@/components/ui/MapComponent';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -103,6 +104,11 @@ export default function ProfileDetailScreen() {
         {/* Header Image */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: photosList[activePhotoIdx] || profile.photoUrl }} style={styles.headerImage} contentFit="cover" transition={200} />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.5)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)']}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
           
           {/* Instagram-style progress indicators */}
           {photosList.length > 1 && (
@@ -374,7 +380,7 @@ const styles = StyleSheet.create({
   },
   indicatorContainer: {
     position: 'absolute',
-    top: 52,
+    bottom: 30,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -406,7 +412,7 @@ const styles = StyleSheet.create({
   },
   pageBadge: {
     position: 'absolute',
-    bottom: 30,
+    top: 70,
     right: 20,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,
@@ -576,7 +582,7 @@ const styles = StyleSheet.create({
   },
   expandBadge: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 45,
     left: 20,
     backgroundColor: 'rgba(0,0,0,0.65)',
     paddingHorizontal: 12,

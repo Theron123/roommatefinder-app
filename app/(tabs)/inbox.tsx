@@ -37,72 +37,74 @@ export default function InboxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchConversations();
-      fetchMatches();
+      fetchInboxData();
     }, [])
   );
 
-  const fetchMatches = async () => {
+  const fetchInboxData = async () => {
+    if (conversations.length === 0 && matches.length === 0) {
+      setLoading(true);
+    }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     
     const myId = session.user.id;
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('user1, user2')
-      .or(`user1.eq.${myId},user2.eq.${myId}`);
 
-    if (matchData && matchData.length > 0) {
-      const matchIds = matchData.map(m => m.user1 === myId ? m.user2 : m.user1);
+    // Fetch matches and messages in parallel
+    const [matchesRes, msgsRes] = await Promise.all([
+      supabase.from('matches').select('user1, user2').or(`user1.eq.${myId},user2.eq.${myId}`),
+      supabase.from('messages').select('*').or(`sender_id.eq.${myId},receiver_id.eq.${myId}`).order('created_at', { ascending: false })
+    ]);
+
+    const matchData = matchesRes.data || [];
+    const msgs = msgsRes.data || [];
+
+    // Find who we have messaged
+    const messagedUsers = new Set<string>();
+    const lastMsgs = new Map<string, any>();
+
+    msgs.forEach(msg => {
+      const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+      if (!messagedUsers.has(otherId)) {
+        messagedUsers.add(otherId);
+        lastMsgs.set(otherId, msg);
+      }
+    });
+
+    // Find "New Matches" (users we matched with, but haven't messaged yet)
+    const newMatchIds = new Set<string>();
+    matchData.forEach(m => {
+      const otherId = m.user1 === myId ? m.user2 : m.user1;
+      if (!messagedUsers.has(otherId)) {
+        newMatchIds.add(otherId);
+      }
+    });
+
+    // Combine all IDs we need to fetch profiles for
+    const allProfileIdsToFetch = new Set([...messagedUsers, ...newMatchIds]);
+
+    if (allProfileIdsToFetch.size > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, name, photoUrl')
-        .in('id', matchIds);
+        .select('id, name, age, photoUrl')
+        .in('id', Array.from(allProfileIdsToFetch));
 
-      if (profiles) setMatches(profiles);
-    }
-  };
+      if (profiles) {
+        const profileMap = new Map();
+        profiles.forEach(p => profileMap.set(p.id, p));
 
-  const fetchConversations = async () => {
-    if (conversations.length === 0) {
-      setLoading(true);
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const myId = session.user.id;
+        // Format New Matches
+        const formattedMatches = Array.from(newMatchIds)
+          .map(id => profileMap.get(id))
+          .filter(Boolean);
+        setMatches(formattedMatches);
 
-      // 1. Fetch messages
-      const { data: msgs, error: msgsError } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
-        .order('created_at', { ascending: false });
-
-      if (msgsError) {
-        console.error("Error fetching messages for inbox:", msgsError);
-      }
-
-      if (msgs && msgs.length > 0) {
-        const uniqueUserIds = new Set<string>();
-        const lastMsgs = new Map<string, any>();
-
-        msgs.forEach(msg => {
-          const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
-          if (!uniqueUserIds.has(otherId)) {
-            uniqueUserIds.add(otherId);
-            lastMsgs.set(otherId, msg);
-          }
-        });
-
-        // 2. Fetch profiles
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, age, photoUrl')
-          .in('id', Array.from(uniqueUserIds));
-
-        if (profiles) {
-          const formattedConvos = profiles.map(p => {
-            const lastMsg = lastMsgs.get(p.id);
+        // Format Conversations
+        const formattedConvos = Array.from(messagedUsers)
+          .map(id => {
+            const p = profileMap.get(id);
+            if (!p) return null;
+            const lastMsg = lastMsgs.get(id);
             const date = new Date(lastMsg.created_at);
             const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
@@ -115,21 +117,23 @@ export default function InboxScreen() {
               time: timeStr,
               unread: false,
             };
-          });
+          })
+          .filter(Boolean);
 
-          // Sort formattedConvos by lastMsg created_at DESC
-          formattedConvos.sort((a, b) => {
-            const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
-            const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
-            return timeB - timeA;
-          });
+        // Sort Conversations by latest message
+        formattedConvos.sort((a: any, b: any) => {
+          const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
+          const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
+          return timeB - timeA;
+        });
 
-          setConversations(formattedConvos);
-        }
-      } else {
-        setConversations([]);
+        setConversations(formattedConvos);
       }
+    } else {
+      setMatches([]);
+      setConversations([]);
     }
+    
     setLoading(false);
   };
 
@@ -184,8 +188,8 @@ export default function InboxScreen() {
             <Text style={styles.title}>Messages</Text>
             <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
           </View>
-          <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
-             <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
+          <Pressable onPress={() => router.push('/activity')} style={styles.followersIcon}>
+             <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
              <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
           </Pressable>
         </View>

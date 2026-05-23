@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ManageListingScreen() {
+  const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [listingId, setListingId] = useState<string | null>(null);
@@ -29,15 +30,17 @@ export default function ManageListingScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const { data } = await supabase.from('listings').select('*').eq('user_id', session.user.id).single();
-    if (data) {
-      setListingId(data.id);
-      setTitle(data.title || '');
-      setDescription(data.description || '');
-      setPrice(data.price ? data.price.toString() : '');
-      setAddress(data.address || '');
-      setImages(data.images || []);
-      setUtilities(data.utilities_included || false);
+    if (id) {
+      const { data } = await supabase.from('listings').select('*').eq('id', id).single();
+      if (data && data.user_id === session.user.id) {
+        setListingId(data.id);
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        setPrice(data.price ? data.price.toString() : '');
+        setAddress(data.address || '');
+        setImages(data.images || []);
+        setUtilities(data.utilities_included || false);
+      }
     }
     setLoading(false);
   };

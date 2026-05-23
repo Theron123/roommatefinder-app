@@ -17,7 +17,7 @@ export default function MyProfileScreen() {
   const [name, setName] = useState<string>('');
   const [bio, setBio] = useState<string>('');
   const [age, setAge] = useState<string>('');
-  const [listing, setListing] = useState<any>(null);
+  const [listings, setListings] = useState<any[]>([]);
   const [contractCount, setContractCount] = useState<number>(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [status, setStatus] = useState<string>('exploring');
@@ -49,11 +49,11 @@ export default function MyProfileScreen() {
         setStatus(data.availability_status || 'exploring');
       }
 
-      const { data: listingData } = await supabase.from('listings').select('*').eq('user_id', session.user.id).single();
-      if (listingData) {
-        setListing(listingData);
+      const { data: listingsData } = await supabase.from('listings').select('*').eq('user_id', session.user.id);
+      if (listingsData) {
+        setListings(listingsData);
       } else {
-        setListing(null);
+        setListings([]);
       }
 
       // Fetch contract counts
@@ -84,9 +84,10 @@ export default function MyProfileScreen() {
 
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
+    const newRole = newStatus === 'have_room' ? 'landlord' : 'seeker';
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      await supabase.from('profiles').update({ availability_status: newStatus }).eq('id', session.user.id);
+      await supabase.from('profiles').update({ availability_status: newStatus, role: newRole }).eq('id', session.user.id);
     }
   };
 
@@ -171,10 +172,7 @@ export default function MyProfileScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace('/(auth)/login');
-  };
+  // handleLogout moved to settings
 
   if (loading) {
     return <SafeAreaView style={styles.container}><ActivityIndicator color="#fff" style={{marginTop: 40}} /></SafeAreaView>;
@@ -238,10 +236,10 @@ export default function MyProfileScreen() {
               <View style={styles.onlineDot} />
             </Pressable>
 
-            {/* Premium Wheel */}
+            {/* Settings Wheel */}
             <Pressable 
               style={styles.premiumWheelBtn} 
-              onPress={() => router.push('/subscriptions')}
+              onPress={() => router.push('/settings')}
             >
               <MaterialCommunityIcons name="cog" size={16} color="#49C788" />
             </Pressable>
@@ -396,28 +394,30 @@ export default function MyProfileScreen() {
 
         {/* My Apartment Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>My Apartment</Text>
+          <Text style={styles.sectionTitle}>My Apartments</Text>
           <Pressable onPress={() => router.push('/manage-listing')}>
-            <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#FFB800" />
+            <MaterialCommunityIcons name="plus-circle" size={24} color="#FFB800" />
           </Pressable>
         </View>
 
         <View style={styles.listingContainer}>
-          {listing ? (
-            <Pressable onPress={() => router.push('/manage-listing')} style={styles.listingCard}>
-              {listing.images && listing.images.length > 0 ? (
-                <Image source={{ uri: listing.images[0] }} style={styles.listingImage} contentFit="cover" />
-              ) : (
-                <View style={[styles.listingImage, styles.listingImagePlaceholder]}>
-                  <IconSymbol name="house.fill" size={32} color="#333" />
+          {listings.length > 0 ? (
+            listings.map((lst: any) => (
+              <Pressable key={lst.id} onPress={() => router.push(`/manage-listing?id=${lst.id}`)} style={[styles.listingCard, { marginBottom: 12 }]}>
+                {lst.images && lst.images.length > 0 ? (
+                  <Image source={{ uri: lst.images[0] }} style={styles.listingImage} contentFit="cover" />
+                ) : (
+                  <View style={[styles.listingImage, styles.listingImagePlaceholder]}>
+                    <IconSymbol name="house.fill" size={32} color="#333" />
+                  </View>
+                )}
+                <View style={styles.listingDetails}>
+                  <Text style={styles.listingTitle} numberOfLines={1}>{lst.title || 'Untitled Room'}</Text>
+                  <Text style={styles.listingPrice}>${lst.price}/month</Text>
+                  {lst.address && <Text style={styles.listingAddress} numberOfLines={1}>{lst.address}</Text>}
                 </View>
-              )}
-              <View style={styles.listingDetails}>
-                <Text style={styles.listingTitle} numberOfLines={1}>{listing.title || 'Untitled Room'}</Text>
-                <Text style={styles.listingPrice}>${listing.price}/month</Text>
-                {listing.address && <Text style={styles.listingAddress} numberOfLines={1}>{listing.address}</Text>}
-              </View>
-            </Pressable>
+              </Pressable>
+            ))
           ) : (
             <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#FFB800', marginHorizontal: 20 }]}>
               <IconSymbol name="house.fill" size={16} color="#FFB800" />
@@ -432,7 +432,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>My Hobbies & Interests</Text>
           <Pressable onPress={() => router.push('/preferences?focus=hobbies')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
+            <MaterialCommunityIcons name="plus-circle" size={24} color="#49C788" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
@@ -452,7 +452,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
           <Pressable onPress={() => router.push('/preferences?focus=lifestyle')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#00C9A7" />
+            <MaterialCommunityIcons name="plus-circle" size={24} color="#00C9A7" />
           </Pressable>
         </View>
 
@@ -512,7 +512,7 @@ export default function MyProfileScreen() {
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>Dealbreakers</Text>
           <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#FF4B4B" />
+            <MaterialCommunityIcons name="plus-circle" size={24} color="#FF4B4B" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
@@ -589,10 +589,7 @@ export default function MyProfileScreen() {
 
         <View style={{ height: 16 }} />
 
-        {/* Logout CTA */}
-        <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutBtnText}>Log Out</Text>
-        </Pressable>
+        {/* Log Out moved to settings */}
 
         <View style={{ height: 40 }} />
       </ScrollView>

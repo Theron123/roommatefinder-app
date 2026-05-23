@@ -381,18 +381,18 @@ const styles = StyleSheet.create({
   galleryContainer: {
     position: 'relative',
     height: 400,
-    width: SCREEN_WIDTH,
+    width: '100%',
   },
   galleryScroll: {
     flex: 1,
   },
   imageWrapper: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: 400,
     position: 'relative',
   },
   heroImage: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: 400,
   },
   heroGradient: {
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
   },
   indicatorContainer: {
     position: 'absolute',
-    top: 52,
+    bottom: 30,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
   },
   pageBadge: {
     position: 'absolute',
-    bottom: 30,
+    top: 70,
     right: 20,
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingHorizontal: 10,
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   },
   expandBadge: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 45,
     left: 20,
     backgroundColor: 'rgba(0,0,0,0.65)',
     paddingHorizontal: 12,

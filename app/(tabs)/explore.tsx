@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -70,7 +70,7 @@ export default function ExploreScreen() {
       return;
     }
 
-    const { data: currentUserData } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences, dealbreakers').eq('id', session.user.id).single();
+    const { data: currentUserData } = await supabase.from('profiles').select('id, role, availability_status, latOffset, lngOffset, likes, preferences, dealbreakers').eq('id', session.user.id).single();
     if (currentUserData) {
       setCurrentUser(currentUserData);
     }
@@ -127,9 +127,11 @@ export default function ExploreScreen() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchProfiles();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfiles();
+    }, [])
+  );
 
   const onSwiped = () => {
     setCurrentIndex(prev => prev + 1);
@@ -390,6 +392,24 @@ export default function ExploreScreen() {
       </View>
     );
   };
+
+  if (currentUser?.role === 'landlord') {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <MaterialCommunityIcons name="home-city" size={80} color="#49C788" />
+        <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: 16 }}>Modo Landlord</Text>
+        <Text style={{ color: '#aaa', fontSize: 16, textAlign: 'center', marginTop: 12, paddingHorizontal: 40, lineHeight: 22 }}>
+          Ya tienes un cuarto disponible para rentar. Tu propiedad será mostrada a los usuarios que busquen, por lo que no necesitas hacer swipe.
+        </Text>
+        <Pressable 
+          onPress={() => router.push('/inbox')}
+          style={{ marginTop: 32, backgroundColor: '#49C788', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25 }}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Ir a Mensajes</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <View style={styles.container}>
