@@ -31,7 +31,7 @@ type Contract = {
   selected_custom_clauses: string[];
   effective_date: string | null;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants?: { user_id: string; profiles: { name: string } }[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -59,7 +59,7 @@ export default function ReviewContractScreen() {
   const fetchContract = async () => {
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))')
       .eq('id', id)
       .single();
     setContract(data as any);
@@ -72,7 +72,8 @@ export default function ReviewContractScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
-      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const participants = contract.contract_participants || [];
+      const counterpartyName = participants.map((p: any) => p.profiles?.name).join(', ') || 'Contraparte';
       const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
       // Define structured sections for a premium, extremely detailed document
@@ -402,6 +403,8 @@ export default function ReviewContractScreen() {
   }
 
   const c = contract.clauses || {};
+  const participants = contract.contract_participants || [];
+  const counterpartyNames = participants.map((p: any) => p.profiles?.name).join(', ') || 'Contraparte';
 
   return (
     <SafeAreaView style={s.container}>
@@ -420,7 +423,7 @@ export default function ReviewContractScreen() {
           <MaterialCommunityIcons name="file-sign" size={40} color="#49C788" />
           <Text style={s.heroType}>{TYPE_LABELS[contract.type] || contract.type}</Text>
           <Text style={s.heroParties}>
-            {contract.initiator?.name} → {contract.counterparty?.name}
+            {contract.initiator?.name} → {counterpartyNames}
           </Text>
           {contract.effective_date && (
             <Text style={s.heroDate}>Vigencia: {contract.effective_date}</Text>

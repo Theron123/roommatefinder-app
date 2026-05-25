@@ -57,10 +57,24 @@ export default function MyProfileScreen() {
       }
 
       // Fetch contract counts
-      const { data: contracts } = await supabase
+      const { data: participantData } = await supabase
+        .from('contract_participants')
+        .select('contract_id')
+        .eq('user_id', session.user.id);
+        
+      const contractIds = participantData?.map((p: any) => p.contract_id) || [];
+
+      let query = supabase
         .from('contracts')
-        .select('id, status')
-        .or(`initiator_id.eq.${session.user.id},counterparty_id.eq.${session.user.id}`);
+        .select('id, status');
+
+      if (contractIds.length > 0) {
+        query = query.or(`initiator_id.eq.${session.user.id},id.in.(${contractIds.join(',')})`);
+      } else {
+        query = query.eq('initiator_id', session.user.id);
+      }
+
+      const { data: contracts } = await query;
       if (contracts) {
         setContractCount(contracts.length);
         setPendingCount(contracts.filter((c: any) => c.status === 'pending_authorization').length);

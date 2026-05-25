@@ -17,9 +17,8 @@ type Contract = {
   effective_date: string | null;
   clauses: any;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants?: { user_id: string; profiles: { name: string } }[];
   initiator_id: string;
-  counterparty_id: string;
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -54,13 +53,27 @@ export default function AgreementsHubScreen() {
     }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
-    setUserId(session.user.id);
+    const uid = session.user.id;
+    setUserId(uid);
 
-    const { data } = await supabase
+    const { data: participantData } = await supabase
+      .from('contract_participants')
+      .select('contract_id')
+      .eq('user_id', uid);
+      
+    const contractIds = participantData?.map((p: any) => p.contract_id) || [];
+
+    let query = supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
-      .or(`initiator_id.eq.${session.user.id},counterparty_id.eq.${session.user.id}`)
-      .order('created_at', { ascending: false });
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))');
+      
+    if (contractIds.length > 0) {
+      query = query.or(`initiator_id.eq.${uid},id.in.(${contractIds.join(',')})`);
+    } else {
+      query = query.eq('initiator_id', uid);
+    }
+
+    const { data } = await query.order('created_at', { ascending: false });
 
     setContracts((data as any) || []);
     setLoading(false);
@@ -145,7 +158,10 @@ export default function AgreementsHubScreen() {
                 contracts.map(contract => {
                   const st = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
                   const isInitiator = contract.initiator_id === userId;
-                  const otherParty = isInitiator ? contract.counterparty?.name : contract.initiator?.name;
+                  const participants = contract.contract_participants || [];
+                  const otherPartyNames = isInitiator 
+                    ? (participants.map(p => p.profiles?.name).join(', ') || 'Usuario desconocido')
+                    : (contract.initiator?.name || 'Usuario desconocido');
                   
                   return (
                     <Pressable
@@ -160,7 +176,7 @@ export default function AgreementsHubScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={s.cardType}>{TYPE_LABELS[contract.type] || contract.type}</Text>
                           <Text style={s.cardParty}>
-                            {isInitiator ? 'Con' : 'De'} {otherParty || 'Usuario desconocido'}
+                            {isInitiator ? 'Con' : 'De'} {otherPartyNames}
                           </Text>
                         </View>
                         <View style={[s.badge, { backgroundColor: st.color + '15', borderColor: st.color + '30' }]}>

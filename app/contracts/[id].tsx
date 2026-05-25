@@ -47,9 +47,8 @@ type Contract = {
   updated_at: string;
   pdf_url: string | null;
   initiator_id: string;
-  counterparty_id: string;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants?: { user_id: string; profiles: { name: string } }[];
 };
 
 export default function ContractDetailScreen() {
@@ -68,7 +67,7 @@ export default function ContractDetailScreen() {
 
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))')
       .eq('id', id)
       .single();
 
@@ -118,7 +117,8 @@ export default function ContractDetailScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
-      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const participants = contract.contract_participants || [];
+      const counterpartyName = participants.map((p: any) => p.profiles?.name).join(', ') || 'Contraparte';
       const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
       // Define structured sections for a premium, extremely detailed document
@@ -418,10 +418,12 @@ export default function ContractDetailScreen() {
 
   const st    = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
   const c     = contract.clauses || {};
-  const isCP  = contract.counterparty_id === userId; // es la otra parte
+  const isCP  = contract.contract_participants?.some((p: any) => p.user_id === userId); // es la otra parte
   const isInit = contract.initiator_id === userId;
   const canAccept = isCP && contract.status === 'pending_authorization';
   const canTerminate = (isInit || isCP) && (contract.status === 'active' || contract.status === 'pending_authorization');
+  
+  const counterpartyNames = (contract.contract_participants || []).map((p: any) => p.profiles?.name).join(', ');
 
   return (
     <SafeAreaView style={s.container}>
@@ -455,9 +457,9 @@ export default function ContractDetailScreen() {
             </View>
             <MaterialCommunityIcons name="arrow-left-right" size={18} color="#333" />
             <View style={s.partyChip}>
-              <MaterialCommunityIcons name="account" size={14} color="#FFB800" />
-              <Text style={s.partyName}>{contract.counterparty?.name}</Text>
-              <Text style={s.partyRole}>Contraparte</Text>
+              <MaterialCommunityIcons name="account-group" size={14} color="#FFB800" />
+              <Text style={s.partyName}>{counterpartyNames || 'Contraparte'}</Text>
+              <Text style={s.partyRole}>{contract.contract_participants?.length > 1 ? 'Contrapartes' : 'Contraparte'}</Text>
             </View>
           </View>
           {contract.effective_date && (

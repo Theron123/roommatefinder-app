@@ -39,7 +39,7 @@ export default function NewContractScreen() {
   // Step 1
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
   // Step 2
-  const [selectedUser, setSelectedUser] = useState<Match | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
   // Step 3
   const [rent, setRent]                 = useState('');
   const [dueDay, setDueDay]             = useState('1');
@@ -53,6 +53,7 @@ export default function NewContractScreen() {
   // Step 5
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (step === 1 && matches.length === 0) loadMatches();
@@ -96,7 +97,7 @@ export default function NewContractScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedUser) return;
+    if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
       Alert.alert('Faltan datos', 'Completa los montos y la fecha de inicio.');
       return;
@@ -114,30 +115,65 @@ export default function NewContractScreen() {
       cleaning:         { schedule: cleaningSchedule },
     };
 
+    let formattedDateForDB = effectiveDate;
+    if (effectiveDate.includes('/')) {
+      const parts = effectiveDate.split('/');
+      if (parts.length === 3) {
+        formattedDateForDB = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
     const { data: newContract, error } = await supabase.from('contracts').insert({
       initiator_id:           session.user.id,
-      counterparty_id:        selectedUser.user_id,
       type:                   contractType,
       status:                 'draft',
       template_version:       'v2.0',
       clauses,
       selected_custom_clauses: selectedOptional,
-      effective_date:         effectiveDate,
+      effective_date:         formattedDateForDB,
     }).select().single();
 
-    setLoading(false);
     if (error || !newContract) {
+      setLoading(false);
       Alert.alert('Error', 'No se pudo crear el borrador.');
       return;
     }
+
+    const participantsData = selectedUsers.map(u => ({
+      contract_id: newContract.id,
+      user_id: u.user_id,
+    }));
+
+    const { error: participantsError } = await supabase.from('contract_participants').insert(participantsData);
+    
+    if (participantsError) {
+      setLoading(false);
+      Alert.alert('Error', 'Hubo un error al agregar los participantes.');
+      return;
+    }
+
+    setLoading(false);
     router.replace(`/contracts/${newContract.id}`);
   };
 
   const canNext = () => {
     if (step === 0) return !!contractType;
-    if (step === 1) return !!selectedUser;
-    if (step === 2) return !!rent && !!deposit && !!effectiveDate;
+    if (step === 1) return selectedUsers.length > 0;
+    if (step === 2) return !!rent && !!deposit && !!effectiveDate && effectiveDate.length === 10;
     return true;
+  };
+
+  const handleDateChange = (text: string) => {
+    let cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+
+    if (cleaned.length > 2 && cleaned.length <= 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    } else if (cleaned.length > 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+    }
+    
+    setEffectiveDate(formatted);
   };
 
   return (
@@ -210,6 +246,18 @@ export default function NewContractScreen() {
           {step === 1 && (
             <View style={s.stepContent}>
               <Text style={s.sectionHint}>¿Con quién celebrarás este acuerdo?</Text>
+              
+              <View style={[s.inputWrapper, { marginBottom: 16 }]}>
+                <MaterialCommunityIcons name="magnify" size={20} color="#888" style={s.inputIcon} />
+                <TextInput 
+                  style={s.inputWithIcon} 
+                  value={searchQuery} 
+                  onChangeText={setSearchQuery} 
+                  placeholder="Buscar usuario..." 
+                  placeholderTextColor="#444" 
+                />
+              </View>
+
               {loadingMatches ? (
                 <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
               ) : matches.length === 0 ? (
@@ -220,23 +268,32 @@ export default function NewContractScreen() {
                   <Text style={s.emptyStateText}>Necesitas un match aprobado para crear un acuerdo formal.</Text>
                 </View>
               ) : (
-                matches.map(m => (
-                  <Pressable
-                    key={m.user_id}
-                    style={[s.matchCard, selectedUser?.user_id === m.user_id && s.matchCardActive]}
-                    onPress={() => setSelectedUser(m)}
-                  >
-                    <View style={[s.matchAvatar, selectedUser?.user_id === m.user_id && { backgroundColor: '#49C788' }]}>
-                      <Text style={[s.matchInitial, selectedUser?.user_id === m.user_id && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
-                    </View>
-                    <Text style={s.matchName}>{m.name}</Text>
-                    <MaterialCommunityIcons 
-                      name={selectedUser?.user_id === m.user_id ? "check-circle" : "circle-outline"} 
-                      size={24} 
-                      color={selectedUser?.user_id === m.user_id ? "#49C788" : "#333"} 
-                    />
-                  </Pressable>
-                ))
+                matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase())).map(m => {
+                  const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
+                  return (
+                    <Pressable
+                      key={m.user_id}
+                      style={[s.matchCard, isSelected && s.matchCardActive]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedUsers(selectedUsers.filter(u => u.user_id !== m.user_id));
+                        } else {
+                          setSelectedUsers([...selectedUsers, m]);
+                        }
+                      }}
+                    >
+                      <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
+                        <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
+                      </View>
+                      <Text style={s.matchName}>{m.name}</Text>
+                      <MaterialCommunityIcons 
+                        name={isSelected ? "check-circle" : "circle-outline"} 
+                        size={24} 
+                        color={isSelected ? "#49C788" : "#333"} 
+                      />
+                    </Pressable>
+                  );
+                })
               )}
             </View>
           )}
@@ -270,7 +327,15 @@ export default function NewContractScreen() {
                 <View style={{ width: 16 }} />
                 <View style={[s.inputGroup, { flex: 1.5 }]}>
                   <Text style={s.fieldLabel}>Fecha de inicio *</Text>
-                  <TextInput style={s.input} value={effectiveDate} onChangeText={setEffectiveDate} placeholder="AAAA-MM-DD" placeholderTextColor="#444" />
+                  <TextInput 
+                    style={s.input} 
+                    value={effectiveDate} 
+                    onChangeText={handleDateChange} 
+                    placeholder="DD/MM/AAAA" 
+                    placeholderTextColor="#444" 
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
                 </View>
               </View>
             </View>
