@@ -17,9 +17,8 @@ type Contract = {
   effective_date: string | null;
   clauses: any;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
   initiator_id: string;
-  counterparty_id: string;
+  contract_participants: { user: { name: string } | null }[];
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
@@ -56,11 +55,25 @@ export default function AgreementsHubScreen() {
     if (!session) { setLoading(false); return; }
     setUserId(session.user.id);
 
-    const { data } = await supabase
+    // Obtener los IDs de los contratos en los que soy participante/contraparte
+    const { data: partData } = await supabase
+      .from('contract_participants')
+      .select('contract_id')
+      .eq('user_id', session.user.id);
+
+    const contractIds = partData?.map(p => p.contract_id).filter(Boolean) || [];
+
+    let query = supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
-      .or(`initiator_id.eq.${session.user.id},counterparty_id.eq.${session.user.id}`)
-      .order('created_at', { ascending: false });
+      .select('*, initiator:initiator_id(name), contract_participants(user:user_id(name))');
+
+    if (contractIds.length > 0) {
+      query = query.or(`initiator_id.eq.${session.user.id},id.in.(${contractIds.join(',')})`);
+    } else {
+      query = query.eq('initiator_id', session.user.id);
+    }
+
+    const { data } = await query.order('created_at', { ascending: false });
 
     setContracts((data as any) || []);
     setLoading(false);
@@ -145,7 +158,10 @@ export default function AgreementsHubScreen() {
                 contracts.map(contract => {
                   const st = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
                   const isInitiator = contract.initiator_id === userId;
-                  const otherParty = isInitiator ? contract.counterparty?.name : contract.initiator?.name;
+                  const counterparties = contract.contract_participants?.map(p => p.user?.name).filter(Boolean) || [];
+                  const otherParty = isInitiator 
+                    ? (counterparties.join(', ') || 'Roommates')
+                    : contract.initiator?.name;
                   
                   return (
                     <Pressable

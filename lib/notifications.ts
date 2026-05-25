@@ -21,6 +21,14 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web') {
     console.log('[Notifications] Push notifications are not configured for web in dev mode.');
+    // Prompt for standard HTML5 Web Notifications on browsers
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          console.log('[Notifications] Web notification permission:', permission);
+        });
+      }
+    }
     return null;
   }
 
@@ -84,6 +92,33 @@ export async function sendLocalNotification(
   body: string,
   data?: Record<string, any>
 ) {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        const notif = new Notification(title, {
+          body,
+          tag: data?.type || 'notification',
+        });
+        notif.onclick = () => {
+          window.focus();
+        };
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            const notif = new Notification(title, {
+              body,
+              tag: data?.type || 'notification',
+            });
+            notif.onclick = () => {
+              window.focus();
+            };
+          }
+        });
+      }
+    }
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -126,4 +161,13 @@ export async function notifyContractUpdate(contractId: string, message: string) 
     message,
     { type: 'contract_update', contractId }
   );
+}
+
+// Shared active chat state to prevent notifying when already chatting with the sender
+let _activeChatUserId: string | null = null;
+export function setActiveChatUserId(id: string | null) {
+  _activeChatUserId = id;
+}
+export function getActiveChatUserId(): string | null {
+  return _activeChatUserId;
 }

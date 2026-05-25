@@ -39,12 +39,38 @@ export default function NewContractScreen() {
   // Step 1
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
   // Step 2
-  const [selectedUser, setSelectedUser] = useState<Match | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleToggleUser = (user: Match) => {
+    setSelectedUsers(prev => {
+      if (prev.some(u => u.user_id === user.user_id)) {
+        return prev.filter(u => u.user_id !== user.user_id);
+      } else {
+        return [...prev, user];
+      }
+    });
+  };
   // Step 3
   const [rent, setRent]                 = useState('');
   const [dueDay, setDueDay]             = useState('1');
   const [deposit, setDeposit]           = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
+
+  const handleDateChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    
+    if (cleaned.length <= 2) {
+      formatted = cleaned;
+    } else if (cleaned.length <= 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    } else {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+    }
+    
+    setEffectiveDate(formatted);
+  };
   // Step 4
   const [petsAllowed, setPetsAllowed]   = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
@@ -96,11 +122,30 @@ export default function NewContractScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedUser) return;
+    if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
       Alert.alert('Faltan datos', 'Completa los montos y la fecha de inicio.');
       return;
     }
+
+    // Convertir DD/MM/AAAA a AAAA-MM-DD para Supabase
+    const dateParts = effectiveDate.split('/');
+    if (dateParts.length !== 3 || dateParts[0].length !== 2 || dateParts[1].length !== 2 || dateParts[2].length !== 4) {
+      Alert.alert('Fecha inválida', 'La fecha debe tener el formato DD/MM/AAAA.');
+      return;
+    }
+
+    const day = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]);
+    const year = parseInt(dateParts[2]);
+
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+      Alert.alert('Fecha inválida', 'Por favor ingresa una fecha válida.');
+      return;
+    }
+
+    const formattedIsoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
@@ -116,27 +161,43 @@ export default function NewContractScreen() {
 
     const { data: newContract, error } = await supabase.from('contracts').insert({
       initiator_id:           session.user.id,
-      counterparty_id:        selectedUser.user_id,
       type:                   contractType,
       status:                 'draft',
       template_version:       'v2.0',
       clauses,
       selected_custom_clauses: selectedOptional,
-      effective_date:         effectiveDate,
+      effective_date:         formattedIsoDate,
     }).select().single();
 
-    setLoading(false);
     if (error || !newContract) {
+      setLoading(false);
       Alert.alert('Error', 'No se pudo crear el borrador.');
       return;
     }
+
+    // Guardar los participantes seleccionados en contract_participants
+    const participantInserts = selectedUsers.map(u => ({
+      contract_id: newContract.id,
+      user_id: u.user_id
+    }));
+
+    const { error: partError } = await supabase
+      .from('contract_participants')
+      .insert(participantInserts);
+
+    setLoading(false);
+    if (partError) {
+      Alert.alert('Error', 'No se pudieron registrar los participantes.');
+      return;
+    }
+
     router.replace(`/contracts/${newContract.id}`);
   };
 
   const canNext = () => {
     if (step === 0) return !!contractType;
-    if (step === 1) return !!selectedUser;
-    if (step === 2) return !!rent && !!deposit && !!effectiveDate;
+    if (step === 1) return selectedUsers.length > 0;
+    if (step === 2) return !!rent && !!deposit && effectiveDate.length === 10;
     return true;
   };
 
@@ -210,6 +271,40 @@ export default function NewContractScreen() {
           {step === 1 && (
             <View style={s.stepContent}>
               <Text style={s.sectionHint}>¿Con quién celebrarás este acuerdo?</Text>
+
+              {/* Buscador de Matches */}
+              {matches.length > 0 && (
+                <View style={s.searchContainer}>
+                  <MaterialCommunityIcons name="magnify" size={20} color="#666" style={s.searchIcon} />
+                  <TextInput
+                    style={s.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Buscar roommates..."
+                    placeholderTextColor="#666"
+                  />
+                  {searchQuery.length > 0 && (
+                    <Pressable onPress={() => setSearchQuery('')}>
+                      <MaterialCommunityIcons name="close" size={18} color="#666" />
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
+              {/* Píldoras de seleccionados */}
+              {selectedUsers.length > 0 && (
+                <View style={s.selectedPillsContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.selectedPillsScroll}>
+                    {selectedUsers.map(user => (
+                      <Pressable key={user.user_id} style={s.selectedPill} onPress={() => handleToggleUser(user)}>
+                        <Text style={s.selectedPillText}>{user.name}</Text>
+                        <MaterialCommunityIcons name="close-circle" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+
               {loadingMatches ? (
                 <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
               ) : matches.length === 0 ? (
@@ -220,23 +315,36 @@ export default function NewContractScreen() {
                   <Text style={s.emptyStateText}>Necesitas un match aprobado para crear un acuerdo formal.</Text>
                 </View>
               ) : (
-                matches.map(m => (
-                  <Pressable
-                    key={m.user_id}
-                    style={[s.matchCard, selectedUser?.user_id === m.user_id && s.matchCardActive]}
-                    onPress={() => setSelectedUser(m)}
-                  >
-                    <View style={[s.matchAvatar, selectedUser?.user_id === m.user_id && { backgroundColor: '#49C788' }]}>
-                      <Text style={[s.matchInitial, selectedUser?.user_id === m.user_id && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
-                    </View>
-                    <Text style={s.matchName}>{m.name}</Text>
-                    <MaterialCommunityIcons 
-                      name={selectedUser?.user_id === m.user_id ? "check-circle" : "circle-outline"} 
-                      size={24} 
-                      color={selectedUser?.user_id === m.user_id ? "#49C788" : "#333"} 
-                    />
-                  </Pressable>
-                ))
+                (() => {
+                  const filtered = matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                  if (filtered.length === 0) {
+                    return (
+                      <View style={s.emptyState}>
+                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>No se encontraron roommates con ese nombre.</Text>
+                      </View>
+                    );
+                  }
+                  return filtered.map(m => {
+                    const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
+                    return (
+                      <Pressable
+                        key={m.user_id}
+                        style={[s.matchCard, isSelected && s.matchCardActive]}
+                        onPress={() => handleToggleUser(m)}
+                      >
+                        <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
+                          <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
+                        </View>
+                        <Text style={s.matchName}>{m.name}</Text>
+                        <MaterialCommunityIcons 
+                          name={isSelected ? "check-circle" : "circle-outline"} 
+                          size={24} 
+                          color={isSelected ? "#49C788" : "#333"} 
+                        />
+                      </Pressable>
+                    );
+                  });
+                })()
               )}
             </View>
           )}
@@ -270,7 +378,15 @@ export default function NewContractScreen() {
                 <View style={{ width: 16 }} />
                 <View style={[s.inputGroup, { flex: 1.5 }]}>
                   <Text style={s.fieldLabel}>Fecha de inicio *</Text>
-                  <TextInput style={s.input} value={effectiveDate} onChangeText={setEffectiveDate} placeholder="AAAA-MM-DD" placeholderTextColor="#444" />
+                  <TextInput
+                    style={s.input}
+                    value={effectiveDate}
+                    onChangeText={handleDateChange}
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor="#444"
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
                 </View>
               </View>
             </View>
@@ -448,4 +564,12 @@ const s = StyleSheet.create({
   nextBtn:          { backgroundColor: '#49C788', borderRadius: 30, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, shadowColor: '#49C788', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   nextBtnDisabled:  { backgroundColor: '#1a2a22', shadowOpacity: 0 },
   nextBtnText:      { color: '#000', fontWeight: '800', fontSize: 16 },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e', paddingHorizontal: 16, height: 50, marginBottom: 8 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15 },
+  selectedPillsContainer: { height: 40, marginBottom: 8 },
+  selectedPillsScroll: { gap: 8, alignItems: 'center' },
+  selectedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#49C788', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  selectedPillText: { color: '#000', fontWeight: '700', fontSize: 13 },
 });

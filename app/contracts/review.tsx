@@ -31,7 +31,7 @@ type Contract = {
   selected_custom_clauses: string[];
   effective_date: string | null;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants: { user: { name: string } | null }[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -59,7 +59,7 @@ export default function ReviewContractScreen() {
   const fetchContract = async () => {
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
+      .select('*, initiator:initiator_id(name), contract_participants(user:user_id(name))')
       .eq('id', id)
       .single();
     setContract(data as any);
@@ -72,7 +72,8 @@ export default function ReviewContractScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
-      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const counterparties = contract.contract_participants?.map(p => p.user?.name).filter(Boolean) || [];
+      const counterpartyName = counterparties.join(', ') || 'Roommates';
       const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
       // Define structured sections for a premium, extremely detailed document
@@ -107,239 +108,254 @@ export default function ReviewContractScreen() {
         <div class="custom-clause-item">&bull; ${OPTIONAL_CLAUSE_LABELS[key] || key}</div>
       `).join('');
 
-      const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Contrato ${contract.id}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-          body { 
-            font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; 
-            color: #2c3e50; 
-            margin: 0; 
-            padding: 50px; 
-            background: #fff; 
-            line-height: 1.6;
-          }
-          .header { 
-            text-align: center; 
-            margin-bottom: 40px; 
-            border-bottom: 2px solid #eaeaea; 
-            padding-bottom: 25px; 
-            position: relative;
-          }
-          .header h1 { 
-            margin: 0; 
-            color: #0d1117; 
-            font-size: 26px; 
-            font-weight: 800;
-            letter-spacing: -0.5px; 
-          }
-          .header p { 
-            color: #7f8c8d; 
-            font-size: 13px; 
-            margin-top: 6px; 
-            font-weight: 400;
-          }
-          .badge { 
-            display: inline-block; 
-            background: rgba(73, 199, 136, 0.12); 
-            color: #27ae60; 
-            padding: 6px 16px; 
-            border-radius: 20px; 
-            font-weight: 600; 
-            font-size: 11px; 
-            margin-top: 12px;
-            letter-spacing: 0.5px;
-            border: 1px solid rgba(73, 199, 136, 0.25);
-          }
-          .parties { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-bottom: 35px; 
-            gap: 20px;
-          }
-          .party-box { 
-            width: 48%; 
-            padding: 18px; 
-            background: #f8f9fa; 
-            border-radius: 12px; 
-            border: 1px solid #eee;
-            border-left: 4px solid #49C788; 
-            box-sizing: border-box;
-          }
-          .party-box p { 
-            margin: 0; 
-            font-size: 11px; 
-            color: #95a5a6; 
-            text-transform: uppercase; 
-            letter-spacing: 1.2px; 
-            font-weight: 600; 
-          }
-          .party-box h3 { 
-            margin: 6px 0 0; 
-            font-size: 18px; 
-            color: #2c3e50; 
-            font-weight: 600;
-          }
-          .metadata-box {
-            background: #fdfdfd;
-            border: 1px dashed #e2e8f0;
-            border-radius: 8px;
-            padding: 14px 20px;
-            margin-bottom: 30px;
-            font-size: 13px;
-            color: #4a5568;
-          }
-          .metadata-box strong { color: #0d1117; }
-          .section-title {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #0d1117;
-            border-bottom: 1px solid #cbd5e1;
-            padding-bottom: 6px;
-            margin-top: 30px;
-            margin-bottom: 12px;
-            font-weight: 800;
-          }
-          table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-bottom: 20px; 
-          }
-          td { 
-            padding: 11px 14px; 
-            border-bottom: 1px solid #f1f5f9; 
-            font-size: 13.5px; 
-            color: #475569; 
-          }
-          td:first-child { 
-            font-weight: 600; 
-            color: #1e293b; 
-            width: 45%; 
-          }
-          .custom-clause-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 16px;
-            margin-top: 10px;
-            margin-bottom: 25px;
-          }
-          .custom-clause-item {
-            font-size: 13.5px;
-            color: #475569;
-            padding: 6px 0;
-            border-bottom: 1px dashed #f1f5f9;
-          }
-          .custom-clause-item:last-child {
-            border-bottom: none;
-          }
-          .disclaimer { 
-            font-size: 11.5px; 
-            color: #7f8c8d; 
-            padding: 16px 20px; 
-            background: #fffdf5; 
-            border: 1px solid #fef3c7; 
-            border-radius: 10px; 
-            margin-top: 35px; 
-            line-height: 1.6; 
-          }
-          .disclaimer strong { color: #d97706; }
-          .signatures { 
-            display: flex; 
-            justify-content: space-between; 
-            margin-top: 50px; 
-            gap: 20px;
-          }
-          .sig-line { 
-            width: 48%; 
-            border-top: 1px solid #cbd5e1; 
-            padding-top: 12px; 
-            box-sizing: border-box;
-          }
-          .sig-line p { 
-            margin: 0; 
-            font-size: 14px; 
-            font-weight: 600; 
-            color: #0d1117; 
-          }
-          .sig-line span { 
-            font-size: 11px; 
-            color: #94a3b8; 
-          }
-          .footer { 
-            margin-top: 60px; 
-            text-align: center; 
-            font-size: 11px; 
-            color: #94a3b8; 
-            border-top: 1px solid #f1f5f9; 
-            padding-top: 20px; 
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${TYPE_LABELS[contract.type] || 'Acuerdo de Convivencia'}</h1>
-          <p>Acuerdo Digital Oficial &bull; Generado mediante RoommateFinder App</p>
-          <div class="badge">ESTADO: ${STATUS_CONFIG[contract.status]?.label?.toUpperCase() || 'ACTIVO'}</div>
-        </div>
-
-        <div class="parties">
-          <div class="party-box">
-            <p>Iniciador del Acuerdo</p>
-            <h3>${initiatorName}</h3>
-          </div>
-          <div class="party-box">
-            <p>Contraparte Aceptante</p>
-            <h3>${counterpartyName}</h3>
-          </div>
-        </div>
-
-        <div class="metadata-box">
-          <strong>Identificador Único:</strong> <span style="font-family: monospace; font-size:12px; color:#64748b;">${contract.id}</span><br>
-          <strong>Fecha de Activación:</strong> ${effectiveDate}
-        </div>
-
-        <div class="section-title">💸 Puntos Financieros</div>
-        <table>
-          ${financialRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        <div class="section-title">🏠 Convivencia y Reglas del Hogar</div>
-        <table>
-          ${cohabitationRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        <div class="section-title">⚖️ Cláusulas y Términos Legales</div>
-        <table>
-          ${legalRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        ${customRows ? `
-          <div class="section-title">📋 Cláusulas Adicionales Acordadas</div>
-          <div class="custom-clause-box">
-            ${customRows}
-          </div>
-        ` : ''}
-
-        <div class="disclaimer">
-          <strong>Aviso de Responsabilidad Legal:</strong> Este contrato constituye un acuerdo privado vinculante acordado libremente y firmado digitalmente de buena fe por ambas partes en la plataforma RoommateFinder. RoommateFinder actúa únicamente como un servicio tecnológico intermediario para facilitar la negociación de convivencia y no es responsable del cumplimiento del contrato, no proporciona asesoría legal ni asume ninguna responsabilidad civil o penal derivada de este documento.
-        </div>
-
-        <div class="signatures">
+        const signatureBlocks = contract.contract_participants?.map(p => `
           <div class="sig-line">
-            <p>${initiatorName}</p>
+            <p>${p.user?.name || 'Roommate'}</p>
             <span>Firmado Electrónicamente (RoommateFinder App)</span>
           </div>
+        `).join('') || `
           <div class="sig-line">
-            <p>${counterpartyName}</p>
+            <p>Contraparte</p>
             <span>Firmado Electrónicamente (RoommateFinder App)</span>
           </div>
-        </div>
+        `;
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Contrato ${contract.id}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+            body { 
+              font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; 
+              color: #2c3e50; 
+              margin: 0; 
+              padding: 50px; 
+              background: #fff; 
+              line-height: 1.6;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              border-bottom: 2px solid #eaeaea; 
+              padding-bottom: 25px; 
+              position: relative;
+            }
+            .header h1 { 
+              margin: 0; 
+              color: #0d1117; 
+              font-size: 26px; 
+              font-weight: 800;
+              letter-spacing: -0.5px; 
+            }
+            .header p { 
+              color: #7f8c8d; 
+              font-size: 13px; 
+              margin-top: 6px; 
+              font-weight: 400;
+            }
+            .badge { 
+              display: inline-block; 
+              background: rgba(73, 199, 136, 0.12); 
+              color: #27ae60; 
+              padding: 6px 16px; 
+              border-radius: 20px; 
+              font-weight: 600; 
+              font-size: 11px; 
+              margin-top: 12px;
+              letter-spacing: 0.5px;
+              border: 1px solid rgba(73, 199, 136, 0.25);
+            }
+            .parties { 
+              display: flex; 
+              justify-content: space-between; 
+              margin-bottom: 35px; 
+              gap: 20px;
+              flex-wrap: wrap;
+            }
+            .party-box { 
+              width: 48%; 
+              padding: 18px; 
+              background: #f8f9fa; 
+              border-radius: 12px; 
+              border: 1px solid #eee;
+              border-left: 4px solid #49C788; 
+              box-sizing: border-box;
+              margin-bottom: 12px;
+            }
+            .party-box p { 
+              margin: 0; 
+              font-size: 11px; 
+              color: #95a5a6; 
+              text-transform: uppercase; 
+              letter-spacing: 1.2px; 
+              font-weight: 600; 
+            }
+            .party-box h3 { 
+              margin: 6px 0 0; 
+              font-size: 18px; 
+              color: #2c3e50; 
+              font-weight: 600;
+            }
+            .metadata-box {
+              background: #fdfdfd;
+              border: 1px dashed #e2e8f0;
+              border-radius: 8px;
+              padding: 14px 20px;
+              margin-bottom: 30px;
+              font-size: 13px;
+              color: #4a5568;
+            }
+            .metadata-box strong { color: #0d1117; }
+            .section-title {
+              font-size: 14px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              color: #0d1117;
+              border-bottom: 1px solid #cbd5e1;
+              padding-bottom: 6px;
+              margin-top: 30px;
+              margin-bottom: 12px;
+              font-weight: 800;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px; 
+            }
+            td { 
+              padding: 11px 14px; 
+              border-bottom: 1px solid #f1f5f9; 
+              font-size: 13.5px; 
+              color: #475569; 
+            }
+            td:first-child { 
+              font-weight: 600; 
+              color: #1e293b; 
+              width: 45%; 
+            }
+            .custom-clause-box {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 10px;
+              padding: 16px;
+              margin-top: 10px;
+              margin-bottom: 25px;
+            }
+            .custom-clause-item {
+              font-size: 13.5px;
+              color: #475569;
+              padding: 6px 0;
+              border-bottom: 1px dashed #f1f5f9;
+            }
+            .custom-clause-item:last-child {
+              border-bottom: none;
+            }
+            .disclaimer { 
+              font-size: 11.5px; 
+              color: #7f8c8d; 
+              padding: 16px 20px; 
+              background: #fffdf5; 
+              border: 1px solid #fef3c7; 
+              border-radius: 10px; 
+              margin-top: 35px; 
+              line-height: 1.6; 
+            }
+            .disclaimer strong { color: #d97706; }
+            .signatures { 
+              display: flex; 
+              justify-content: space-between; 
+              margin-top: 50px; 
+              gap: 20px;
+              flex-wrap: wrap;
+            }
+            .sig-line { 
+              width: 48%; 
+              border-top: 1px solid #cbd5e1; 
+              padding-top: 12px; 
+              box-sizing: border-box;
+              margin-bottom: 20px;
+            }
+            .sig-line p { 
+              margin: 0; 
+              font-size: 14px; 
+              font-weight: 600; 
+              color: #0d1117; 
+            }
+            .sig-line span { 
+              font-size: 11px; 
+              color: #94a3b8; 
+            }
+            .footer { 
+              margin-top: 60px; 
+              text-align: center; 
+              font-size: 11px; 
+              color: #94a3b8; 
+              border-top: 1px solid #f1f5f9; 
+              padding-top: 20px; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${TYPE_LABELS[contract.type] || 'Acuerdo de Convivencia'}</h1>
+            <p>Acuerdo Digital Oficial &bull; Generado mediante RoommateFinder App</p>
+            <div class="badge">ESTADO: ${STATUS_CONFIG[contract.status]?.label?.toUpperCase() || 'ACTIVO'}</div>
+          </div>
+  
+          <div class="parties">
+            <div class="party-box">
+              <p>Iniciador del Acuerdo</p>
+              <h3>${initiatorName}</h3>
+            </div>
+            ${contract.contract_participants?.map(p => `
+              <div class="party-box">
+                <p>Contraparte Aceptante</p>
+                <h3>${p.user?.name || 'Roommate'}</h3>
+              </div>
+            `).join('')}
+          </div>
+  
+          <div class="metadata-box">
+            <strong>Identificador Único:</strong> <span style="font-family: monospace; font-size:12px; color:#64748b;">${contract.id}</span><br>
+            <strong>Fecha de Activación:</strong> ${effectiveDate}
+          </div>
+  
+          <div class="section-title">💸 Puntos Financieros</div>
+          <table>
+            ${financialRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+          </table>
+  
+          <div class="section-title">🏠 Convivencia y Reglas del Hogar</div>
+          <table>
+            ${cohabitationRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+          </table>
+  
+          <div class="section-title">⚖️ Cláusulas y Términos Legales</div>
+          <table>
+            ${legalRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+          </table>
+  
+          ${customRows ? `
+            <div class="section-title">📋 Cláusulas Adicionales Acordadas</div>
+            <div class="custom-clause-box">
+              ${customRows}
+            </div>
+          ` : ''}
+  
+          <div class="disclaimer">
+            <strong>Aviso de Responsabilidad Legal:</strong> Este contrato constituye un acuerdo privado vinculante acordado libremente y firmado digitalmente de buena fe por ambas partes en la plataforma RoommateFinder. RoommateFinder actúa únicamente como un servicio tecnológico intermediario para facilitar la negociación de convivencia y no es responsable del cumplimiento del contrato, no proporciona asesoría legal ni asume ninguna responsabilidad civil o penal derivada de este documento.
+          </div>
+  
+          <div class="signatures">
+            <div class="sig-line">
+              <p>${initiatorName}</p>
+              <span>Firmado Electrónicamente (RoommateFinder App)</span>
+            </div>
+            ${signatureBlocks}
+          </div>
 
         <div class="footer">
           Generado automáticamente el ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Copia Digital Válida &bull; Página 1 de 1
@@ -420,7 +436,7 @@ export default function ReviewContractScreen() {
           <MaterialCommunityIcons name="file-sign" size={40} color="#49C788" />
           <Text style={s.heroType}>{TYPE_LABELS[contract.type] || contract.type}</Text>
           <Text style={s.heroParties}>
-            {contract.initiator?.name} → {contract.counterparty?.name}
+            {contract.initiator?.name} → {contract.contract_participants?.map(p => p.user?.name).filter(Boolean).join(', ') || 'Roommates'}
           </Text>
           {contract.effective_date && (
             <Text style={s.heroDate}>Vigencia: {contract.effective_date}</Text>

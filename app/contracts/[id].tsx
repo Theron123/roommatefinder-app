@@ -47,9 +47,8 @@ type Contract = {
   updated_at: string;
   pdf_url: string | null;
   initiator_id: string;
-  counterparty_id: string;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants: { user_id: string; user: { name: string } | null }[];
 };
 
 export default function ContractDetailScreen() {
@@ -68,7 +67,7 @@ export default function ContractDetailScreen() {
 
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, user:user_id(name))')
       .eq('id', id)
       .single();
 
@@ -118,7 +117,8 @@ export default function ContractDetailScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
-      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const counterparties = contract.contract_participants?.map(p => p.user?.name).filter(Boolean) || [];
+      const counterpartyName = counterparties.join(', ') || 'Roommates';
       const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
       // Define structured sections for a premium, extremely detailed document
@@ -418,7 +418,7 @@ export default function ContractDetailScreen() {
 
   const st    = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
   const c     = contract.clauses || {};
-  const isCP  = contract.counterparty_id === userId; // es la otra parte
+  const isCP = contract.contract_participants?.some(p => p.user_id === userId) || false;
   const isInit = contract.initiator_id === userId;
   const canAccept = isCP && contract.status === 'pending_authorization';
   const canTerminate = (isInit || isCP) && (contract.status === 'active' || contract.status === 'pending_authorization');
@@ -447,18 +447,19 @@ export default function ContractDetailScreen() {
         {/* Hero */}
         <View style={s.hero}>
           <Text style={s.heroType}>{TYPE_LABELS[contract.type] || contract.type}</Text>
-          <View style={s.partiesRow}>
+          <View style={[s.partiesRow, { flexWrap: 'wrap', gap: 8 }]}>
             <View style={s.partyChip}>
               <MaterialCommunityIcons name="account" size={14} color="#49C788" />
               <Text style={s.partyName}>{contract.initiator?.name}</Text>
               <Text style={s.partyRole}>Iniciador</Text>
             </View>
-            <MaterialCommunityIcons name="arrow-left-right" size={18} color="#333" />
-            <View style={s.partyChip}>
-              <MaterialCommunityIcons name="account" size={14} color="#FFB800" />
-              <Text style={s.partyName}>{contract.counterparty?.name}</Text>
-              <Text style={s.partyRole}>Contraparte</Text>
-            </View>
+            {contract.contract_participants?.map((p, idx) => (
+              <View key={p.user_id || idx} style={s.partyChip}>
+                <MaterialCommunityIcons name="account" size={14} color="#FFB800" />
+                <Text style={s.partyName}>{p.user?.name || 'Roommate'}</Text>
+                <Text style={s.partyRole}>Roommate</Text>
+              </View>
+            ))}
           </View>
           {contract.effective_date && (
             <Text style={s.heroDate}>📅 Vigente desde: {contract.effective_date}</Text>
