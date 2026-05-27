@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
-import { registerForPushNotifications } from '@/lib/notifications';
+import { registerForPushNotifications, notifyNewMessage, getActiveChatUserId } from '@/lib/notifications';
+import { supabase } from '@/lib/supabase';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -39,9 +40,60 @@ export default function RootLayout() {
       }
     });
 
+    // Realtime global messages subscriber for notifications
+    let globalMsgChannel: any = null;
+    
+    const setupGlobalMsgListener = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const myId = session.user.id;
+
+      globalMsgChannel = supabase
+        .channel('global:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+          const newMsg = payload.new;
+          if (newMsg.receiver_id === myId) {
+            // Check if we are currently chatting with this sender
+            if (newMsg.sender_id === getActiveChatUserId()) {
+              return;
+            }
+
+            // Get sender profile details
+            const { data: senderProfile } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', newMsg.sender_id)
+              .single();
+
+            const senderName = senderProfile?.name || 'Roommate';
+
+            // Trigger local notification
+            await notifyNewMessage(senderName, newMsg.content, newMsg.sender_id);
+          }
+        })
+        .subscribe();
+    };
+
+    setupGlobalMsgListener();
+
+    // Re-subscribe if user logs in/out
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (globalMsgChannel) {
+        supabase.removeChannel(globalMsgChannel);
+        globalMsgChannel = null;
+      }
+      if (session?.user?.id) {
+        setupGlobalMsgListener();
+      }
+    });
+
     return () => {
       notificationListener.current?.remove();
       responseListener.current?.remove();
+      if (globalMsgChannel) {
+        supabase.removeChannel(globalMsgChannel);
+      }
+      authSubscription.unsubscribe();
     };
   }, []);
 

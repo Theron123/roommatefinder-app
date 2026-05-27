@@ -41,6 +41,35 @@ export default function InboxScreen() {
     }, [])
   );
 
+  useEffect(() => {
+    let inboxChannel: any = null;
+
+    const setupInboxSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      inboxChannel = supabase
+        .channel('public:messages_inbox')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          const newMsg = payload.new;
+          if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
+            // Trigger an immediate non-blocking refresh of conversation list
+            fetchInboxData();
+          }
+        })
+        .subscribe();
+    };
+
+    setupInboxSubscription();
+
+    return () => {
+      if (inboxChannel) {
+        supabase.removeChannel(inboxChannel);
+      }
+    };
+  }, []);
+
   const fetchInboxData = async () => {
     if (conversations.length === 0 && matches.length === 0) {
       setLoading(true);

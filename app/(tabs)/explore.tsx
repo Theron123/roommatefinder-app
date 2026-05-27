@@ -11,6 +11,7 @@ import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewW
 import * as Location from 'expo-location';
 import { getActiveFilters } from '@/app/explore/filters';
 import { LinearGradient } from 'expo-linear-gradient';
+import { notifyNewMatch } from '@/lib/notifications';
 
 const { height, width } = Dimensions.get('window');
 
@@ -64,74 +65,128 @@ export default function ExploreScreen() {
     setAllSwiped(false);
     setCurrentIndex(0);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-
-    const { data: currentUserData } = await supabase.from('profiles').select('id, role, availability_status, latOffset, lngOffset, likes, preferences, dealbreakers').eq('id', session.user.id).single();
-    if (currentUserData) {
-      setCurrentUser(currentUserData);
-    }
-
-    const filters = getActiveFilters();
-    let query = supabase
-      .from('profiles')
-      .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
-      .neq('id', session.user.id)
-      .neq('role', 'landlord')
-      .limit(50);
-
-    if (filters.role !== 'all') query = query.eq('role', filters.role);
-    if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
-
-    const { data, error } = await query;
-      
-    if (data) {
-      // Shuffle or sort the profiles to make the explore feed dynamic
-      const shuffledProfiles = data.sort(() => 0.5 - Math.random());
-      // Prefetch images for faster loading
-      const urlsToPrefetch = shuffledProfiles
-        .map(p => p.photoUrl)
-        .filter(Boolean) as string[];
-      if (urlsToPrefetch.length > 0) {
-        Image.prefetch(urlsToPrefetch);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
       }
+
+      const { data: currentUserData } = await supabase
+        .from('profiles')
+        .select('id, latOffset, lngOffset, likes, preferences, dealbreakers')
+        .eq('id', session.user.id)
+        .single();
+      if (currentUserData) {
+        setCurrentUser(currentUserData);
+      }
+
+      // Fetch user's swipes to exclude them from the feed
+      const { data: userSwipes } = await supabase
+        .from('swipes')
+        .select('swiped')
+        .eq('swiper', session.user.id);
       
-      // Request location to center map and generate mock coordinates if null
-      let loc = { latitude: 19.4326, longitude: -99.1332 }; // Default to Mexico City
+      const swipedUserIds = userSwipes?.map(s => s.swiped) || [];
+
+      const filters = getActiveFilters();
+      let query = supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
+        .neq('id', session.user.id)
+        .neq('role', 'landlord');
+
+      if (filters.role !== 'all') query = query.eq('role', filters.role);
+      if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
+      
+      // Exclude profiles that the user has already swiped on!
+      if (swipedUserIds.length > 0) {
+        query = query.not('id', 'in', `(${swipedUserIds.join(',')})`);
+      }
+
+      // Limit to 50 profiles
+      query = query.limit(50);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching profiles:', error);
+      }
+        
+      if (data) {
+        // Shuffle or sort the profiles to make the explore feed dynamic
+        const shuffledProfiles = data.sort(() => 0.5 - Math.random());
+        // Prefetch images for faster loading
+        const urlsToPrefetch = shuffledProfiles
+          .map(p => p.photoUrl)
+          .filter(Boolean) as string[];
+        if (urlsToPrefetch.length > 0) {
+          Image.prefetch(urlsToPrefetch);
+        }
+        
+        // Define base coordinates (fallback or user location if already fetched)
+        const baseLat = userLocation?.latitude || 19.4326;
+        const baseLng = userLocation?.longitude || -99.1332;
+
+        const mapReadyProfiles = shuffledProfiles.map((p) => {
+          // If they don't have lat/lon, randomly scatter them within ~10km of base
+          if (!p.latitude || !p.longitude) {
+            const latOffset = (Math.random() - 0.5) * 0.1;
+            const lngOffset = (Math.random() - 0.5) * 0.1;
+            return { ...p, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
+          }
+          return p;
+        });
+
+        setProfiles(mapReadyProfiles);
+      }
+    } catch (e) {
+      console.error('Error in fetchProfiles:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfiles();
+
+    // Fetch device location in the background without blocking the profiles load
+    const getDeviceLocation = async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          let location = await Location.getCurrentPositionAsync({});
-          loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
-          setUserLocation(loc);
+          // Try to get last known location first (very fast, no permission pop-up hang)
+          let location = await Location.getLastKnownPositionAsync({});
+          if (!location) {
+            // Fallback to getCurrentPositionAsync with accuracy set to balanced
+            location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+          }
+          if (location) {
+            const loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+            setUserLocation(loc);
+
+            // Update any profiles that don't have static coordinates to center around the new userLocation
+            setProfiles(prevProfiles => 
+              prevProfiles.map(p => {
+                if (!p.latitude || !p.longitude) {
+                  const latOffset = (Math.random() - 0.5) * 0.1;
+                  const lngOffset = (Math.random() - 0.5) * 0.1;
+                  return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
+                }
+                return p;
+              })
+            );
+          }
         }
       } catch (e) {
-        console.log('Location error', e);
+        console.log('Location error in background fetch:', e);
       }
-      
-      const mapReadyProfiles = shuffledProfiles.map((p, index) => {
-        // If they don't have lat/lon, randomly scatter them within ~10km of user
-        if (!p.latitude || !p.longitude) {
-          const latOffset = (Math.random() - 0.5) * 0.1;
-          const lngOffset = (Math.random() - 0.5) * 0.1;
-          return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
-        }
-        return p;
-      });
+    };
 
-      setProfiles(mapReadyProfiles);
-    }
-    setLoading(false);
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfiles();
-    }, [])
-  );
+    getDeviceLocation();
+  }, []);
 
   const onSwiped = () => {
     setCurrentIndex(prev => prev + 1);
@@ -161,9 +216,29 @@ export default function ExploreScreen() {
     }
   };
 
+  const recordSwipe = async (targetId: string, liked: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      await supabase.from('swipes').insert({
+        swiper: myId,
+        swiped: targetId,
+        liked: liked,
+      });
+    } catch (err) {
+      console.error('Error in recordSwipe:', err);
+    }
+  };
+
   const onSwipedLeft = async (index: number) => {
     const allowed = await checkQuota('reject');
-    if (allowed) console.log('Passed on', profiles[index].id);
+    if (allowed) {
+      const targetProfile = profiles[index];
+      await recordSwipe(targetProfile.id, false);
+      console.log('Passed on', targetProfile.id);
+    }
   };
 
   const onSwipedRight = async (index: number) => {
@@ -172,7 +247,6 @@ export default function ExploreScreen() {
       const likedProfile = profiles[index];
       console.log('Liked', likedProfile.id);
       
-      // Get authenticated user session directly
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         Alert.alert('Error', 'No authenticated session found. Please log in again.');
@@ -180,20 +254,50 @@ export default function ExploreScreen() {
       }
       
       const myId = session.user.id;
-      console.log('My auth ID:', myId, 'Liked user:', likedProfile.id);
       
-      // FOR TESTING: Instantly create a match when swiping right
-      const { data, error } = await supabase.from('matches').insert({
-        user1: myId,
-        user2: likedProfile.id,
-      }).select();
-      
-      if (error) {
-        console.error('Match insert error:', error.code, error.message);
-        Alert.alert('Match Error', `${error.message}\n\nCode: ${error.code}\nUser1: ${myId}\nUser2: ${likedProfile.id}`);
+      // 1. Record the swipe as liked: true
+      await recordSwipe(likedProfile.id, true);
+
+      // 2. Check if the other user has already liked us!
+      const { data: matchingSwipe, error: swipeError } = await supabase
+        .from('swipes')
+        .select('*')
+        .eq('swiper', likedProfile.id)
+        .eq('swiped', myId)
+        .eq('liked', true)
+        .maybeSingle();
+
+      if (swipeError) {
+        console.error('Error checking matching swipe:', swipeError);
+      }
+
+      // 3. If there is a matching swipe, create the mutual match!
+      if (matchingSwipe) {
+        const { data: matchData, error: matchError } = await supabase
+          .from('matches')
+          .insert({
+            user1: myId,
+            user2: likedProfile.id,
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (matchError) {
+          console.error('Match insert error:', matchError.code, matchError.message);
+          Alert.alert('Match Error', `${matchError.message}\n\nCode: ${matchError.code}`);
+        } else {
+          console.log('Mutual Match created!', matchData);
+          Alert.alert('¡Es un Match! 🎉', `¡Tú y ${likedProfile.name || 'alguien'} se han dado like mutuamente! Ya pueden chatear.`);
+          
+          try {
+            await notifyNewMatch(likedProfile.name || 'Roommate', likedProfile.id);
+          } catch (notifErr) {
+            console.error('Notification error', notifErr);
+          }
+        }
       } else {
-        console.log('Match created!', data);
-        Alert.alert('Match!', `You matched with ${likedProfile.name || 'someone'}! 🎉`);
+        console.log('Like registered. Waiting for mutual like.');
       }
     }
   };
@@ -666,7 +770,7 @@ export default function ExploreScreen() {
                   if (card) router.push(`/chat/${card.id}`);
                 }}
               >
-                <MaterialCommunityIcons name="message-text" size={24} color="#2196f3" />
+                <MaterialCommunityIcons name="message-text" size={24} color="#49C788" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -1029,7 +1133,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderColor: '#2196f3',
+    borderColor: '#49C788',
   },
   buttonSkip: {
     borderColor: '#ff9800',

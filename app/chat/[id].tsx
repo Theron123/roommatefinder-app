@@ -12,7 +12,9 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { Audio, Video, ResizeMode } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
-import { notifyNewMessage } from '@/lib/notifications';
+import { setActiveChatUserId } from '@/lib/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -55,13 +57,89 @@ export default function ChatScreen() {
   const webMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const webChunksRef = useRef<Blob[]>([]);
 
+  const [wallpaper, setWallpaper] = useState<string>('default');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const [micVolume, setMicVolume] = useState<number>(0);
+  const [playbackProgress, setPlaybackProgress] = useState<number>(0);
+  const webAudioCtxRef = useRef<AudioContext | null>(null);
+  const webAnalyserRef = useRef<AnalyserNode | null>(null);
+  const micIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [liveWaveform, setLiveWaveform] = useState<number[]>(new Array(20).fill(4));
+
+  const PRESET_WALLPAPERS = [
+    { id: 'default', name: 'Original', value: 'default', color: '#090d14' },
+    { id: 'emerald', name: 'Mint Green', value: '#063f35', color: '#063f35' },
+    { id: 'midnight', name: 'Midnight', value: '#05070A', color: '#05070A' },
+    { id: 'classic_dark', name: 'Classic Green', value: '#0b141a', color: '#0b141a' },
+    { id: 'aurora', name: 'Deep Purple', value: '#120d1c', color: '#120d1c' },
+    { id: 'chocolate', name: 'Deep Brown', value: '#1a1412', color: '#1a1412' },
+  ];
+
+  useEffect(() => {
+    const loadWallpaper = async () => {
+      try {
+        const storedWallpaper = await AsyncStorage.getItem('@roommatefinder:chat_wallpaper');
+        if (storedWallpaper) {
+          setWallpaper(storedWallpaper);
+        }
+      } catch (e) {
+        console.error('loadWallpaper error', e);
+      }
+    };
+    loadWallpaper();
+  }, []);
+
+  const pickCustomWallpaper = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        const uri = result.assets[0].uri;
+        setWallpaper(uri);
+        await AsyncStorage.setItem('@roommatefinder:chat_wallpaper', uri);
+        Alert.alert('✅ Fondo Actualizado', 'El fondo del chat se ha configurado con tu foto.');
+        setShowSettingsModal(false);
+      }
+    } catch (e) {
+      console.error('pickCustomWallpaper error', e);
+      Alert.alert('Error', 'No se pudo seleccionar el fondo de la galería.');
+    }
+  };
+
+  const selectPresetWallpaper = async (value: string) => {
+    try {
+      setWallpaper(value);
+      await AsyncStorage.setItem('@roommatefinder:chat_wallpaper', value);
+      setShowSettingsModal(false);
+    } catch (e) {
+      console.error('selectPresetWallpaper error', e);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    setActiveChatUserId(id as string);
+    return () => {
+      setActiveChatUserId(null);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!myId) return;
+
     const channel = supabase
-      .channel('public:messages')
+      .channel(`chat_room:${id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
         const newMsg = payload.new;
-        if (newMsg.sender_id === id && newMsg.receiver_id === myId) {
+        if (
+          (newMsg.sender_id === id && newMsg.receiver_id === myId) ||
+          (newMsg.sender_id === myId && newMsg.receiver_id === id)
+        ) {
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
@@ -70,7 +148,9 @@ export default function ChatScreen() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, myId]);
 
   const fetchData = async () => {
@@ -124,14 +204,6 @@ export default function ChatScreen() {
 
       if (data) {
         setMessages(prev => prev.map(m => m.id === tempId ? { ...data, status: 'sent' } : m));
-        // Trigger local push notification for the receiver
-        if (otherUser?.name) {
-          try {
-            await notifyNewMessage(otherUser.name, textToSend, id as string);
-          } catch (notifErr) {
-            console.error('Notification error', notifErr);
-          }
-        }
       }
     } catch (e) {
       console.error('sendMessage error', e);
@@ -144,12 +216,59 @@ export default function ChatScreen() {
   // ─── Voice Recording ──────────────────────────────────────────
   const startRecording = async () => {
     try {
+      setLiveWaveform(new Array(20).fill(4));
       if (Platform.OS === 'web') {
         if (!navigator.mediaDevices?.getUserMedia) {
           Alert.alert('No soportado', 'Tu navegador no soporta grabación de audio.');
           return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const source = ctx.createMediaStreamSource(stream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 64;
+            source.connect(analyser);
+            webAudioCtxRef.current = ctx;
+            webAnalyserRef.current = analyser;
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            let lastUpdate = Date.now();
+            const checkVolume = () => {
+              if (webAnalyserRef.current) {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                  sum += dataArray[i];
+                }
+                const average = sum / dataArray.length;
+                const volume = average / 120;
+                setMicVolume(volume);
+
+                const now = Date.now();
+                if (now - lastUpdate > 60) {
+                  setLiveWaveform(prev => {
+                    const next = [...prev];
+                    next.shift();
+                    const targetHeight = Math.max(4, Math.min(28, 4 + volume * 24));
+                    next.push(targetHeight);
+                    return next;
+                  });
+                  lastUpdate = now;
+                }
+
+                requestAnimationFrame(checkVolume);
+              }
+            };
+            requestAnimationFrame(checkVolume);
+          }
+        } catch (audioErr) {
+          console.log('Web audio context error', audioErr);
+        }
+
         const mr = new MediaRecorder(stream);
         webChunksRef.current = [];
         mr.ondataavailable = (e) => { if (e.data.size > 0) webChunksRef.current.push(e.data); };
@@ -162,6 +281,24 @@ export default function ChatScreen() {
           Audio.RecordingOptionsPresets.HIGH_QUALITY
         );
         recordingRef.current = recording;
+
+        micIntervalRef.current = setInterval(async () => {
+          if (recordingRef.current) {
+            const status = await recordingRef.current.getStatusAsync();
+            if (status.metering !== undefined) {
+              const db = status.metering;
+              const norm = Math.max(0, (db + 160) / 160);
+              setMicVolume(norm);
+              setLiveWaveform(prev => {
+                const next = [...prev];
+                next.shift();
+                const targetHeight = Math.max(4, Math.min(28, 4 + norm * 24));
+                next.push(targetHeight);
+                return next;
+              });
+            }
+          }
+        }, 70);
       }
       setIsRecording(true);
       setRecordingDuration(0);
@@ -176,6 +313,20 @@ export default function ChatScreen() {
     if (durationTimerRef.current) clearInterval(durationTimerRef.current);
     setIsRecording(false);
     setRecordingDuration(0);
+    
+    if (micIntervalRef.current) {
+      clearInterval(micIntervalRef.current);
+      micIntervalRef.current = null;
+    }
+    if (webAnalyserRef.current) {
+      webAnalyserRef.current = null;
+    }
+    if (webAudioCtxRef.current) {
+      webAudioCtxRef.current.close();
+      webAudioCtxRef.current = null;
+    }
+    setMicVolume(0);
+
     try {
       if (Platform.OS === 'web') {
         const mr = webMediaRecorderRef.current;
@@ -247,6 +398,7 @@ export default function ChatScreen() {
         await soundRef.current?.unloadAsync();
         soundRef.current = null;
         setPlayingId(null);
+        setPlaybackProgress(0);
         return;
       }
       if (soundRef.current) {
@@ -257,11 +409,18 @@ export default function ChatScreen() {
       setPlayingId(msgId);
       const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: true });
       soundRef.current = sound;
+      setPlaybackProgress(0);
       sound.setOnPlaybackStatusUpdate(status => {
-        if (status.isLoaded && status.didJustFinish) {
-          setPlayingId(null);
-          sound.unloadAsync();
-          soundRef.current = null;
+        if (status.isLoaded) {
+          if (status.durationMillis) {
+            setPlaybackProgress(status.positionMillis / status.durationMillis);
+          }
+          if (status.didJustFinish) {
+            setPlayingId(null);
+            setPlaybackProgress(0);
+            sound.unloadAsync();
+            soundRef.current = null;
+          }
         }
       });
     } catch (e) { console.error('playAudio error', e); setPlayingId(null); }
@@ -404,6 +563,9 @@ export default function ChatScreen() {
     const isMine = item.sender_id === myId;
     const repliedMsg = item.reply_to_id ? getReplyPreview(item.reply_to_id) : null;
 
+    const date = new Date(item.created_at);
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+
     return (
       <Pressable
         onLongPress={() => handleLongPress(item)}
@@ -433,16 +595,59 @@ export default function ChatScreen() {
               <Text style={[styles.audioText, isMine ? {color: '#fff'} : {color: '#ccc'}]}>Archivo Adjunto</Text>
             </Pressable>
           ) : item.media_type === 'audio' && item.media_url ? (
-            <Pressable onPress={() => playAudio(item.media_url, item.id)} style={styles.audioBtn}>
-              <IconSymbol
-                name={playingId === item.id ? 'stop.fill' : 'play.fill'}
-                size={18}
-                color={isMine ? '#fff' : '#49C788'}
-              />
-              <Text style={[styles.audioText, isMine ? styles.myMsgText : styles.theirMsgText]}>
-                {playingId === item.id ? 'Reproduciendo...' : (item.content === '🎵 Audio' ? '🎵 Audio MP3' : '🎙️ Mensaje de voz')}
-              </Text>
-            </Pressable>
+            (() => {
+              // Generate stable wave pattern from message id
+              const getMessageWaveform = (msgId: string) => {
+                const wave: number[] = [];
+                const idStr = msgId || 'default';
+                for (let i = 0; i < 16; i++) {
+                  const charCode = idStr.charCodeAt(i % idStr.length) || 60;
+                  const h = 6 + ((charCode * (i + 1)) % 22);
+                  wave.push(h);
+                }
+                return wave;
+              };
+              const waveHeights = getMessageWaveform(item.id);
+
+              return (
+                <View style={styles.voiceNoteContainer}>
+                  <Pressable onPress={() => playAudio(item.media_url, item.id)} style={[styles.voicePlayBtn, isMine ? styles.voicePlayBtnMine : styles.voicePlayBtnTheirs]}>
+                    <MaterialCommunityIcons
+                      name={playingId === item.id ? 'pause' : 'play'}
+                      size={22}
+                      color={isMine ? '#005c4b' : '#49C788'}
+                    />
+                  </Pressable>
+                  
+                  <View style={styles.waveformContainer}>
+                    {waveHeights.map((h, i) => {
+                      const isPlayed = playingId === item.id && (i / waveHeights.length) <= playbackProgress;
+                      return (
+                        <View
+                          key={i}
+                          style={[
+                            styles.waveBar,
+                            {
+                              height: h,
+                              backgroundColor: isPlayed 
+                                ? '#49C788'
+                                : (playingId === item.id 
+                                    ? (isMine ? 'rgba(255,255,255,0.7)' : 'rgba(73,199,136,0.6)')
+                                    : (isMine ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.25)')
+                                  )
+                            }
+                          ]}
+                        />
+                      );
+                    })}
+                  </View>
+
+                  <View style={styles.voiceNoteMeta}>
+                    <MaterialCommunityIcons name="microphone" size={18} color={isMine ? 'rgba(255,255,255,0.6)' : '#49C788'} />
+                  </View>
+                </View>
+              );
+            })()
           ) : item.media_type === 'image' && item.media_url ? (
             <Pressable onPress={() => { setSelectedImage(item.media_url); setImageScale(1); setZoomOffset({ x: 0, y: 0 }); }}>
               <Image source={{ uri: item.media_url }} style={styles.messageImage} />
@@ -454,14 +659,17 @@ export default function ChatScreen() {
               {item.content}
             </Text>
           )}
-          {/* Status */}
-          {isMine && (
-            <View style={styles.statusContainer}>
-              {item.status === 'pending' && <IconSymbol name="clock" size={12} color="#aaa" />}
-              {item.status === 'sent' && <IconSymbol name="checkmark" size={12} color="#aaa" />}
-              {item.status === 'error' && <IconSymbol name="exclamationmark.triangle.fill" size={12} color="#ff4444" />}
-            </View>
-          )}
+          {/* Meta Info: Time and Double Tick */}
+          <View style={styles.bubbleMeta}>
+            <Text style={[styles.msgTime, !isMine && styles.theirMsgTime]}>{timeStr}</Text>
+            {isMine && (
+              <View style={styles.statusContainer}>
+                {item.status === 'pending' && <MaterialCommunityIcons name="clock-outline" size={12} color="rgba(255,255,255,0.4)" />}
+                {item.status === 'sent' && <MaterialCommunityIcons name="check-all" size={14} color="#49C788" />}
+                {item.status === 'error' && <MaterialCommunityIcons name="alert-circle-outline" size={12} color="#ff4444" />}
+              </View>
+            )}
+          </View>
         </View>
       </Pressable>
     );
@@ -469,10 +677,28 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Background Wallpaper */}
+      {wallpaper !== 'default' && (
+        wallpaper.startsWith('http') || wallpaper.startsWith('file://') || wallpaper.includes('/') ? (
+          <View style={StyleSheet.absoluteFillObject}>
+            <Image source={{ uri: wallpaper }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+            <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)' }]} />
+          </View>
+        ) : (
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: wallpaper }]} />
+        )
+      )}
+      {wallpaper === 'default' && (
+        <View style={StyleSheet.absoluteFillObject}>
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#0d1117' }]} />
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <IconSymbol name="chevron.left" size={24} color="#49C788" />
+          <MaterialCommunityIcons name="chevron-left" size={28} color="#49C788" />
         </Pressable>
         
         <Pressable style={styles.headerUserContainer} onPress={() => router.push(`/profile/${id}`)}>
@@ -484,6 +710,10 @@ export default function ChatScreen() {
             </View>
           )}
           <Text style={styles.headerName}>{otherUser ? otherUser.name : 'Loading...'}</Text>
+        </Pressable>
+
+        <Pressable onPress={() => setShowSettingsModal(true)} style={styles.paletteBtn}>
+          <MaterialCommunityIcons name="palette-outline" size={22} color="#49C788" />
         </Pressable>
       </View>
 
@@ -517,14 +747,32 @@ export default function ChatScreen() {
         {/* Input Row */}
         <View style={styles.inputRow}>
           <Pressable onPress={() => setShowAttachMenu(true)} style={styles.attachBtn}>
-            <IconSymbol name="plus" size={24} color="#49C788" />
+            <MaterialCommunityIcons name="plus" size={26} color="#49C788" />
           </Pressable>
           {isRecording ? (
             <View style={styles.recordingBar}>
               <View style={styles.recordingDot} />
               <Text style={styles.recordingText}>Grabando... {recordingDuration}s</Text>
+              
+              <View style={styles.recordingWaveform}>
+                {liveWaveform.map((activeHeight, i) => {
+                  return (
+                    <View
+                      key={i}
+                      style={[
+                        styles.recordingWaveBar,
+                        {
+                          height: activeHeight,
+                          backgroundColor: '#ff4444',
+                        }
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+
               <Pressable onPress={stopRecording} style={styles.stopBtn}>
-                <IconSymbol name="stop.fill" size={18} color="#fff" />
+                <MaterialCommunityIcons name="stop" size={18} color="#fff" />
               </Pressable>
             </View>
           ) : (
@@ -535,15 +783,27 @@ export default function ChatScreen() {
               placeholderTextColor="#888"
               style={styles.input}
               multiline
+              blurOnSubmit={false}
+              onSubmitEditing={() => {
+                if (Platform.OS !== 'web') {
+                  sendMessage();
+                }
+              }}
+              onKeyPress={(e: any) => {
+                if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
             />
           )}
           {!isRecording && inputText.trim() === '' ? (
             <Pressable onPress={startRecording} style={styles.micBtn}>
-              <IconSymbol name="mic.fill" size={20} color="#fff" />
+              <MaterialCommunityIcons name="microphone" size={20} color="#fff" />
             </Pressable>
           ) : !isRecording ? (
             <Pressable onPress={sendMessage} style={styles.sendBtn}>
-              <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+              <MaterialCommunityIcons name="send" size={18} color="#fff" style={{ marginLeft: 2 }} />
             </Pressable>
           ) : null}
         </View>
@@ -691,35 +951,176 @@ export default function ChatScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* ─── Chat Customization (Wallpaper) Modal ─── */}
+      <Modal visible={showSettingsModal} transparent animationType="slide" onRequestClose={() => setShowSettingsModal(false)}>
+        <Pressable style={styles.actionMenuOverlay} onPress={() => setShowSettingsModal(false)}>
+          <View style={styles.bottomSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Personalizar Fondo</Text>
+              <Pressable onPress={() => setShowSettingsModal(false)} style={styles.sheetCloseBtn}>
+                <MaterialCommunityIcons name="close" size={20} color="#fff" />
+              </Pressable>
+            </View>
+
+            <Text style={styles.sheetSub}>Elige un estilo para el fondo del chat:</Text>
+
+            {/* Custom Gallery Option */}
+            <Pressable style={styles.galleryOption} onPress={pickCustomWallpaper}>
+              <MaterialCommunityIcons name="image-multiple-outline" size={24} color="#49C788" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.galleryOptionText}>Seleccionar de Galería</Text>
+                <Text style={styles.galleryOptionSub}>Elige una foto de tu dispositivo</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+            </Pressable>
+
+            <Text style={styles.sheetSub}>O elige un color sólido:</Text>
+            
+            <View style={styles.presetsGrid}>
+              {PRESET_WALLPAPERS.map((preset) => (
+                <Pressable
+                  key={preset.id}
+                  style={[
+                    styles.presetCard,
+                    { backgroundColor: preset.color },
+                    wallpaper === preset.value && styles.presetCardActive
+                  ]}
+                  onPress={() => selectPresetWallpaper(preset.value)}
+                >
+                  <Text style={styles.presetName} numberOfLines={1}>{preset.name}</Text>
+                  {wallpaper === preset.value && (
+                    <View style={styles.activeCheck}>
+                      <MaterialCommunityIcons name="check" size={12} color="#000" />
+                    </View>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            <Pressable 
+              style={styles.resetBtn} 
+              onPress={() => selectPresetWallpaper('default')}
+            >
+              <Text style={styles.resetBtnText}>Restablecer fondo por defecto</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start',
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a24',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#0d1117',
   },
   backBtn: { padding: 4, marginRight: 12 },
   headerUserContainer: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   headerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
   headerName: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  paletteBtn: { padding: 8 },
   list: { padding: 16, flexGrow: 1 },
-  emptyText: { color: '#666', textAlign: 'center', marginTop: 40, fontSize: 16 },
+  emptyText: { color: '#888', textAlign: 'center', marginTop: 40, fontSize: 16 },
 
-  // Message Bubble
-  msgBubble: { maxWidth: '80%', padding: 12, borderRadius: 20, marginBottom: 10 },
-  myMsg: { alignSelf: 'flex-end', backgroundColor: '#49C788', borderBottomRightRadius: 4 },
-  theirMsg: { alignSelf: 'flex-start', backgroundColor: '#1a1a24', borderBottomLeftRadius: 4 },
-  msgText: { fontSize: 16 },
+  // Message Bubble (Minimalist, WhatsApp style)
+  msgBubble: {
+    maxWidth: '75%',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginBottom: 8,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  myMsg: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#005c4b', // Classic WhatsApp Dark Green
+    borderBottomRightRadius: 4,
+  },
+  theirMsg: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#202c33', // Classic WhatsApp Dark Gray
+    borderBottomLeftRadius: 4,
+  },
+  msgText: { fontSize: 16, lineHeight: 20 },
   myMsgText: { color: '#fff' },
-  theirMsgText: { color: '#ccc' },
-  statusContainer: { alignSelf: 'flex-end', marginTop: 4 },
+  theirMsgText: { color: '#e9edef' },
+  statusContainer: { marginLeft: 2 },
   messageImage: { width: 200, height: 200, borderRadius: 12, marginBottom: 6, backgroundColor: '#333' },
   messageVideo: { width: 220, height: 220, borderRadius: 12, marginBottom: 6, backgroundColor: '#000' },
   audioContainer: { flexDirection: 'row', alignItems: 'center', padding: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, marginBottom: 6 },
+  
+  // Voice Note styles
+  voiceNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    gap: 12,
+    minWidth: 200,
+    maxWidth: '100%',
+  },
+  voicePlayBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  voicePlayBtnMine: {
+    backgroundColor: '#fff',
+  },
+  voicePlayBtnTheirs: {
+    backgroundColor: '#2a3942',
+  },
+  waveformContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 34,
+    gap: 3,
+    flex: 1,
+  },
+  waveBar: {
+    width: 3,
+    borderRadius: 1.5,
+  },
+  voiceNoteMeta: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Bubble meta inside bubble (WhatsApp style bottom-right)
+  bubbleMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  msgTime: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.45)',
+  },
+  theirMsgTime: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.35)',
+  },
 
   // Reply preview inside bubble
   replyPreview: {
@@ -740,28 +1141,40 @@ const styles = StyleSheet.create({
   // Input Row
   inputRow: {
     flexDirection: 'row', alignItems: 'center', padding: 12,
-    borderTopWidth: 1, borderTopColor: '#1a1a24', backgroundColor: '#0a0a0f',
+    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.05)', backgroundColor: '#0d1117',
   },
   input: {
-    flex: 1, backgroundColor: '#1a1a24', color: '#fff',
+    flex: 1, backgroundColor: '#202c33', color: '#fff',
     borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
     fontSize: 16, maxHeight: 100,
   },
   attachBtn: { padding: 8, marginRight: 8 },
   sendBtn: {
-    marginLeft: 12, backgroundColor: '#49C788',
+    marginLeft: 12, backgroundColor: '#00a884', // Beautiful WhatsApp Send Green
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
   micBtn: {
-    marginLeft: 12, backgroundColor: '#49C788',
+    marginLeft: 12, backgroundColor: '#00a884',
     width: 40, height: 40, borderRadius: 20,
     justifyContent: 'center', alignItems: 'center',
   },
   recordingBar: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a24', borderRadius: 20,
+    backgroundColor: '#202c33', borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 10, gap: 10,
+  },
+  recordingWaveform: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    height: 30,
+  },
+  recordingWaveBar: {
+    width: 2.5,
+    borderRadius: 1.25,
   },
   recordingDot: {
     width: 10, height: 10, borderRadius: 5, backgroundColor: '#ff4444',
@@ -808,7 +1221,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end',
   },
   actionMenu: {
-    backgroundColor: '#1a1a24', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: '#1f2c34', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingBottom: 40, paddingTop: 16,
   },
   actionMenuTitle: {
@@ -816,10 +1229,125 @@ const styles = StyleSheet.create({
   },
   actionMenuItem: {
     paddingVertical: 16, paddingHorizontal: 24,
-    borderBottomWidth: 1, borderBottomColor: '#2a2a34',
+    borderBottomWidth: 1, borderBottomColor: '#2a3942',
   },
   actionMenuCancel: { borderBottomWidth: 0 },
   actionMenuItemText: { color: '#fff', fontSize: 17, fontWeight: '500' },
+
+  // Bottom Sheet (Wallpaper settings)
+  bottomSheet: {
+    backgroundColor: '#0d1117',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    borderWidth: 1,
+    borderColor: '#1a1a2e',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sheetCloseBtn: {
+    backgroundColor: '#1a1a24',
+    padding: 6,
+    borderRadius: 20,
+  },
+  sheetSub: {
+    color: '#888',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  galleryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a24',
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#2a2a35',
+  },
+  galleryOptionText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  galleryOptionSub: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  presetsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  presetCard: {
+    width: '31%',
+    height: 70,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 6,
+    borderWidth: 1,
+    borderColor: '#222',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  presetCardActive: {
+    borderColor: '#49C788',
+    borderWidth: 2,
+  },
+  presetName: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  activeCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#49C788',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resetBtn: {
+    backgroundColor: 'transparent',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+    borderRadius: 16,
+  },
+  resetBtnText: {
+    color: '#ff4444',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 
   // Forward Modal
   forwardModalContainer: {
