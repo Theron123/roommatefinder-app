@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView,
-  StyleSheet, Text, View,
+  StyleSheet, Text, View, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -349,11 +349,30 @@ export default function ReviewContractScreen() {
       </html>
       `;
 
-      // Generate PDF
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      
-      // Share/Download PDF
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Descargar Contrato' });
+      // Generate and Share/Download PDF depending on platform
+      if (Platform.OS === 'web') {
+        try {
+          const html2pdfModule = await import('html2pdf.js');
+          const html2pdf = html2pdfModule.default || html2pdfModule;
+          
+          const opt = {
+            margin:       0.4,
+            filename:     `contrato_${contract.id}_borrador.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+          
+          html2pdf().set(opt).from(html).save();
+        } catch (e) {
+          console.error(e);
+          Alert.alert('Error', 'No se pudo generar el PDF.');
+        }
+      } else {
+        // On mobile, generate the file and open the native share/save sheet
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Descargar Contrato' });
+      }
 
     } catch (err) {
       console.error(err);
