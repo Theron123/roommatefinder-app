@@ -249,14 +249,6 @@ export default function MyProfileScreen() {
               )}
               <View style={styles.onlineDot} />
             </Pressable>
-
-            {/* Settings Wheel */}
-            <Pressable 
-              style={styles.premiumWheelBtn} 
-              onPress={() => router.push('/settings')}
-            >
-              <MaterialCommunityIcons name="cog" size={16} color="#49C788" />
-            </Pressable>
           </View>
 
           {editing ? (
@@ -284,15 +276,24 @@ export default function MyProfileScreen() {
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setEditing(true)} style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
-              <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
-              {profile?.trust_score >= 80 ? (
-                <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
-              ) : profile?.trust_score >= 40 ? (
-                <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
-              ) : null}
-              <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={() => setEditing(true)} style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
+                {profile?.trust_score >= 80 ? (
+                  <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
+                ) : profile?.trust_score >= 40 ? (
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
+                ) : null}
+                <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
+              </Pressable>
+
+              <Pressable 
+                onPress={() => router.push('/settings')}
+                style={styles.settingsIconBtn}
+              >
+                <MaterialCommunityIcons name="cog" size={20} color="#49C788" />
+              </Pressable>
+            </View>
           )}
 
           <View style={styles.statusChipsContainer}>
@@ -656,19 +657,16 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 16,
   },
-  premiumWheelBtn: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#333',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  settingsIconBtn: {
+    backgroundColor: '#1a1a24',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#49C788',
-    zIndex: 10,
+    borderWidth: 1.5,
+    borderColor: '#333',
+    marginLeft: 6,
   },
   avatar: {
     width: 110,
