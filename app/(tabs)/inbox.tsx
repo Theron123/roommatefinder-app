@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function InboxScreen() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function InboxScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
+  const [hasNewActivity, setHasNewActivity] = useState(false);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -91,12 +93,16 @@ export default function InboxScreen() {
     // Find who we have messaged
     const messagedUsers = new Set<string>();
     const lastMsgs = new Map<string, any>();
+    const unreadCounts = new Map<string, number>();
 
     msgs.forEach(msg => {
       const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
       if (!messagedUsers.has(otherId)) {
         messagedUsers.add(otherId);
         lastMsgs.set(otherId, msg);
+      }
+      if (msg.receiver_id === myId && msg.is_read === false) {
+        unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
       }
     });
 
@@ -144,7 +150,7 @@ export default function InboxScreen() {
               photoUrl: p.photoUrl,
               lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
-              unread: false,
+              unreadCount: unreadCounts.get(p.id) || 0,
             };
           })
           .filter(Boolean);
@@ -163,6 +169,23 @@ export default function InboxScreen() {
       setConversations([]);
     }
     
+    // Check if there is new activity
+    try {
+      const lastActivitySeenStr = await AsyncStorage.getItem('@roommatefinder:last_activity_seen');
+      const lastActivitySeen = lastActivitySeenStr ? new Date(lastActivitySeenStr).getTime() : 0;
+      
+      const latestMatchDate = matchData.length > 0 ? new Date(Math.max(...matchData.map(m => new Date(m.created_at || 0).getTime()))).getTime() : 0;
+      const latestMsgDate = msgs.length > 0 ? new Date(Math.max(...msgs.map(m => new Date(m.created_at).getTime()))).getTime() : 0;
+      
+      if (latestMatchDate > lastActivitySeen || latestMsgDate > lastActivitySeen) {
+        setHasNewActivity(true);
+      } else {
+        setHasNewActivity(false);
+      }
+    } catch (e) {
+      console.log('Error checking activity seen date', e);
+    }
+    
     setLoading(false);
   };
 
@@ -172,20 +195,25 @@ export default function InboxScreen() {
       style={styles.row}
     >
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
-      
-      {item.unread && <View style={styles.unreadDot} />}
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={styles.name}>{item.name}, {item.age}</Text>
           <Text style={styles.time}>{item.time}</Text>
         </View>
-        <Text
-          numberOfLines={1}
-          style={[styles.lastMessage, item.unread && styles.lastMessageUnread]}
-        >
-          {item.lastMessage}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text
+            numberOfLines={1}
+            style={[styles.lastMessage, item.unreadCount > 0 && styles.lastMessageUnread, { flex: 1, paddingRight: 10 }]}
+          >
+            {item.lastMessage}
+          </Text>
+          {item.unreadCount > 0 && (
+            <View style={styles.unreadBadgeWhatsApp}>
+              <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
+            </View>
+          )}
+        </View>
       </View>
     </Pressable>
   ), [router]);
@@ -215,11 +243,13 @@ export default function InboxScreen() {
         <View style={styles.headerTopRow}>
           <View>
             <Text style={styles.title}>Messages</Text>
-            <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
+            <Text style={styles.subtitle}>{conversations.filter(c => c.unreadCount > 0).length} unread conversations</Text>
           </View>
           <Pressable onPress={() => router.push('/activity')} style={styles.followersIcon}>
              <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
-             <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
+             {hasNewActivity && (
+               <View style={styles.badge} />
+             )}
           </Pressable>
         </View>
         
@@ -347,16 +377,19 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#222',
   },
-  unreadDot: {
-    position: 'absolute',
-    left: 62,
-    top: 14,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  unreadBadgeWhatsApp: {
     backgroundColor: '#49C788',
-    borderWidth: 2,
-    borderColor: '#000',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,
@@ -405,12 +438,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#fff',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#ff4444',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: '#1a1a24',
   },

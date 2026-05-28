@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Image } from 'expo-image';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ActivityItem = {
   id: string;
@@ -23,6 +24,14 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     fetchActivity();
+    const updateActivitySeen = async () => {
+      try {
+        await AsyncStorage.setItem('@roommatefinder:last_activity_seen', new Date().toISOString());
+      } catch (e) {
+        console.log('Error setting activity seen', e);
+      }
+    };
+    updateActivitySeen();
   }, []);
 
   const fetchActivity = async () => {

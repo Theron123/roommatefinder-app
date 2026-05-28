@@ -132,6 +132,22 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!myId) return;
 
+    const markAsRead = async () => {
+      try {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('receiver_id', myId)
+          .eq('sender_id', id)
+          .eq('is_read', false);
+      } catch (e) {
+        console.error('Error marking messages as read', e);
+      }
+    };
+
+    // Mark existing messages as read initially and when messages state changes (like a new one coming in)
+    markAsRead();
+
     const channel = supabase
       .channel(`chat_room:${id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
@@ -144,6 +160,10 @@ export default function ChatScreen() {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
+          
+          if (newMsg.receiver_id === myId) {
+            markAsRead();
+          }
         }
       })
       .subscribe();
