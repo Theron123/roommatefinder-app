@@ -60,6 +60,13 @@ export default function InboxScreen() {
             fetchInboxData();
           }
         })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
+          const updatedMsg = payload.new;
+          if (updatedMsg.sender_id === myId || updatedMsg.receiver_id === myId) {
+            // Trigger an immediate non-blocking refresh of conversation list
+            fetchInboxData();
+          }
+        })
         .subscribe();
     };
 
@@ -101,7 +108,7 @@ export default function InboxScreen() {
         messagedUsers.add(otherId);
         lastMsgs.set(otherId, msg);
       }
-      if (msg.receiver_id === myId && msg.is_read === false) {
+      if (msg.receiver_id === myId && !msg.is_read) {
         unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
       }
     });

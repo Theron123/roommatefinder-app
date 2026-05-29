@@ -15,6 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { setActiveChatUserId } from '@/lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -130,23 +131,28 @@ export default function ChatScreen() {
   }, [id]);
 
   useEffect(() => {
+    if (!myId || messages.length === 0) return;
+
+    const unreadMsgs = messages.filter(m => m.receiver_id === myId && !m.is_read);
+    if (unreadMsgs.length > 0) {
+      const unreadIds = unreadMsgs.map(m => m.id);
+      
+      // Optimistically update local state so badges disappear immediately
+      setMessages(prev => prev.map(m => unreadIds.includes(m.id) ? { ...m, is_read: true } : m));
+
+      // Update in background
+      supabase
+        .from('messages')
+        .update({ is_read: true })
+        .in('id', unreadIds)
+        .then(({ error }) => {
+          if (error) console.error('Error marking messages as read', error);
+        });
+    }
+  }, [messages, myId]);
+
+  useEffect(() => {
     if (!myId) return;
-
-    const markAsRead = async () => {
-      try {
-        await supabase
-          .from('messages')
-          .update({ is_read: true })
-          .eq('receiver_id', myId)
-          .eq('sender_id', id)
-          .eq('is_read', false);
-      } catch (e) {
-        console.error('Error marking messages as read', e);
-      }
-    };
-
-    // Mark existing messages as read initially and when messages state changes (like a new one coming in)
-    markAsRead();
 
     const channel = supabase
       .channel(`chat_room:${id}`)
@@ -160,11 +166,20 @@ export default function ChatScreen() {
             if (prev.some(m => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
-          
-          if (newMsg.receiver_id === myId) {
-            markAsRead();
-          }
         }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+        const updatedMsg = payload.new;
+        if (
+          (updatedMsg.sender_id === id && updatedMsg.receiver_id === myId) ||
+          (updatedMsg.sender_id === myId && updatedMsg.receiver_id === id)
+        ) {
+          setMessages(prev => prev.map(m => m.id === updatedMsg.id ? { ...m, ...updatedMsg } : m));
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
+        const deletedMsgId = payload.old.id;
+        setMessages(prev => prev.filter(m => m.id !== deletedMsgId));
       })
       .subscribe();
 
@@ -592,6 +607,13 @@ export default function ChatScreen() {
         delayLongPress={400}
       >
         <View style={[styles.msgBubble, isMine ? styles.myMsg : styles.theirMsg]}>
+          <Pressable 
+            style={styles.msgChevron} 
+            onPress={() => handleLongPress(item)}
+          >
+            <MaterialCommunityIcons name="chevron-down" size={16} color="rgba(255,255,255,0.5)" />
+          </Pressable>
+
           {/* Reply preview */}
           {repliedMsg && (
             <View style={styles.replyPreview}>
@@ -685,7 +707,8 @@ export default function ChatScreen() {
             {isMine && (
               <View style={styles.statusContainer}>
                 {item.status === 'pending' && <MaterialCommunityIcons name="clock-outline" size={12} color="rgba(255,255,255,0.4)" />}
-                {item.status === 'sent' && <MaterialCommunityIcons name="check-all" size={14} color="#49C788" />}
+                {item.status === 'sent' && !item.is_read && <MaterialCommunityIcons name="check-all" size={14} color="rgba(255,255,255,0.4)" />}
+                {item.is_read && <MaterialCommunityIcons name="check-all" size={14} color="#34B7F1" />}
                 {item.status === 'error' && <MaterialCommunityIcons name="alert-circle-outline" size={12} color="#ff4444" />}
               </View>
             )}
@@ -919,6 +942,40 @@ export default function ChatScreen() {
             }}>
               <Text style={styles.actionMenuItemText}>➡  Forward</Text>
             </Pressable>
+            
+            <Pressable style={styles.actionMenuItem} onPress={async () => {
+              await Clipboard.setStringAsync(activeMessage?.content || '');
+              setShowActionMenu(false);
+              Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
+            }}>
+              <Text style={styles.actionMenuItemText}>📄  Copy</Text>
+            </Pressable>
+
+            {activeMessage?.sender_id === myId && (
+              <Pressable style={styles.actionMenuItem} onPress={() => {
+                setShowActionMenu(false);
+                const isRead = activeMessage.is_read;
+                const timeStr = new Date(activeMessage.created_at).toLocaleString();
+                Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
+              }}>
+                <Text style={styles.actionMenuItemText}>ℹ️  Info</Text>
+              </Pressable>
+            )}
+
+            {activeMessage?.sender_id === myId && (
+              <Pressable style={styles.actionMenuItem} onPress={async () => {
+                Alert.alert('Eliminar mensaje', '¿Eliminar para todos?', [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Eliminar', style: 'destructive', onPress: async () => {
+                    await supabase.from('messages').delete().eq('id', activeMessage.id);
+                    setMessages(prev => prev.filter(m => m.id !== activeMessage.id));
+                    setShowActionMenu(false);
+                  }}
+                ]);
+              }}>
+                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑  Delete</Text>
+              </Pressable>
+            )}
             <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]}
               onPress={() => setShowActionMenu(false)}>
               <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
@@ -1060,6 +1117,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    paddingRight: 24, // make room for chevron
+  },
+  msgChevron: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   myMsg: {
     alignSelf: 'flex-end',
