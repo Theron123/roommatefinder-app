@@ -13,6 +13,7 @@ import * as Location from 'expo-location';
 import { getActiveFilters } from '@/app/explore/filters';
 import { LinearGradient } from 'expo-linear-gradient';
 import { notifyNewMatch } from '@/lib/notifications';
+import { useTranslation } from '../../context/LanguageContext';
 
 const { height, width } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ const QUOTA_KEY = '@roommatefinder:swipe_quotas';
 const LIMITS = { like: 30, reject: 30, skip: 5 };
 
 export default function ExploreScreen() {
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -408,9 +410,9 @@ export default function ExploreScreen() {
     const compatibility = calculateCompatibility(currentUser, card);
 
     const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
-      looking_urgent: { label: 'Looking Urgent', color: '#34C759', icon: 'lightning-bolt' },
-      exploring: { label: 'Just Exploring', color: '#FFCC00', icon: 'compass' },
-      have_room: { label: 'Have Room', color: '#0A84FF', icon: 'home-account' }
+      looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+      exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+      have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
     };
     const statusConfig = card.availability_status ? STATUS_MAP[card.availability_status] : null;
 
@@ -515,28 +517,28 @@ export default function ExploreScreen() {
             
             <View style={styles.rowContainer}>
               <View style={[styles.infoSection, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.subtitle}>Likes & Hobbies</Text>
+                <Text style={styles.subtitle}>{t('explore.likes_hobbies')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="thumb-up-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{card.likes || 'Open to anything'}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.likes) || t('explore.open_anything', 'Open to anything')}</Text>
                 </View>
               </View>
 
               <View style={[styles.infoSection, { flex: 1 }]}>
-                <Text style={styles.subtitle}>Preferences</Text>
+                <Text style={styles.subtitle}>{t('explore.preferences')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{card.preferences || 'Flexible'}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.preferences) || t('explore.flexible', 'Flexible')}</Text>
                 </View>
               </View>
             </View>
 
             {card.dealbreakers ? (
               <View style={styles.infoSection}>
-                <Text style={styles.subtitleDealbreaker}>Dealbreakers</Text>
+                <Text style={styles.subtitleDealbreaker}>{t('myprofile.dealbreakers')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF4B4B" />
-                  <Text style={styles.dealbreakerText} numberOfLines={2}>{card.dealbreakers}</Text>
+                  <Text style={styles.dealbreakerText} numberOfLines={2}>{translateDealbreakersList(card.dealbreakers)}</Text>
                 </View>
               </View>
             ) : null}
@@ -556,8 +558,8 @@ export default function ExploreScreen() {
         <SafeAreaView edges={['top']} pointerEvents="box-none">
           <View style={styles.header} pointerEvents="box-none">
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.mainTitle}>Explore</Text>
-              <Text style={styles.subTitle} numberOfLines={1}>Find your ideal roommate.</Text>
+              <Text style={styles.mainTitle}>{t('tabs.explore')}</Text>
+              <Text style={styles.subTitle} numberOfLines={1}>{t('explore.subtitle')}</Text>
             </View>
             
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -606,7 +608,7 @@ export default function ExploreScreen() {
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color="#49C788" size="large" />
-            <Text style={styles.loadingText}>Finding people...</Text>
+            <Text style={styles.loadingText}>{t('explore.finding_people')}</Text>
           </View>
         ) : viewMode === 'map' ? (
           <MapView
@@ -640,8 +642,8 @@ export default function ExploreScreen() {
                   <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
                     <View style={styles.calloutContainer}>
                       <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
-                      <Text style={styles.calloutRole}>{profile.role === 'host' ? 'Has room' : 'Looking for room'}</Text>
-                      <Text style={styles.calloutAction}>View profile</Text>
+                      <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
+                      <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
                     </View>
                   </Callout>
                 </Marker>
@@ -651,9 +653,9 @@ export default function ExploreScreen() {
         ) : allSwiped || profiles.length === 0 ? (
           <View style={styles.center}>
             <MaterialCommunityIcons name="account-search-outline" size={60} color="#555" />
-            <Text style={styles.emptyText}>No more roommates to show.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_more')}</Text>
             <TouchableOpacity style={styles.reloadButton} onPress={fetchProfiles}>
-              <Text style={styles.reloadButtonText}>Refresh</Text>
+              <Text style={styles.reloadButtonText}>{t('explore.reload')}</Text>
             </TouchableOpacity>
           </View>
         ) : (

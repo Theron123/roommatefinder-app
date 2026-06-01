@@ -7,8 +7,10 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function InboxScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +193,7 @@ export default function InboxScreen() {
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       <View style={styles.content}>
          <Text style={styles.name}>{item.name}, {item.age}</Text>
-         <Text style={styles.lastMessage}>Tap to view profile</Text>
+         <Text style={styles.lastMessage}>{t('explore.tap_view')}</Text>
       </View>
     </Pressable>
   ), [router]);
@@ -210,8 +212,10 @@ export default function InboxScreen() {
       <LinearGradient colors={['#1a1a24', '#000']} style={styles.header}>
         <View style={styles.headerTopRow}>
           <View>
-            <Text style={styles.title}>Messages</Text>
-            <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
+            <Text style={styles.title}>{t('inbox.messages_title')}</Text>
+            <Text style={styles.subtitle}>
+              {conversations.filter(c => c.unread).length} {conversations.filter(c => c.unread).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
+            </Text>
           </View>
           <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
              <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
@@ -222,7 +226,7 @@ export default function InboxScreen() {
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchText}
-            placeholder="Search users by name..."
+            placeholder={t('inbox.search_placeholder')}
             placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -236,7 +240,7 @@ export default function InboxScreen() {
           data={searchResults}
           keyExtractor={(item) => item.id}
           renderItem={renderSearchItem}
-          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No users found</Text>}
+          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>{t('inbox.no_users')}</Text>}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
@@ -248,7 +252,7 @@ export default function InboxScreen() {
         <View style={{ flex: 1 }}>
           {matches.length > 0 && (
             <View style={styles.matchesSection}>
-              <Text style={styles.matchesTitle}>New Matches</Text>
+              <Text style={styles.matchesTitle}>{t('explore.new_matches')}</Text>
               <FlashList
                 data={matches}
                 horizontal
@@ -260,11 +264,11 @@ export default function InboxScreen() {
             </View>
           )}
           
-          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>Messages</Text>
+          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>{t('inbox.messages_title')}</Text>
           {conversations.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
               <MaterialCommunityIcons name="message-text-outline" size={60} color="#333" />
-              <Text style={styles.emptyText}>No messages yet.</Text>
+              <Text style={styles.emptyText}>{t('inbox.no_chats')}</Text>
             </View>
           ) : (
             <View style={{ flex: 1 }}>

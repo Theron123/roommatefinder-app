@@ -9,8 +9,10 @@ import { useEffect, useState } from 'react';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import MapComponent from '@/components/ui/MapComponent';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function ProfileDetailScreen() {
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
@@ -57,9 +59,9 @@ export default function ProfileDetailScreen() {
   if (!profile) {
     return (
       <View style={styles.centerBox}>
-        <Text style={styles.errorText}>Profile not found.</Text>
+        <Text style={styles.errorText}>{t('profile.not_found', 'Profile not found.')}</Text>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+          <Text style={styles.backBtnText}>{t('general.back')}</Text>
         </Pressable>
       </View>
     );
@@ -67,7 +69,7 @@ export default function ProfileDetailScreen() {
 
   // Calculate Match Percentage and Distance
   let matchPercentage = 0;
-  let distanceText = 'Location unknown';
+  let distanceText = t('explore.loc_unknown');
 
   if (currentUser) {
     const simLikes = getSimilarityScore(currentUser.likes, profile.likes);
@@ -81,14 +83,14 @@ export default function ProfileDetailScreen() {
 
     if (currentUser.latOffset != null && currentUser.lngOffset != null && profile.latOffset != null && profile.lngOffset != null) {
       const dist = getDistanceFromLatLonInKm(currentUser.latOffset, currentUser.lngOffset, profile.latOffset, profile.lngOffset);
-      distanceText = `${dist.toFixed(1)} km away`;
+      distanceText = `${dist.toFixed(1)} ${t('explore.away')}`;
     }
   }
 
   const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
-    looking_urgent: { label: 'Buscando Urgente', color: '#34C759', icon: 'lightning-bolt' },
-    exploring: { label: 'Solo Explorando', color: '#FFCC00', icon: 'compass' },
-    have_room: { label: 'Tengo Cuarto', color: '#0A84FF', icon: 'home-account' }
+    looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+    exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+    have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
   };
   const statusConfig = profile.availability_status ? STATUS_MAP[profile.availability_status] : null;
 
@@ -173,7 +175,7 @@ export default function ProfileDetailScreen() {
             }}
           >
             <MaterialCommunityIcons name="arrow-expand" size={14} color="#fff" />
-            <Text style={styles.expandBadgeText}>Ampliar</Text>
+            <Text style={styles.expandBadgeText}>{t('profile.expand', 'Expand')}</Text>
           </Pressable>
           
           {/* Close button overlay */}
@@ -181,12 +183,12 @@ export default function ProfileDetailScreen() {
             <IconSymbol name="chevron.down.circle.fill" size={32} color="#fff" />
           </Pressable>
         </View>
-
+ 
         {/* Info Box */}
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <View>
-              <Text style={styles.name}>{profile.name}, {profile.age}</Text>
+              <Text style={styles.name}>{profile.name}{profile.age ? `, ${profile.age}` : ''}</Text>
               <Text style={styles.distanceBadge}>{distanceText}</Text>
               {statusConfig && (
                 <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '22', borderColor: statusConfig.color }]}>
@@ -195,40 +197,40 @@ export default function ProfileDetailScreen() {
                 </View>
               )}
             </View>
-
+ 
             {/* Match Circle */}
             <View style={styles.matchCircle}>
               <Text style={styles.matchPercent}>{matchPercentage}%</Text>
               <Text style={styles.matchLabel}>Match</Text>
             </View>
           </View>
-
+ 
           <View style={styles.divider} />
-
-          <Text style={styles.sectionTitle}>Biografía</Text>
-          <Text style={styles.bioText}>{profile.bio || 'This user has not written a bio yet.'}</Text>
-
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.about_me')}</Text>
+          <Text style={styles.bioText}>{profile.bio || t('profile.empty_bio', 'This user has not written a bio yet.')}</Text>
+ 
           <View style={styles.divider} />
-
-          <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
-          <Text style={styles.tagsText}>{profile.likes}</Text>
-
-          <Text style={styles.sectionTitle}>Lifestyle</Text>
-          <Text style={styles.tagsText}>{profile.preferences}</Text>
-
-          <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{profile.dealbreakers}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.interests')}</Text>
+          <Text style={styles.tagsText}>{translateHobbiesList(profile.likes) || t('explore.no_pref')}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
+          <Text style={styles.tagsText}>{translateHobbiesList(profile.preferences) || t('explore.no_pref')}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
+          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{translateDealbreakersList(profile.dealbreakers) || t('explore.no_pref')}</Text>
           
           {profile.latOffset && profile.lngOffset && (
             <>
-              <Text style={styles.sectionTitle}>Approximate Location</Text>
+              <Text style={styles.sectionTitle}>{t('profile.approx_loc', 'Approximate Location')}</Text>
               <MapComponent lat={profile.latOffset} lng={profile.lngOffset} />
             </>
           )}
-
+ 
           {listing && (
             <View style={styles.apartmentSection}>
-              <Text style={styles.sectionTitle}>Room / Apartment Available</Text>
+              <Text style={styles.sectionTitle}>{t('profile.room_available', 'Room / Apartment Available')}</Text>
               <View style={styles.listingCard}>
                 {listing.images && listing.images.length > 0 && (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageCarousel}>
@@ -238,24 +240,24 @@ export default function ProfileDetailScreen() {
                   </ScrollView>
                 )}
                 <View style={styles.listingDetails}>
-                  <Text style={styles.listingTitle}>{listing.title || 'Untitled Room'}</Text>
-                  <Text style={styles.listingPrice}>${listing.price}/month {listing.utilities_included && '(Utilities Included)'}</Text>
+                  <Text style={styles.listingTitle}>{listing.title || t('myprofile.untitled_room')}</Text>
+                  <Text style={styles.listingPrice}>${listing.price}/{t('myprofile.month')} {listing.utilities_included && t('profile.utilities_included', '(Utilities Included)')}</Text>
                   {listing.description && <Text style={styles.listingDesc}>{listing.description}</Text>}
                   {listing.address && <Text style={styles.listingAddress}>📍 {listing.address}</Text>}
                 </View>
               </View>
             </View>
           )}
-
+ 
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
-
+ 
       {/* Floating Action Button for Chat */}
       <View style={styles.bottomBar}>
         <Pressable style={styles.primaryButton} onPress={() => router.push(`/chat/${profile.id}`)}>
           <IconSymbol name="paperplane.fill" size={20} color="#000" />
-          <Text style={styles.primaryButtonText}>Message {profile.name}</Text>
+          <Text style={styles.primaryButtonText}>{t('profile.message_user', 'Message') + ' ' + (profile.name || '')}</Text>
         </Pressable>
       </View>
 

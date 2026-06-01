@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function MyProfileScreen() {
-  const { t } = useTranslation();
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -25,9 +25,9 @@ export default function MyProfileScreen() {
   const [status, setStatus] = useState<string>('exploring');
 
   const STATUS_OPTIONS = [
-    { id: 'looking_urgent', label: t('explore.looking_for') + ' ' + t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+    { id: 'looking_urgent', label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
     { id: 'exploring', label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
-    { id: 'have_room', label: t('explore.has_room_filter'), color: '#0A84FF', icon: 'home-account' }
+    { id: 'have_room', label: t('explore.have_room'), color: '#0A84FF', icon: 'home-account' }
   ];
 
   useFocusEffect(
@@ -440,7 +440,7 @@ export default function MyProfileScreen() {
         <View style={styles.chipWrap}>
           {likesArr.length > 0 ? likesArr.map((tag: string) => (
             <View key={tag} style={styles.chip}>
-              <Text style={styles.chipText}>{tag}</Text>
+              <Text style={styles.chipText}>{translateHobby(tag)}</Text>
             </View>
           )) : (
             <Pressable onPress={() => router.push('/preferences?focus=hobbies')} style={styles.addChip}>
@@ -465,9 +465,9 @@ export default function MyProfileScreen() {
               const meta = LIFESTYLE_LABELS[key] || { label: key, emoji: '📌' };
               return (
                 <View key={key} style={styles.lifestyleCategoryRow}>
-                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {meta.label}</Text>
+                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {translateLifestyleKey(key)}</Text>
                   <View style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{val}</Text>
+                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{translateLifestyleVal(val)}</Text>
                   </View>
                 </View>
               );
@@ -520,7 +520,7 @@ export default function MyProfileScreen() {
         <View style={styles.chipWrap}>
           {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string) => (
             <View key={tag} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
-              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{tag}</Text>
+              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{translateDealbreaker(tag)}</Text>
             </View>
           ))}</>) : (
             <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>

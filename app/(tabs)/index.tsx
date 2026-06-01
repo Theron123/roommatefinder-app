@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from '../../context/LanguageContext';
 
 type Profile = {
   id: string;
@@ -31,6 +32,7 @@ type Profile = {
 };
 
 export default function HomeScreen() {
+  const { t, translateHobbiesList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +144,8 @@ export default function HomeScreen() {
 
   const renderProfile = useCallback(({ item, index }: { item: Profile, index: number }) => {
     const isBlurred = index >= 5 && !isPremium;
-    const distanceText = item.distance != null ? `${item.distance.toFixed(1)} km away` : 'Location unknown';
-    const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
+    const distanceText = item.distance != null ? `${item.distance.toFixed(1)} ${t('explore.away')}` : t('explore.loc_unknown');
+    const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} ${t('explore.matching')}` : '';
 
     return (
       <Pressable 
@@ -169,8 +171,8 @@ export default function HomeScreen() {
               <IconSymbol size={40} name="person.circle.fill" color="#fff" />
             )}
             <View style={{ marginLeft: 12 }}>
-              <Text style={styles.cardTitle}>{item.name || 'Roommate'}, {item.age || '?'}</Text>
-              <Text style={styles.cardSubtitle}>Tap to view profile</Text>
+              <Text style={styles.cardTitle}>{item.name || 'Roommate'}{item.age ? `, ${item.age}` : ''}</Text>
+              <Text style={styles.cardSubtitle}>{t('explore.tap_view')}</Text>
             </View>
           </View>
 
@@ -185,26 +187,26 @@ export default function HomeScreen() {
             ) : null}
             {item.hasListing ? (
               <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
-                <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
+                <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>{t('explore.has_room')}</Text>
               </View>
             ) : null}
           </View>
           
-          <Text style={styles.label}>Likes & Hobbies</Text>
-          <Text style={styles.content} numberOfLines={2}>{item.likes || 'Not specified'}</Text>
+          <Text style={styles.label}>{t('explore.likes_hobbies')}</Text>
+          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.likes) || t('explore.no_pref')}</Text>
 
-          <Text style={styles.label}>Preferences</Text>
-          <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
+          <Text style={styles.label}>{t('explore.preferences')}</Text>
+          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.preferences) || t('explore.no_pref')}</Text>
           </LinearGradient>
           
           {isBlurred && (
             <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill}>
               <View style={styles.blurOverlayContent}>
                 <IconSymbol name="lock.fill" size={40} color="#49C788" />
-                <Text style={styles.blurTitle}>Premium Match</Text>
-                <Text style={styles.blurDesc}>Upgrade your plan to unlock more potential roommates and see their full profiles.</Text>
+                <Text style={styles.blurTitle}>{t('explore.premium_match')}</Text>
+                <Text style={styles.blurDesc}>{t('explore.premium_desc')}</Text>
                 <View style={styles.blurBtn}>
-                  <Text style={styles.blurBtnText}>Unlock Premium</Text>
+                  <Text style={styles.blurBtnText}>{t('explore.unlock_premium')}</Text>
                 </View>
               </View>
             </BlurView>
@@ -212,7 +214,7 @@ export default function HomeScreen() {
         </View>
       </Pressable>
     );
-  }, [isPremium, router]);
+  }, [isPremium, router, t, translateHobbiesList]);
 
   const renderListing = useCallback(({ item }: { item: any }) => (
     <Pressable 
@@ -237,25 +239,25 @@ export default function HomeScreen() {
           {/* Floating Price Tag */}
           <View style={styles.priceTag}>
             <Text style={styles.priceText}>${item.price}</Text>
-            <Text style={styles.pricePeriod}>/mo</Text>
+            <Text style={styles.pricePeriod}>/{t('myprofile.month')}</Text>
           </View>
           
           {/* Utilities Badge */}
           {item.utilities_included && (
             <View style={styles.utilitiesBadge}>
               <IconSymbol name="bolt.fill" size={12} color="#000" />
-              <Text style={styles.utilitiesText}>Utilities Inc.</Text>
+              <Text style={styles.utilitiesText}>{t('home.utilities_inc')}</Text>
             </View>
           )}
         </View>
 
         {/* Content details */}
         <View style={styles.listingContent}>
-          <Text style={styles.listingTitle} numberOfLines={1}>{item.title || 'Beautiful Apartment'}</Text>
+          <Text style={styles.listingTitle} numberOfLines={1}>{item.title || t('home.beautiful_apartment')}</Text>
           
           <View style={styles.listingLocationRow}>
             <IconSymbol name="mappin.and.ellipse" size={14} color="#888" />
-            <Text style={styles.listingAddress} numberOfLines={1}>{item.address || 'Location not specified'}</Text>
+            <Text style={styles.listingAddress} numberOfLines={1}>{item.address || t('home.loc_not_specified')}</Text>
           </View>
           
           {item.description && (
@@ -264,13 +266,13 @@ export default function HomeScreen() {
         </View>
       </View>
     </Pressable>
-  ), [router]);
+  ), [router, t]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>Home feed</Text>
-        <Text style={styles.subTitle}>Discover people or apartments nearby.</Text>
+        <Text style={styles.mainTitle}>{t('explore.title')}</Text>
+        <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
       </View>
 
       <View style={styles.toggleContainer}>
@@ -278,13 +280,13 @@ export default function HomeScreen() {
           style={[styles.toggleBtn, feedMode === 'people' && styles.toggleBtnActive]}
           onPress={() => setFeedMode('people')}
         >
-          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>People</Text>
+          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>{t('explore.people')}</Text>
         </Pressable>
         <Pressable 
           style={[styles.toggleBtn, feedMode === 'apartments' && styles.toggleBtnActive]}
           onPress={() => setFeedMode('apartments')}
         >
-          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>Apartments</Text>
+          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>{t('explore.apartments')}</Text>
         </Pressable>
       </View>
 
@@ -295,7 +297,7 @@ export default function HomeScreen() {
       ) : feedMode === 'people' ? (
         profiles.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>No matches found.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_matches')}</Text>
           </View>
         ) : (
           <FlashList
@@ -311,7 +313,7 @@ export default function HomeScreen() {
       ) : (
         listings.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>No apartments found.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_apts')}</Text>
           </View>
         ) : (
           <FlashList
