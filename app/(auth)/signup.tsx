@@ -138,7 +138,7 @@ export default function SignUpScreen() {
           style={[styles.input, styles.countryInput]}
         />
         <TextInput
-          placeholder="National ID / Cédula"
+          placeholder="National ID / Passport"
           placeholderTextColor="#999"
           value={nationalId}
           onChangeText={setNationalId}

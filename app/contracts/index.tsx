@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
 type Contract = {
   id: string;
@@ -17,29 +18,30 @@ type Contract = {
   effective_date: string | null;
   clauses: any;
   initiator: { name: string } | null;
-  contract_participants?: { user_id: string; profiles: { name: string } }[];
   initiator_id: string;
-};
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  draft:                  { label: 'Borrador',    color: '#888',    icon: 'pencil-outline' },
-  pending_authorization:  { label: 'Pendiente',   color: '#FFB800', icon: 'clock-outline' },
-  active:                 { label: 'Activo',      color: '#49C788', icon: 'check-circle-outline' },
-  terminated:             { label: 'Terminado',   color: '#FF4B4B', icon: 'close-circle-outline' },
-  disputed:               { label: 'En Disputa',  color: '#E53935', icon: 'alert-circle-outline' },
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  roommate_agreement: 'Acuerdo de Roommate',
-  rental_agreement:   'Contrato de Renta',
-  sublease:           'Subarrendamiento',
+  contract_participants: { user: { name: string } | null }[];
 };
 
 export default function AgreementsHubScreen() {
+  const { t, locale } = useTranslation();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'contracts' | 'rules' | 'conflicts'>('contracts');
+
+  const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+    draft:                  { label: t('contracts.steps.type'),    color: '#888',    icon: 'pencil-outline' },
+    pending_authorization:  { label: t('contracts.stat_pending'),   color: '#FFB800', icon: 'clock-outline' },
+    active:                 { label: t('contracts.stat_active'),      color: '#49C788', icon: 'check-circle-outline' },
+    terminated:             { label: 'Terminated',   color: '#FF4B4B', icon: 'close-circle-outline' },
+    disputed:               { label: 'Disputed',  color: '#E53935', icon: 'alert-circle-outline' },
+  };
+
+  const TYPE_LABELS: Record<string, string> = {
+    roommate_agreement: t('contracts.roommate_agreement'),
+    rental_agreement:   t('contracts.rental_agreement'),
+    sublease:           'Sublease',
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -53,24 +55,24 @@ export default function AgreementsHubScreen() {
     }
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
-    const uid = session.user.id;
-    setUserId(uid);
+    setUserId(session.user.id);
 
-    const { data: participantData } = await supabase
+    // Obtener los IDs de los contratos en los que soy participante/contraparte
+    const { data: partData } = await supabase
       .from('contract_participants')
       .select('contract_id')
-      .eq('user_id', uid);
-      
-    const contractIds = participantData?.map((p: any) => p.contract_id) || [];
+      .eq('user_id', session.user.id);
+
+    const contractIds = partData?.map(p => p.contract_id).filter(Boolean) || [];
 
     let query = supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))');
-      
+      .select('*, initiator:initiator_id(name), contract_participants(user:user_id(name))');
+
     if (contractIds.length > 0) {
-      query = query.or(`initiator_id.eq.${uid},id.in.(${contractIds.join(',')})`);
+      query = query.or(`initiator_id.eq.${session.user.id},id.in.(${contractIds.join(',')})`);
     } else {
-      query = query.eq('initiator_id', uid);
+      query = query.eq('initiator_id', session.user.id);
     }
 
     const { data } = await query.order('created_at', { ascending: false });
@@ -89,7 +91,7 @@ export default function AgreementsHubScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Legal Hub</Text>
+        <Text style={s.headerTitle}>{t('contracts.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -98,15 +100,15 @@ export default function AgreementsHubScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
           <Pressable style={[s.tabChip, activeTab === 'contracts' && s.tabChipActive]} onPress={() => setActiveTab('contracts')}>
              <MaterialCommunityIcons name="file-sign" size={16} color={activeTab === 'contracts' ? '#000' : '#888'} />
-             <Text style={[s.tabText, activeTab === 'contracts' && s.tabTextActive]}>Acuerdos</Text>
+             <Text style={[s.tabText, activeTab === 'contracts' && s.tabTextActive]}>{t('contracts.tab_agreements')}</Text>
           </Pressable>
           <Pressable style={[s.tabChip, activeTab === 'rules' && s.tabChipActive]} onPress={() => setActiveTab('rules')}>
              <MaterialCommunityIcons name="home-heart" size={16} color={activeTab === 'rules' ? '#000' : '#888'} />
-             <Text style={[s.tabText, activeTab === 'rules' && s.tabTextActive]}>House Rules</Text>
+             <Text style={[s.tabText, activeTab === 'rules' && s.tabTextActive]}>{t('contracts.tab_rules')}</Text>
           </Pressable>
           <Pressable style={[s.tabChip, activeTab === 'conflicts' && s.tabChipActive]} onPress={() => setActiveTab('conflicts')}>
              <MaterialCommunityIcons name="gavel" size={16} color={activeTab === 'conflicts' ? '#000' : '#888'} />
-             <Text style={[s.tabText, activeTab === 'conflicts' && s.tabTextActive]}>Reportar Conflictos</Text>
+             <Text style={[s.tabText, activeTab === 'conflicts' && s.tabTextActive]}>{t('contracts.tab_conflicts')}</Text>
           </Pressable>
         </ScrollView>
       </View>
@@ -122,46 +124,44 @@ export default function AgreementsHubScreen() {
               <View style={s.overviewCard}>
                 <View style={s.overviewHeader}>
                   <MaterialCommunityIcons name="chart-pie" size={18} color="#888" />
-                  <Text style={s.overviewTitle}>Resumen Legal</Text>
+                  <Text style={s.overviewTitle}>{t('contracts.overview_title')}</Text>
                 </View>
                 <View style={s.statsRow}>
                   <View style={s.stat}>
                     <Text style={[s.statVal, { color: '#49C788' }]}>{activeCount}</Text>
-                    <Text style={s.statLbl}>Activos</Text>
+                    <Text style={s.statLbl}>{t('contracts.stat_active')}</Text>
                   </View>
                   <View style={s.statDivider} />
                   <View style={s.stat}>
                     <Text style={[s.statVal, { color: '#FFB800' }]}>{pendingCount}</Text>
-                    <Text style={s.statLbl}>Pendientes</Text>
+                    <Text style={s.statLbl}>{t('contracts.stat_pending')}</Text>
                   </View>
                   <View style={s.statDivider} />
                   <View style={s.stat}>
                     <Text style={[s.statVal, { color: '#fff' }]}>{contracts.length}</Text>
-                    <Text style={s.statLbl}>Historial</Text>
+                    <Text style={s.statLbl}>{t('contracts.stat_history')}</Text>
                   </View>
                 </View>
               </View>
 
-              <Text style={s.sectionHeading}>Tus Contratos</Text>
+              <Text style={s.sectionHeading}>{t('contracts.your_contracts')}</Text>
 
               {contracts.length === 0 ? (
                 <View style={s.empty}>
                   <View style={s.emptyIconWrap}>
                     <MaterialCommunityIcons name="file-document-outline" size={40} color="#49C788" />
                   </View>
-                  <Text style={s.emptyTitle}>Sin acuerdos activos</Text>
-                  <Text style={s.emptyText}>
-                    Crea un contrato inteligente con un roommate para formalizar pagos y reglas.
-                  </Text>
+                  <Text style={s.emptyTitle}>{t('contracts.no_agreements')}</Text>
+                  <Text style={s.emptyText}>{t('contracts.no_agreements_desc')}</Text>
                 </View>
               ) : (
                 contracts.map(contract => {
                   const st = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
                   const isInitiator = contract.initiator_id === userId;
-                  const participants = contract.contract_participants || [];
-                  const otherPartyNames = isInitiator 
-                    ? (participants.map(p => p.profiles?.name).join(', ') || 'Usuario desconocido')
-                    : (contract.initiator?.name || 'Usuario desconocido');
+                  const counterparties = contract.contract_participants?.map(p => p.user?.name).filter(Boolean) || [];
+                  const otherParty = isInitiator 
+                    ? (counterparties.join(', ') || 'Roommates')
+                    : contract.initiator?.name;
                   
                   return (
                     <Pressable
@@ -176,7 +176,7 @@ export default function AgreementsHubScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={s.cardType}>{TYPE_LABELS[contract.type] || contract.type}</Text>
                           <Text style={s.cardParty}>
-                            {isInitiator ? 'Con' : 'De'} {otherPartyNames}
+                            {isInitiator ? t('contracts.with') : t('contracts.from')} {counterparties.join(', ') || otherParty || t('contracts.unknown_user')}
                           </Text>
                         </View>
                         <View style={[s.badge, { backgroundColor: st.color + '15', borderColor: st.color + '30' }]}>
@@ -191,7 +191,7 @@ export default function AgreementsHubScreen() {
                         <View style={s.timelinePoint}>
                           <MaterialCommunityIcons name="calendar-blank" size={14} color="#888" />
                           <Text style={s.cardDate}>
-                            Actualizado el {new Date(contract.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                            {t('contracts.updated_on')} {new Date(contract.created_at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', { day: '2-digit', month: 'short' })}
                           </Text>
                         </View>
                         <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
@@ -208,10 +208,8 @@ export default function AgreementsHubScreen() {
               <View style={s.emptyIconWrap}>
                 <MaterialCommunityIcons name="home-heart" size={40} color="#00C9A7" />
               </View>
-              <Text style={s.emptyTitle}>House Rules</Text>
-              <Text style={s.emptyText}>
-                Aquí verás las reglas visuales extraídas de tus contratos activos (visitas, mascotas, silencio).
-              </Text>
+              <Text style={s.emptyTitle}>{t('contracts.tab_rules')}</Text>
+              <Text style={s.emptyText}>{t('contracts.house_rules_desc')}</Text>
             </View>
           )}
 
@@ -220,10 +218,8 @@ export default function AgreementsHubScreen() {
               <View style={s.emptyIconWrap}>
                 <MaterialCommunityIcons name="gavel" size={40} color="#E53935" />
               </View>
-              <Text style={s.emptyTitle}>Centro de Resolución</Text>
-              <Text style={s.emptyText}>
-                No tienes disputas activas. Reporta incidencias que rompan el acuerdo aquí.
-              </Text>
+              <Text style={s.emptyTitle}>{t('contracts.res_center_title')}</Text>
+              <Text style={s.emptyText}>{t('contracts.res_center_desc')}</Text>
             </View>
           )}
 
@@ -236,7 +232,7 @@ export default function AgreementsHubScreen() {
         <Pressable style={s.fab} onPress={() => router.push('/contracts/new')}>
           <LinearGradient colors={['#49C788', '#38a870']} style={s.fabGradient}>
             <MaterialCommunityIcons name="plus" size={24} color="#000" />
-            <Text style={s.fabText}>Nuevo</Text>
+            <Text style={s.fabText}>{t('contracts.btn_new')}</Text>
           </LinearGradient>
         </Pressable>
       )}

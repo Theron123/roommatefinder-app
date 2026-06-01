@@ -7,12 +7,12 @@ import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const CONFLICT_REASONS = [
-  { id: 'noise', label: 'Ruidos Molestos', icon: 'volume-high' },
-  { id: 'cleaning', label: 'Falta de Limpieza', icon: 'broom' },
-  { id: 'payment', label: 'Pagos Atrasados', icon: 'cash-clock' },
-  { id: 'damage', label: 'Daños a la Propiedad', icon: 'home-alert' },
-  { id: 'breach', label: 'Incumplimiento de Contrato', icon: 'file-alert' },
-  { id: 'other', label: 'Otro Problema', icon: 'alert-circle-outline' }
+  { id: 'noise', label: 'Excessive Noise', icon: 'volume-high' },
+  { id: 'cleaning', label: 'Lack of Cleanliness', icon: 'broom' },
+  { id: 'payment', label: 'Late Payments', icon: 'cash-clock' },
+  { id: 'damage', label: 'Property Damage', icon: 'home-alert' },
+  { id: 'breach', label: 'Contract Breach', icon: 'file-alert' },
+  { id: 'other', label: 'Other Problem', icon: 'alert-circle-outline' }
 ];
 
 export default function ConflictResolutionCenter() {
@@ -25,7 +25,7 @@ export default function ConflictResolutionCenter() {
 
   const handleSubmit = async () => {
     if (!selectedReason) {
-      Alert.alert('Error', 'Por favor selecciona la categoría del problema.');
+      Alert.alert('Error', 'Please select the category of the problem.');
       return;
     }
 
@@ -46,15 +46,15 @@ export default function ConflictResolutionCenter() {
 
       // Show success modal
       Alert.alert(
-        'Ticket de Resolución Creado',
-        'Hemos recibido tu reporte. El Centro de Mediación revisará el caso y nos pondremos en contacto contigo pronto.',
+        'Resolution Ticket Created',
+        'We have received your report. The Mediation Center will review the case and contact you shortly.',
         [
-          { text: 'Entendido', onPress: () => router.back() }
+          { text: 'Got it', onPress: () => router.back() }
         ]
       );
 
     } catch (e) {
-      Alert.alert('Error', 'Hubo un problema al crear el ticket.');
+      Alert.alert('Error', 'There was a problem creating the ticket.');
     } finally {
       setLoading(false);
     }
@@ -72,25 +72,25 @@ export default function ConflictResolutionCenter() {
           <Pressable onPress={() => router.back()} style={s.backBtn}>
             <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
           </Pressable>
-          <Text style={s.headerTitle}>Resolución de Conflictos</Text>
+          <Text style={s.headerTitle}>Conflict Resolution</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={s.targetCard}>
           <MaterialCommunityIcons name="scale-balance" size={28} color="#E53935" />
           <View style={{ flex: 1 }}>
-            <Text style={s.targetTitle}>Iniciando proceso de mediación</Text>
+            <Text style={s.targetTitle}>Starting mediation process</Text>
             {userName ? (
-              <Text style={s.targetName}>Contra: {userName}</Text>
+              <Text style={s.targetName}>Against: {userName}</Text>
             ) : (
-              <Text style={s.targetName}>Nuevo Reporte General</Text>
+              <Text style={s.targetName}>New General Report</Text>
             )}
           </View>
         </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={s.sectionLabel}>¿QUÉ SUCEDIÓ?</Text>
+        <Text style={s.sectionLabel}>WHAT HAPPENED?</Text>
         <View style={s.reasonsGrid}>
           {CONFLICT_REASONS.map(reason => (
             <Pressable 
@@ -100,7 +100,7 @@ export default function ConflictResolutionCenter() {
             >
               <View style={[s.iconWrap, selectedReason === reason.id && s.iconWrapActive]}>
                 <MaterialCommunityIcons 
-                  name={reason.icon as any} 
+                   name={reason.icon as any} 
                   size={22} 
                   color={selectedReason === reason.id ? '#E53935' : '#888'} 
                 />
@@ -112,11 +112,11 @@ export default function ConflictResolutionCenter() {
           ))}
         </View>
 
-        <Text style={s.sectionLabel}>DETALLES DEL INCIDENTE</Text>
+        <Text style={s.sectionLabel}>INCIDENT DETAILS</Text>
         <View style={s.inputContainer}>
           <TextInput
             style={s.input}
-            placeholder="Describe lo sucedido objetivamente. ¿Cuándo pasó? ¿Qué regla del contrato se rompió?"
+            placeholder="Describe what happened objectively. When did it happen? Which contract rule was broken?"
             placeholderTextColor="#555"
             multiline
             numberOfLines={5}
@@ -125,7 +125,7 @@ export default function ConflictResolutionCenter() {
           />
         </View>
 
-        <Text style={s.sectionLabel}>EVIDENCIA (FOTOS/VIDEOS)</Text>
+        <Text style={s.sectionLabel}>EVIDENCE (PHOTOS/VIDEOS)</Text>
         <Pressable 
           style={[s.evidenceBtn, evidenceAttached && s.evidenceBtnActive]} 
           onPress={handleAttachEvidence}
@@ -133,10 +133,10 @@ export default function ConflictResolutionCenter() {
           <MaterialCommunityIcons name={evidenceAttached ? "check-circle" : "camera-plus"} size={24} color={evidenceAttached ? "#49C788" : "#888"} />
           <View style={{ flex: 1 }}>
             <Text style={[s.evidenceTitle, evidenceAttached && { color: '#49C788' }]}>
-              {evidenceAttached ? 'Evidencia adjuntada' : 'Subir evidencia multimedia'}
+              {evidenceAttached ? 'Evidence attached' : 'Upload multimedia evidence'}
             </Text>
             <Text style={s.evidenceSub}>
-              {evidenceAttached ? '1 archivo listo para enviar' : 'Ayuda a nuestro equipo a entender mejor'}
+              {evidenceAttached ? '1 file ready to send' : 'Help our team understand better'}
             </Text>
           </View>
         </Pressable>
@@ -144,9 +144,9 @@ export default function ConflictResolutionCenter() {
         <View style={s.safetyInfo}>
           <MaterialCommunityIcons name="shield-check" size={20} color="#49C788" />
           <View style={{ flex: 1 }}>
-            <Text style={s.safetyTitle}>Mediación Justa</Text>
+            <Text style={s.safetyTitle}>Fair Mediation</Text>
             <Text style={s.safetyText}>
-              Este reporte iniciará un proceso de mediación. Tu contraparte será notificada de manera neutral para buscar una solución amigable antes de tomar acciones restrictivas.
+              This report will initiate a mediation process. The other party will be notified in a neutral manner to seek an amicable solution before taking restrictive actions.
             </Text>
           </View>
         </View>
@@ -163,7 +163,7 @@ export default function ConflictResolutionCenter() {
           ) : (
             <>
               <MaterialCommunityIcons name="send" size={20} color="#000" />
-              <Text style={s.mainBtnText}>Abrir Ticket de Mediación</Text>
+              <Text style={s.mainBtnText}>Open Mediation Ticket</Text>
             </>
           )}
         </Pressable>

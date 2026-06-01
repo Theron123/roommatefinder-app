@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotifications, notifyNewMessage, getActiveChatUserId } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
+import { LanguageProvider } from '../context/LanguageContext';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -98,27 +99,30 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="profile/[id]" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="role-select" options={{ headerShown: false }} />
-        <Stack.Screen name="preferences" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        <Stack.Screen name="contracts/index" options={{ headerShown: false }} />
-        <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
-        <Stack.Screen name="contracts/review" options={{ headerShown: false }} />
-        <Stack.Screen name="contracts/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="terms" options={{ headerShown: false }} />
-        <Stack.Screen name="trust/index" options={{ headerShown: false }} />
-        <Stack.Screen name="trust/verify" options={{ headerShown: false, presentation: 'modal' }} />
-        <Stack.Screen name="trust/report" options={{ headerShown: false, presentation: 'modal' }} />
-        <Stack.Screen name="explore/filters" options={{ headerShown: false, presentation: 'modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/[id]" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="role-select" options={{ headerShown: false }} />
+          <Stack.Screen name="preferences" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="contracts/index" options={{ headerShown: false }} />
+          <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
+          <Stack.Screen name="contracts/review" options={{ headerShown: false }} />
+          <Stack.Screen name="contracts/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="terms" options={{ headerShown: false }} />
+          <Stack.Screen name="trust/index" options={{ headerShown: false }} />
+          <Stack.Screen name="trust/verify" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="trust/report" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="explore/filters" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="settings/index" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

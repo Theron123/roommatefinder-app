@@ -403,9 +403,9 @@ export default function ContractDetailScreen() {
           const opt = {
             margin:       0.4,
             filename:     `contrato_${contract.id}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
+            image:        { type: 'jpeg' as const, quality: 0.98 },
             html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
           };
           
           html2pdf().set(opt).from(html).save();
@@ -478,7 +478,7 @@ export default function ContractDetailScreen() {
             <View style={s.partyChip}>
               <MaterialCommunityIcons name="account-group" size={14} color="#FFB800" />
               <Text style={s.partyName}>{counterpartyNames || 'Contraparte'}</Text>
-              <Text style={s.partyRole}>{contract.contract_participants?.length > 1 ? 'Contrapartes' : 'Contraparte'}</Text>
+              <Text style={s.partyRole}>{(contract.contract_participants?.length ?? 0) > 1 ? 'Contrapartes' : 'Contraparte'}</Text>
             </View>
           </View>
           {contract.effective_date && (

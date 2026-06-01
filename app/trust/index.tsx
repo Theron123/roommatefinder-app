@@ -5,8 +5,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function TrustAndSafetyHub() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +49,7 @@ export default function TrustAndSafetyHub() {
       </View>
       <View style={s.verifyInfo}>
         <Text style={[s.verifyTitle, verified && { color: '#fff' }]}>{title}</Text>
-        <Text style={s.verifyDesc}>{verified ? 'Verificado exitosamente' : desc}</Text>
+        <Text style={s.verifyDesc}>{verified ? t('explore.verified_only') : desc}</Text>
       </View>
       <MaterialCommunityIcons 
         name={verified ? "check-circle" : "chevron-right"} 
@@ -64,70 +66,66 @@ export default function TrustAndSafetyHub() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Trust & Safety</Text>
+        <Text style={s.headerTitle}>{t('trust.title')}</Text>
         <View style={{ width: 36 }} />
       </LinearGradient>
 
       <ScrollView contentContainerStyle={s.scroll}>
         {/* Trust Score Hero */}
         <View style={s.scoreHero}>
-          <Text style={s.heroSubtitle}>TU TRUST SCORE</Text>
+          <Text style={s.heroSubtitle}>{t('trust.your_score')}</Text>
           <View style={s.scoreCircleWrapper}>
             <View style={[s.scoreCircle, { borderColor: scoreColor }]}>
               <Text style={[s.scoreValue, { color: scoreColor }]}>{score}</Text>
             </View>
           </View>
-          <Text style={s.heroDesc}>
-            Completa verificaciones para subir tu puntaje. Los perfiles con +80 puntos reciben 3x más respuestas.
-          </Text>
+          <Text style={s.heroDesc}>{t('trust.score_desc')}</Text>
         </View>
 
         {/* Protection Badge */}
         <View style={s.shieldCard}>
           <MaterialCommunityIcons name="shield-lock-outline" size={24} color="#0A84FF" />
           <View style={{ flex: 1 }}>
-            <Text style={s.shieldTitle}>Protección Anti-Fraude Activa</Text>
-            <Text style={s.shieldDesc}>
-              Nuestro sistema analiza y filtra automáticamente comportamientos sospechosos para mantener la comunidad segura.
-            </Text>
+            <Text style={s.shieldTitle}>{t('trust.anti_fraud')}</Text>
+            <Text style={s.shieldDesc}>{t('trust.anti_fraud_desc')}</Text>
           </View>
         </View>
 
-        <Text style={s.sectionHeader}>VERIFICACIONES DE PERFIL</Text>
+        <Text style={s.sectionHeader}>{t('trust.profile_verifications')}</Text>
 
         <VerificationItem 
           icon="face-recognition" 
-          title="Identidad Oficial" 
-          desc="Sube una selfie y tu ID gubernamental" 
+          title={t('trust.official_id')} 
+          desc={t('trust.id_desc')} 
           verified={profile?.is_identity_verified}
           type="identity"
         />
         <VerificationItem 
           icon="school" 
-          title="Educación" 
-          desc="Verifica tu correo .edu universitario" 
+          title={t('trust.education')} 
+          desc={t('trust.edu_desc')} 
           verified={profile?.is_university_verified}
           type="university"
         />
         <VerificationItem 
           icon="briefcase" 
-          title="Trabajo" 
-          desc="Verifica tu correo corporativo" 
+          title={t('trust.workplace')} 
+          desc={t('trust.work_desc')} 
           verified={profile?.is_workplace_verified}
           type="workplace"
         />
         <VerificationItem 
           icon="cash-multiple" 
-          title="Ingresos (Opcional)" 
-          desc="Prueba de solvencia para rentas" 
+          title={t('trust.income')} 
+          desc={t('trust.income_desc')} 
           verified={profile?.is_income_verified}
           type="income"
         />
 
         <VerificationItem 
           icon="instagram" 
-          title="Redes Sociales" 
-          desc="Conecta tu Instagram o Facebook" 
+          title={t('trust.social')} 
+          desc={t('trust.social_desc')} 
           verified={profile?.is_social_verified}
           type="social"
         />
@@ -135,11 +133,11 @@ export default function TrustAndSafetyHub() {
         <View style={s.footerLinks}>
           <Pressable style={s.footerBtn} onPress={() => router.push('/trust/tips')}>
             <MaterialCommunityIcons name="book-open-outline" size={18} color="#888" />
-            <Text style={s.footerBtnText}>Consejos de Seguridad</Text>
+            <Text style={s.footerBtnText}>{t('trust.security_tips')}</Text>
           </Pressable>
           <Pressable style={s.footerBtn} onPress={() => router.push('/terms')}>
             <MaterialCommunityIcons name="gavel" size={18} color="#888" />
-            <Text style={s.footerBtnText}>Políticas de Moderación</Text>
+            <Text style={s.footerBtnText}>{t('trust.moderation_policies')}</Text>
           </Pressable>
         </View>
 

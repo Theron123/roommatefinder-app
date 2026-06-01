@@ -14,20 +14,20 @@ type Match = { user_id: string; name: string };
 
 // ── Cláusulas predefinidas opcionales ────────────────────────────────────────
 const OPTIONAL_CLAUSES = [
-  { key: 'no_subletting',       label: 'Sin subarrendamiento',          desc: 'Prohibido subarrendar sin consentimiento.' },
-  { key: 'guest_policy',        label: 'Política de invitados',         desc: 'Máximo 7 noches consecutivas para visitas.' },
-  { key: 'cleaning_rota',       label: 'Turno de limpieza',             desc: 'Rotación semanal en áreas comunes.' },
-  { key: 'no_parties',          label: 'Sin fiestas sorpresa',          desc: 'Reuniones grandes requieren aviso de 24h.' },
-  { key: 'parking_included',    label: 'Estacionamiento',               desc: 'Incluye 1 cajón sin costo extra.' },
-  { key: 'internet_split',      label: 'Internet compartido',           desc: 'El pago se divide equitativamente.' },
+  { key: 'no_subletting',       label: 'No subletting',          desc: 'Subletting without consent is prohibited.' },
+  { key: 'guest_policy',        label: 'Guest policy',         desc: 'Maximum 7 consecutive nights for guests.' },
+  { key: 'cleaning_rota',       label: 'Cleaning rotation',             desc: 'Weekly rotation in common areas.' },
+  { key: 'no_parties',          label: 'No surprise parties',          desc: 'Large gatherings require 24h advance notice.' },
+  { key: 'parking_included',    label: 'Parking',               desc: 'Includes 1 parking spot at no extra cost.' },
+  { key: 'internet_split',      label: 'Shared Internet',           desc: 'The payment is split equally.' },
 ];
 
 const STEPS = [
-  { title: 'Tipo', icon: 'file-document-edit-outline' },
+  { title: 'Type', icon: 'file-document-edit-outline' },
   { title: 'Roommate', icon: 'account-search-outline' },
-  { title: 'Finanzas', icon: 'cash-multiple' },
-  { title: 'Reglas', icon: 'home-heart' },
-  { title: 'Módulos', icon: 'view-grid-plus-outline' },
+  { title: 'Finance', icon: 'cash-multiple' },
+  { title: 'Rules', icon: 'home-heart' },
+  { title: 'Add-ons', icon: 'view-grid-plus-outline' },
 ];
 
 export default function NewContractScreen() {
@@ -40,11 +40,37 @@ export default function NewContractScreen() {
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
   // Step 2
   const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleToggleUser = (user: Match) => {
+    setSelectedUsers(prev => {
+      if (prev.some(u => u.user_id === user.user_id)) {
+        return prev.filter(u => u.user_id !== user.user_id);
+      } else {
+        return [...prev, user];
+      }
+    });
+  };
   // Step 3
   const [rent, setRent]                 = useState('');
   const [dueDay, setDueDay]             = useState('1');
   const [deposit, setDeposit]           = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
+
+  const handleDateChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    
+    if (cleaned.length <= 2) {
+      formatted = cleaned;
+    } else if (cleaned.length <= 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    } else {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+    }
+    
+    setEffectiveDate(formatted);
+  };
   // Step 4
   const [petsAllowed, setPetsAllowed]   = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
@@ -53,7 +79,6 @@ export default function NewContractScreen() {
   // Step 5
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (step === 1 && matches.length === 0) loadMatches();
@@ -92,16 +117,35 @@ export default function NewContractScreen() {
     setTimeout(() => {
       setSelectedOptional(['guest_policy', 'cleaning_rota', 'no_parties']);
       setAiLoading(false);
-      Alert.alert('Módulos de IA Aplicados', 'Hemos seleccionado automáticamente las cláusulas recomendadas basadas en los perfiles y el estilo de vida de los usuarios.');
+      Alert.alert('AI Add-ons Applied', 'We have automatically selected the recommended clauses based on the users\' profiles and lifestyle.');
     }, 1200);
   };
 
   const handleSubmit = async () => {
     if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
-      Alert.alert('Faltan datos', 'Completa los montos y la fecha de inicio.');
+      Alert.alert('Missing fields', 'Please enter the financial amounts and effective date.');
       return;
     }
+
+    // Convertir DD/MM/AAAA a AAAA-MM-DD para Supabase
+    const dateParts = effectiveDate.split('/');
+    if (dateParts.length !== 3 || dateParts[0].length !== 2 || dateParts[1].length !== 2 || dateParts[2].length !== 4) {
+      Alert.alert('Invalid date', 'The date must be in DD/MM/YYYY format.');
+      return;
+    }
+
+    const day = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]);
+    const year = parseInt(dateParts[2]);
+
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+      Alert.alert('Invalid date', 'Please enter a valid date.');
+      return;
+    }
+
+    const formattedIsoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
@@ -115,14 +159,6 @@ export default function NewContractScreen() {
       cleaning:         { schedule: cleaningSchedule },
     };
 
-    let formattedDateForDB = effectiveDate;
-    if (effectiveDate.includes('/')) {
-      const parts = effectiveDate.split('/');
-      if (parts.length === 3) {
-        formattedDateForDB = `${parts[2]}-${parts[1]}-${parts[0]}`;
-      }
-    }
-
     const { data: newContract, error } = await supabase.from('contracts').insert({
       initiator_id:           session.user.id,
       type:                   contractType,
@@ -130,50 +166,39 @@ export default function NewContractScreen() {
       template_version:       'v2.0',
       clauses,
       selected_custom_clauses: selectedOptional,
-      effective_date:         formattedDateForDB,
+      effective_date:         formattedIsoDate,
     }).select().single();
 
     if (error || !newContract) {
       setLoading(false);
-      Alert.alert('Error', 'No se pudo crear el borrador.');
+      Alert.alert('Error', 'Could not create the draft.');
       return;
     }
 
-    const participantsData = selectedUsers.map(u => ({
+    // Guardar los participantes seleccionados en contract_participants
+    const participantInserts = selectedUsers.map(u => ({
       contract_id: newContract.id,
-      user_id: u.user_id,
+      user_id: u.user_id
     }));
 
-    const { error: participantsError } = await supabase.from('contract_participants').insert(participantsData);
-    
-    if (participantsError) {
-      setLoading(false);
-      Alert.alert('Error', 'Hubo un error al agregar los participantes.');
+    const { error: partError } = await supabase
+      .from('contract_participants')
+      .insert(participantInserts);
+
+    setLoading(false);
+    if (partError) {
+      Alert.alert('Error', 'Could not register the participants.');
       return;
     }
 
-    setLoading(false);
     router.replace(`/contracts/${newContract.id}`);
   };
 
   const canNext = () => {
     if (step === 0) return !!contractType;
     if (step === 1) return selectedUsers.length > 0;
-    if (step === 2) return !!rent && !!deposit && !!effectiveDate && effectiveDate.length === 10;
+    if (step === 2) return !!rent && !!deposit && effectiveDate.length === 10;
     return true;
-  };
-
-  const handleDateChange = (text: string) => {
-    let cleaned = text.replace(/\D/g, '');
-    let formatted = cleaned;
-
-    if (cleaned.length > 2 && cleaned.length <= 4) {
-      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
-    } else if (cleaned.length > 4) {
-      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
-    }
-    
-    setEffectiveDate(formatted);
   };
 
   return (
@@ -185,7 +210,7 @@ export default function NewContractScreen() {
           <Pressable onPress={() => step === 0 ? router.back() : setStep(step - 1)} style={s.backBtn}>
             <MaterialCommunityIcons name={step === 0 ? "close" : "arrow-left"} size={24} color="#fff" />
           </Pressable>
-          <Text style={s.headerTitle}>Crear Acuerdo</Text>
+          <Text style={s.headerTitle}>Create Agreement</Text>
           <Text style={s.stepCounter}>{step + 1} / {STEPS.length}</Text>
         </View>
 
@@ -206,7 +231,7 @@ export default function NewContractScreen() {
           {/* ── STEP 0: Tipo ── */}
           {step === 0 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Selecciona el formato de tu acuerdo</Text>
+              <Text style={s.sectionHint}>Select your agreement format</Text>
               {(['roommate_agreement', 'rental_agreement'] as const).map(type => (
                 <Pressable
                   key={type}
@@ -224,12 +249,12 @@ export default function NewContractScreen() {
                   />
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <Text style={[s.typeTitle, contractType === type && { color: '#49C788' }]}>
-                      {type === 'roommate_agreement' ? 'Acuerdo de Roommates' : 'Contrato de Renta'}
+                      {type === 'roommate_agreement' ? 'Roommate Agreement' : 'Rental Agreement'}
                     </Text>
                     <Text style={s.typeDesc}>
                       {type === 'roommate_agreement'
-                        ? 'Reglas internas de convivencia y división de gastos.'
-                        : 'Formaliza pagos, depósitos y el uso de la propiedad.'}
+                        ? 'Co-living house rules and split expenses.'
+                        : 'Formalize rent, deposit, and property usage.'}
                     </Text>
                   </View>
                   <MaterialCommunityIcons
@@ -245,18 +270,40 @@ export default function NewContractScreen() {
           {/* ── STEP 1: Parte ── */}
           {step === 1 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>¿Con quién celebrarás este acuerdo?</Text>
-              
-              <View style={[s.inputWrapper, { marginBottom: 16 }]}>
-                <MaterialCommunityIcons name="magnify" size={20} color="#888" style={s.inputIcon} />
-                <TextInput 
-                  style={s.inputWithIcon} 
-                  value={searchQuery} 
-                  onChangeText={setSearchQuery} 
-                  placeholder="Buscar usuario..." 
-                  placeholderTextColor="#444" 
-                />
-              </View>
+              <Text style={s.sectionHint}>Who are you signing this agreement with?</Text>
+
+              {/* Buscador de Matches */}
+              {matches.length > 0 && (
+                <View style={s.searchContainer}>
+                  <MaterialCommunityIcons name="magnify" size={20} color="#666" style={s.searchIcon} />
+                  <TextInput
+                    style={s.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search roommates..."
+                    placeholderTextColor="#666"
+                  />
+                  {searchQuery.length > 0 && (
+                    <Pressable onPress={() => setSearchQuery('')}>
+                      <MaterialCommunityIcons name="close" size={18} color="#666" />
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
+              {/* Píldoras de seleccionados */}
+              {selectedUsers.length > 0 && (
+                <View style={s.selectedPillsContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.selectedPillsScroll}>
+                    {selectedUsers.map(user => (
+                      <Pressable key={user.user_id} style={s.selectedPill} onPress={() => handleToggleUser(user)}>
+                        <Text style={s.selectedPillText}>{user.name}</Text>
+                        <MaterialCommunityIcons name="close-circle" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               {loadingMatches ? (
                 <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
@@ -265,35 +312,39 @@ export default function NewContractScreen() {
                   <View style={s.emptyIconWrap}>
                     <MaterialCommunityIcons name="account-question-outline" size={40} color="#666" />
                   </View>
-                  <Text style={s.emptyStateText}>Necesitas un match aprobado para crear un acuerdo formal.</Text>
+                  <Text style={s.emptyStateText}>You need an approved match to create a formal agreement.</Text>
                 </View>
               ) : (
-                matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase())).map(m => {
-                  const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
-                  return (
-                    <Pressable
-                      key={m.user_id}
-                      style={[s.matchCard, isSelected && s.matchCardActive]}
-                      onPress={() => {
-                        if (isSelected) {
-                          setSelectedUsers(selectedUsers.filter(u => u.user_id !== m.user_id));
-                        } else {
-                          setSelectedUsers([...selectedUsers, m]);
-                        }
-                      }}
-                    >
-                      <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
-                        <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
+                (() => {
+                  const filtered = matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                  if (filtered.length === 0) {
+                    return (
+                      <View style={s.emptyState}>
+                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>No roommates found with that name.</Text>
                       </View>
-                      <Text style={s.matchName}>{m.name}</Text>
-                      <MaterialCommunityIcons 
-                        name={isSelected ? "check-circle" : "circle-outline"} 
-                        size={24} 
-                        color={isSelected ? "#49C788" : "#333"} 
-                      />
-                    </Pressable>
-                  );
-                })
+                    );
+                  }
+                  return filtered.map(m => {
+                    const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
+                    return (
+                      <Pressable
+                        key={m.user_id}
+                        style={[s.matchCard, isSelected && s.matchCardActive]}
+                        onPress={() => handleToggleUser(m)}
+                      >
+                        <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
+                          <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
+                        </View>
+                        <Text style={s.matchName}>{m.name}</Text>
+                        <MaterialCommunityIcons 
+                          name={isSelected ? "check-circle" : "circle-outline"} 
+                          size={24} 
+                          color={isSelected ? "#49C788" : "#333"} 
+                        />
+                      </Pressable>
+                    );
+                  });
+                })()
               )}
             </View>
           )}
@@ -301,10 +352,10 @@ export default function NewContractScreen() {
           {/* ── STEP 2: Finanzas ── */}
           {step === 2 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Establece los montos base. Estos podrán ser modificados más tarde en las cláusulas.</Text>
+              <Text style={s.sectionHint}>Set the base amounts. These can be adjusted later in the clauses.</Text>
               
               <View style={s.inputGroup}>
-                <Text style={s.fieldLabel}>Renta Mensual Total ($) *</Text>
+                <Text style={s.fieldLabel}>Total Monthly Rent ($) *</Text>
                 <View style={s.inputWrapper}>
                   <MaterialCommunityIcons name="currency-usd" size={20} color="#888" style={s.inputIcon} />
                   <TextInput style={s.inputWithIcon} value={rent} onChangeText={setRent} keyboardType="numeric" placeholder="1200" placeholderTextColor="#444" />
@@ -312,7 +363,7 @@ export default function NewContractScreen() {
               </View>
 
               <View style={s.inputGroup}>
-                <Text style={s.fieldLabel}>Depósito de Seguridad ($) *</Text>
+                <Text style={s.fieldLabel}>Security Deposit ($) *</Text>
                 <View style={s.inputWrapper}>
                   <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#888" style={s.inputIcon} />
                   <TextInput style={s.inputWithIcon} value={deposit} onChangeText={setDeposit} keyboardType="numeric" placeholder="2400" placeholderTextColor="#444" />
@@ -321,18 +372,18 @@ export default function NewContractScreen() {
 
               <View style={s.row}>
                 <View style={[s.inputGroup, { flex: 1 }]}>
-                  <Text style={s.fieldLabel}>Día de cobro</Text>
-                  <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder="Ej: 1" placeholderTextColor="#444" />
+                  <Text style={s.fieldLabel}>Due day</Text>
+                  <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder="e.g. 1" placeholderTextColor="#444" />
                 </View>
                 <View style={{ width: 16 }} />
                 <View style={[s.inputGroup, { flex: 1.5 }]}>
-                  <Text style={s.fieldLabel}>Fecha de inicio *</Text>
-                  <TextInput 
-                    style={s.input} 
-                    value={effectiveDate} 
-                    onChangeText={handleDateChange} 
-                    placeholder="DD/MM/AAAA" 
-                    placeholderTextColor="#444" 
+                  <Text style={s.fieldLabel}>Start date *</Text>
+                  <TextInput
+                    style={s.input}
+                    value={effectiveDate}
+                    onChangeText={handleDateChange}
+                    placeholder="DD/MM/YYYY"
+                    placeholderTextColor="#444"
                     keyboardType="numeric"
                     maxLength={10}
                   />
@@ -344,13 +395,13 @@ export default function NewContractScreen() {
           {/* ── STEP 3: Reglas ── */}
           {step === 3 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Configura las políticas básicas de la vivienda.</Text>
-              <ToggleRow label="Mascotas permitidas" icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
-              <ToggleRow label="Fumar permitido" icon="smoking" value={smokingAllowed} onToggle={setSmokingAllowed} />
-              <ToggleRow label="Visitas nocturnas" icon="weather-night" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
+              <Text style={s.sectionHint}>Configure the basic housing policies.</Text>
+              <ToggleRow label="Pets allowed" icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
+              <ToggleRow label="Smoking allowed" icon="smoking" value={smokingAllowed} onToggle={setSmokingAllowed} />
+              <ToggleRow label="Overnight guests" icon="weather-night" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
 
               <View style={[s.inputGroup, { marginTop: 16 }]}>
-                <Text style={s.fieldLabel}>Rotación de limpieza</Text>
+                <Text style={s.fieldLabel}>Cleaning schedule</Text>
                 <View style={s.segmented}>
                   {(['daily', 'weekly', 'biweekly'] as const).map(opt => (
                     <Pressable
@@ -359,7 +410,7 @@ export default function NewContractScreen() {
                       onPress={() => setCleaningSchedule(opt)}
                     >
                       <Text style={[s.segmentText, cleaningSchedule === opt && { color: '#000' }]}>
-                        {opt === 'daily' ? 'Diario' : opt === 'weekly' ? 'Semanal' : 'Quincenal'}
+                        {opt === 'daily' ? 'Daily' : opt === 'weekly' ? 'Weekly' : 'Biweekly'}
                       </Text>
                     </Pressable>
                   ))}
@@ -373,7 +424,7 @@ export default function NewContractScreen() {
             <View style={s.stepContent}>
               <Pressable style={s.aiBanner} onPress={handleAIGenerate} disabled={aiLoading}>
                 {aiLoading ? <ActivityIndicator size="small" color="#0A84FF" /> : <MaterialCommunityIcons name="auto-fix" size={20} color="#0A84FF" />}
-                <Text style={s.aiText}>{aiLoading ? 'Analizando perfiles...' : 'Sugerir módulos con Inteligencia Artificial'}</Text>
+                <Text style={s.aiText}>{aiLoading ? 'Analyzing profiles...' : 'Suggest clauses with Artificial Intelligence'}</Text>
               </Pressable>
 
               {OPTIONAL_CLAUSES.map(c => {
@@ -410,7 +461,7 @@ export default function NewContractScreen() {
               style={[s.nextBtn, !canNext() && s.nextBtnDisabled]}
               onPress={() => canNext() && setStep(step + 1)}
             >
-              <Text style={s.nextBtnText}>Siguiente Paso</Text>
+              <Text style={s.nextBtnText}>Next Step</Text>
               <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
             </Pressable>
           ) : (
@@ -420,7 +471,7 @@ export default function NewContractScreen() {
               ) : (
                 <>
                   <MaterialCommunityIcons name="file-document-check" size={20} color="#000" />
-                  <Text style={s.nextBtnText}>Guardar y Mandar a Revisión</Text>
+                  <Text style={s.nextBtnText}>Save and Send to Review</Text>
                 </>
               )}
             </Pressable>
@@ -513,4 +564,12 @@ const s = StyleSheet.create({
   nextBtn:          { backgroundColor: '#49C788', borderRadius: 30, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, shadowColor: '#49C788', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   nextBtnDisabled:  { backgroundColor: '#1a2a22', shadowOpacity: 0 },
   nextBtnText:      { color: '#000', fontWeight: '800', fontSize: 16 },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e', paddingHorizontal: 16, height: 50, marginBottom: 8 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15 },
+  selectedPillsContainer: { height: 40, marginBottom: 8 },
+  selectedPillsScroll: { gap: 8, alignItems: 'center' },
+  selectedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#49C788', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  selectedPillText: { color: '#000', fontWeight: '700', fontSize: 13 },
 });

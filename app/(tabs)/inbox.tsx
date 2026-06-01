@@ -7,7 +7,6 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function InboxScreen() {
   const router = useRouter();
@@ -16,7 +15,6 @@ export default function InboxScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
-  const [hasNewActivity, setHasNewActivity] = useState(false);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -39,7 +37,8 @@ export default function InboxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchInboxData();
+      fetchConversations();
+      fetchMatches();
     }, [])
   );
 
@@ -57,14 +56,7 @@ export default function InboxScreen() {
           const newMsg = payload.new;
           if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
             // Trigger an immediate non-blocking refresh of conversation list
-            fetchInboxData();
-          }
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, (payload) => {
-          const updatedMsg = payload.new;
-          if (updatedMsg.sender_id === myId || updatedMsg.receiver_id === myId) {
-            // Trigger an immediate non-blocking refresh of conversation list
-            fetchInboxData();
+            fetchConversations();
           }
         })
         .subscribe();
@@ -79,74 +71,67 @@ export default function InboxScreen() {
     };
   }, []);
 
-  const fetchInboxData = async () => {
-    if (conversations.length === 0 && matches.length === 0) {
-      setLoading(true);
-    }
+  const fetchMatches = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     
     const myId = session.user.id;
+    const { data: matchData } = await supabase
+      .from('matches')
+      .select('user1, user2')
+      .or(`user1.eq.${myId},user2.eq.${myId}`);
 
-    // Fetch matches and messages in parallel
-    const [matchesRes, msgsRes] = await Promise.all([
-      supabase.from('matches').select('user1, user2').or(`user1.eq.${myId},user2.eq.${myId}`),
-      supabase.from('messages').select('*').or(`sender_id.eq.${myId},receiver_id.eq.${myId}`).order('created_at', { ascending: false })
-    ]);
-
-    const matchData = matchesRes.data || [];
-    const msgs = msgsRes.data || [];
-
-    // Find who we have messaged
-    const messagedUsers = new Set<string>();
-    const lastMsgs = new Map<string, any>();
-    const unreadCounts = new Map<string, number>();
-
-    msgs.forEach(msg => {
-      const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
-      if (!messagedUsers.has(otherId)) {
-        messagedUsers.add(otherId);
-        lastMsgs.set(otherId, msg);
-      }
-      if (msg.receiver_id === myId && !msg.is_read) {
-        unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
-      }
-    });
-
-    // Find "New Matches" (users we matched with, but haven't messaged yet)
-    const newMatchIds = new Set<string>();
-    matchData.forEach(m => {
-      const otherId = m.user1 === myId ? m.user2 : m.user1;
-      if (!messagedUsers.has(otherId)) {
-        newMatchIds.add(otherId);
-      }
-    });
-
-    // Combine all IDs we need to fetch profiles for
-    const allProfileIdsToFetch = new Set([...messagedUsers, ...newMatchIds]);
-
-    if (allProfileIdsToFetch.size > 0) {
+    if (matchData && matchData.length > 0) {
+      const matchIds = matchData.map(m => m.user1 === myId ? m.user2 : m.user1);
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, name, age, photoUrl')
-        .in('id', Array.from(allProfileIdsToFetch));
+        .select('id, name, photoUrl')
+        .in('id', matchIds);
 
-      if (profiles) {
-        const profileMap = new Map();
-        profiles.forEach(p => profileMap.set(p.id, p));
+      if (profiles) setMatches(profiles);
+    }
+  };
 
-        // Format New Matches
-        const formattedMatches = Array.from(newMatchIds)
-          .map(id => profileMap.get(id))
-          .filter(Boolean);
-        setMatches(formattedMatches);
+  const fetchConversations = async () => {
+    if (conversations.length === 0) {
+      setLoading(true);
+    }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const myId = session.user.id;
 
-        // Format Conversations
-        const formattedConvos = Array.from(messagedUsers)
-          .map(id => {
-            const p = profileMap.get(id);
-            if (!p) return null;
-            const lastMsg = lastMsgs.get(id);
+      // 1. Fetch messages
+      const { data: msgs, error: msgsError } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
+        .order('created_at', { ascending: false });
+
+      if (msgsError) {
+        console.error("Error fetching messages for inbox:", msgsError);
+      }
+
+      if (msgs && msgs.length > 0) {
+        const uniqueUserIds = new Set<string>();
+        const lastMsgs = new Map<string, any>();
+
+        msgs.forEach(msg => {
+          const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+          if (!uniqueUserIds.has(otherId)) {
+            uniqueUserIds.add(otherId);
+            lastMsgs.set(otherId, msg);
+          }
+        });
+
+        // 2. Fetch profiles
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, name, age, photoUrl')
+          .in('id', Array.from(uniqueUserIds));
+
+        if (profiles) {
+          const formattedConvos = profiles.map(p => {
+            const lastMsg = lastMsgs.get(p.id);
             const date = new Date(lastMsg.created_at);
             const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
@@ -157,42 +142,23 @@ export default function InboxScreen() {
               photoUrl: p.photoUrl,
               lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
-              unreadCount: unreadCounts.get(p.id) || 0,
+              unread: lastMsg.receiver_id === myId && lastMsg.is_read === false,
             };
-          })
-          .filter(Boolean);
+          });
 
-        // Sort Conversations by latest message
-        formattedConvos.sort((a: any, b: any) => {
-          const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
-          const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
-          return timeB - timeA;
-        });
+          // Sort formattedConvos by lastMsg created_at DESC
+          formattedConvos.sort((a, b) => {
+            const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
+            const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
+            return timeB - timeA;
+          });
 
-        setConversations(formattedConvos);
-      }
-    } else {
-      setMatches([]);
-      setConversations([]);
-    }
-    
-    // Check if there is new activity
-    try {
-      const lastActivitySeenStr = await AsyncStorage.getItem('@roommatefinder:last_activity_seen');
-      const lastActivitySeen = lastActivitySeenStr ? new Date(lastActivitySeenStr).getTime() : 0;
-      
-      const latestMatchDate = matchData.length > 0 ? new Date(Math.max(...matchData.map(m => new Date(m.created_at || 0).getTime()))).getTime() : 0;
-      const latestMsgDate = msgs.length > 0 ? new Date(Math.max(...msgs.map(m => new Date(m.created_at).getTime()))).getTime() : 0;
-      
-      if (latestMatchDate > lastActivitySeen || latestMsgDate > lastActivitySeen) {
-        setHasNewActivity(true);
+          setConversations(formattedConvos);
+        }
       } else {
-        setHasNewActivity(false);
+        setConversations([]);
       }
-    } catch (e) {
-      console.log('Error checking activity seen date', e);
     }
-    
     setLoading(false);
   };
 
@@ -202,25 +168,20 @@ export default function InboxScreen() {
       style={styles.row}
     >
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+      
+      {item.unread && <View style={styles.unreadDot} />}
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={styles.name}>{item.name}, {item.age}</Text>
           <Text style={styles.time}>{item.time}</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text
-            numberOfLines={1}
-            style={[styles.lastMessage, item.unreadCount > 0 && styles.lastMessageUnread, { flex: 1, paddingRight: 10 }]}
-          >
-            {item.lastMessage}
-          </Text>
-          {item.unreadCount > 0 && (
-            <View style={styles.unreadBadgeWhatsApp}>
-              <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
-            </View>
-          )}
-        </View>
+        <Text
+          numberOfLines={1}
+          style={[styles.lastMessage, item.unread && styles.lastMessageUnread]}
+        >
+          {item.lastMessage}
+        </Text>
       </View>
     </Pressable>
   ), [router]);
@@ -250,13 +211,11 @@ export default function InboxScreen() {
         <View style={styles.headerTopRow}>
           <View>
             <Text style={styles.title}>Messages</Text>
-            <Text style={styles.subtitle}>{conversations.filter(c => c.unreadCount > 0).length} unread conversations</Text>
+            <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
           </View>
-          <Pressable onPress={() => router.push('/activity')} style={styles.followersIcon}>
-             <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
-             {hasNewActivity && (
-               <View style={styles.badge} />
-             )}
+          <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
+             <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
+             <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
           </Pressable>
         </View>
         
@@ -384,19 +343,16 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: '#222',
   },
-  unreadBadgeWhatsApp: {
+  unreadDot: {
+    position: 'absolute',
+    left: 62,
+    top: 14,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#49C788',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadBadgeText: {
-    color: '#000',
-    fontSize: 12,
-    fontWeight: 'bold',
+    borderWidth: 2,
+    borderColor: '#000',
   },
   content: {
     flex: 1,
@@ -445,10 +401,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#ff4444',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    backgroundColor: '#fff',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: '#1a1a24',
   },

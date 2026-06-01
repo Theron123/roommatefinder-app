@@ -35,14 +35,14 @@ export const getActiveFilters = () => _savedFilters;
 
 const BUDGET_STEPS = [0, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 20000];
 const SLEEP_OPTIONS = [
-  { label: 'Madrugador 🌅', value: 'early_bird' },
-  { label: 'Noctámbulo 🌙', value: 'night_owl' },
+  { label: 'Early Bird 🌅', value: 'early_bird' },
+  { label: 'Night Owl 🌙', value: 'night_owl' },
   { label: 'Flexible 🤷', value: 'flexible' },
 ];
 const CLEAN_OPTIONS = [
-  { label: 'Muy limpio ✨', value: 'very_clean' },
-  { label: 'Normal 👌', value: 'average' },
-  { label: 'Relajado 🛋️', value: 'relaxed' },
+  { label: 'Very Clean ✨', value: 'very_clean' },
+  { label: 'Average 👌', value: 'average' },
+  { label: 'Relaxed 🛋️', value: 'relaxed' },
 ];
 
 function BudgetSlider({
@@ -136,34 +136,34 @@ export default function ExploreFiltersScreen() {
         <Pressable onPress={() => router.back()} style={s.closeBtn}>
           <MaterialCommunityIcons name="close" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Filtros Avanzados</Text>
+        <Text style={s.headerTitle}>Advanced Filters</Text>
         <Pressable onPress={resetFilters}>
-          <Text style={s.resetText}>Limpiar</Text>
+          <Text style={s.resetText}>Clear All</Text>
         </Pressable>
       </LinearGradient>
 
       {activeCount > 0 && (
         <View style={s.activeBanner}>
           <MaterialCommunityIcons name="filter-check" size={14} color="#49C788" />
-          <Text style={s.activeBannerText}>{activeCount} filtro{activeCount > 1 ? 's' : ''} activo{activeCount > 1 ? 's' : ''}</Text>
+          <Text style={s.activeBannerText}>{activeCount} active filter{activeCount > 1 ? 's' : ''}</Text>
         </View>
       )}
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Tipo de usuario ── */}
-        <Text style={s.sectionTitle}>BUSCO</Text>
+        <Text style={s.sectionTitle}>I AM LOOKING FOR</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Todos" selected={filters.role === 'all'} onPress={() => setFilters(f => ({ ...f, role: 'all' }))} />
-          <OptionChip label="🔎 Busca cuarto" selected={filters.role === 'seeker'} onPress={() => setFilters(f => ({ ...f, role: 'seeker' }))} />
-          <OptionChip label="🏠 Tiene cuarto" selected={filters.role === 'host'} onPress={() => setFilters(f => ({ ...f, role: 'host' }))} />
+          <OptionChip label="All" selected={filters.role === 'all'} onPress={() => setFilters(f => ({ ...f, role: 'all' }))} />
+          <OptionChip label="🔎 Seeks room" selected={filters.role === 'seeker'} onPress={() => setFilters(f => ({ ...f, role: 'seeker' }))} />
+          <OptionChip label="🏠 Has room" selected={filters.role === 'host'} onPress={() => setFilters(f => ({ ...f, role: 'host' }))} />
         </View>
 
         {/* ── Presupuesto ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>PRESUPUESTO MENSUAL</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>MONTHLY BUDGET</Text>
         <View style={s.card}>
           <BudgetSlider
-            label="Mínimo"
+            label="Min"
             value={filters.minBudget}
             min={0}
             max={filters.maxBudget}
@@ -172,7 +172,7 @@ export default function ExploreFiltersScreen() {
           />
           <View style={s.divider} />
           <BudgetSlider
-            label="Máximo"
+            label="Max"
             value={filters.maxBudget}
             min={filters.minBudget}
             max={20000}
@@ -182,11 +182,11 @@ export default function ExploreFiltersScreen() {
         </View>
 
         {/* ── Solo Verificados ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SEGURIDAD</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SAFETY & TRUST</Text>
         <View style={[s.card, s.row]}>
           <View style={{ flex: 1 }}>
-            <Text style={s.rowLabel}>Solo perfiles verificados</Text>
-            <Text style={s.rowSub}>Usuarios con Trust Score verificado</Text>
+            <Text style={s.rowLabel}>Verified profiles only</Text>
+            <Text style={s.rowSub}>Users with verified Trust Score</Text>
           </View>
           <Switch
             value={filters.onlyVerified}
@@ -197,34 +197,34 @@ export default function ExploreFiltersScreen() {
         </View>
 
         {/* ── Mascotas ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>MASCOTAS</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>PETS</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Sin preferencia" selected={filters.petsAllowed === null} onPress={() => setFilters(f => ({ ...f, petsAllowed: null }))} />
-          <OptionChip label="🐾 Sí permitidas" selected={filters.petsAllowed === true} onPress={() => setFilters(f => ({ ...f, petsAllowed: true }))} />
-          <OptionChip label="🚫 No permitidas" selected={filters.petsAllowed === false} onPress={() => setFilters(f => ({ ...f, petsAllowed: false }))} />
+          <OptionChip label="No preference" selected={filters.petsAllowed === null} onPress={() => setFilters(f => ({ ...f, petsAllowed: null }))} />
+          <OptionChip label="🐾 Pets allowed" selected={filters.petsAllowed === true} onPress={() => setFilters(f => ({ ...f, petsAllowed: true }))} />
+          <OptionChip label="🚫 No pets allowed" selected={filters.petsAllowed === false} onPress={() => setFilters(f => ({ ...f, petsAllowed: false }))} />
         </View>
 
         {/* ── Fumadores ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>FUMAR</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SMOKING</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Sin preferencia" selected={filters.smokingAllowed === null} onPress={() => setFilters(f => ({ ...f, smokingAllowed: null }))} />
-          <OptionChip label="🚬 Sí se permite" selected={filters.smokingAllowed === true} onPress={() => setFilters(f => ({ ...f, smokingAllowed: true }))} />
-          <OptionChip label="🚭 No se permite" selected={filters.smokingAllowed === false} onPress={() => setFilters(f => ({ ...f, smokingAllowed: false }))} />
+          <OptionChip label="No preference" selected={filters.smokingAllowed === null} onPress={() => setFilters(f => ({ ...f, smokingAllowed: null }))} />
+          <OptionChip label="🚬 Allowed" selected={filters.smokingAllowed === true} onPress={() => setFilters(f => ({ ...f, smokingAllowed: true }))} />
+          <OptionChip label="🚭 Not allowed" selected={filters.smokingAllowed === false} onPress={() => setFilters(f => ({ ...f, smokingAllowed: false }))} />
         </View>
 
         {/* ── Horario de sueño ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>HORARIO</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SCHEDULE</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Cualquiera" selected={filters.sleepSchedule === null} onPress={() => setFilters(f => ({ ...f, sleepSchedule: null }))} />
+          <OptionChip label="Any" selected={filters.sleepSchedule === null} onPress={() => setFilters(f => ({ ...f, sleepSchedule: null }))} />
           {SLEEP_OPTIONS.map(o => (
             <OptionChip key={o.value} label={o.label} selected={filters.sleepSchedule === o.value} onPress={() => setFilters(f => ({ ...f, sleepSchedule: o.value }))} />
           ))}
         </View>
 
         {/* ── Limpieza ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>NIVEL DE LIMPIEZA</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>CLEANLINESS</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Cualquiera" selected={filters.cleanliness === null} onPress={() => setFilters(f => ({ ...f, cleanliness: null }))} />
+          <OptionChip label="Any" selected={filters.cleanliness === null} onPress={() => setFilters(f => ({ ...f, cleanliness: null }))} />
           {CLEAN_OPTIONS.map(o => (
             <OptionChip key={o.value} label={o.label} selected={filters.cleanliness === o.value} onPress={() => setFilters(f => ({ ...f, cleanliness: o.value }))} />
           ))}
@@ -237,7 +237,7 @@ export default function ExploreFiltersScreen() {
       <View style={s.footer}>
         <Pressable style={s.applyBtn} onPress={applyFilters}>
           <MaterialCommunityIcons name="filter-check-outline" size={20} color="#000" />
-          <Text style={s.applyBtnText}>Aplicar Filtros{activeCount > 0 ? ` (${activeCount})` : ''}</Text>
+          <Text style={s.applyBtnText}>Apply Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

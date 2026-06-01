@@ -8,57 +8,57 @@ export default function TermsScreen() {
   const sections = [
     {
       icon: '🏛️',
-      title: 'Rol de la Plataforma',
+      title: 'Platform Role',
       content:
-        'RoommateFinder actúa ÚNICAMENTE como intermediario tecnológico. No somos parte de ningún contrato generado dentro de la aplicación. Los contratos creados son acuerdos directos entre los usuarios.',
+        'RoommateFinder acts ONLY as a technological intermediary. We are not a party to any contract generated within the application. The contracts created are direct agreements between the users.',
     },
     {
       icon: '⚖️',
-      title: 'Validez Legal',
+      title: 'Legal Validity',
       content:
-        'Los contratos generados en esta app constituyen un registro de intención y acuerdo entre las partes. Sin embargo, NO sustituyen a un contrato redactado o revisado por un abogado certificado. Para mayor validez legal, se recomienda notarizar el documento ante un notario público.',
+        'Contracts generated in this app constitute a record of intent and agreement between the parties. However, they DO NOT substitute a contract drafted or reviewed by a certified attorney. For greater legal validity, it is recommended to notarize the document before a public notary.',
     },
     {
       icon: '🔏',
-      title: 'Aceptación como Firma',
+      title: 'Acceptance as Signature',
       content:
-        'Al pulsar "Aceptar Contrato" o "Solicitar Autorización", el usuario reconoce haber leído, entendido y aceptado todos los términos del contrato. Esto queda registrado con sello de tiempo (timestamp) en nuestra base de datos.',
+        'By pressing "Accept Contract" or "Request Authorization", the user acknowledges having read, understood, and accepted all terms of the contract. This is recorded with a timestamp in our database.',
     },
     {
       icon: '🛡️',
-      title: 'Limitación de Responsabilidad',
+      title: 'Limitation of Liability',
       content:
-        'RoommateFinder no se hace responsable por:\n• Disputas entre arrendadores e inquilinos\n• Incumplimiento de cualquier cláusula del contrato\n• Daños, pérdidas o perjuicios derivados del uso de contratos generados en la app\n• Información falsa proporcionada por los usuarios\n• Cualquier acto ilegal realizado por alguna de las partes',
+        'RoommateFinder is not responsible for:\n• Disputes between landlords and tenants\n• Breach of any contract clause\n• Damages, losses, or liabilities derived from using contracts generated in the app\n• False information provided by users\n• Any illegal acts committed by either party',
     },
     {
       icon: '🔒',
-      title: 'Privacidad y Datos',
+      title: 'Privacy and Data',
       content:
-        'Los contratos y sus detalles son almacenados de forma segura en nuestros servidores (Supabase). Solo las partes involucradas tienen acceso a sus contratos. No compartimos información contractual con terceros sin consentimiento explícito, salvo requerimiento legal.',
+        'Contracts and their details are stored securely on our servers (Supabase). Only the parties involved have access to their contracts. We do not share contractual information with third parties without explicit consent, except under legal requirement.',
     },
     {
       icon: '📧',
-      title: 'Autorización por Correo',
+      title: 'Email Authorization',
       content:
-        'Cuando un contrato entra en estado "Pendiente de autorización", ambas partes pueden revisarlo. La aceptación dentro de la app queda registrada como autorización válida según estos Términos de Servicio.',
+        'When a contract enters the "Pending authorization" state, both parties can review it. Acceptance within the app is recorded as a valid authorization under these Terms of Service.',
     },
     {
       icon: '🚫',
-      title: 'Uso Prohibido',
+      title: 'Prohibited Use',
       content:
-        'Queda estrictamente prohibido usar la plataforma para:\n• Contratos fraudulentos o engañosos\n• Subarrendamientos no autorizados\n• Discriminación por raza, género, religión u otras características protegidas\n• Cualquier actividad contraria a las leyes locales, estatales o federales',
+        'It is strictly prohibited to use the platform for:\n• Fraudulent or misleading contracts\n• Unauthorized subleases\n• Discrimination based on race, gender, religion, or other protected characteristics\n• Any activity contrary to local, state, or federal laws',
     },
     {
       icon: '🔄',
-      title: 'Modificaciones',
+      title: 'Modifications',
       content:
-        'Nos reservamos el derecho de modificar estos Términos en cualquier momento. Los cambios serán notificados dentro de la aplicación. El uso continuo de la plataforma implica la aceptación de los términos actualizados.',
+        'We reserve the right to modify these Terms at any time. Changes will be notified within the application. Continued use of the platform implies acceptance of the updated terms.',
     },
     {
       icon: '📞',
-      title: 'Contacto y Disputas',
+      title: 'Contact and Disputes',
       content:
-        'Para reportar problemas o irregularidades en contratos, comunícate con nuestro equipo de soporte. Para disputas legales, recomendamos acudir a los mecanismos de mediación y arbitraje de tu jurisdicción local.',
+        'To report problems or irregularities in contracts, please contact our support team. For legal disputes, we recommend resorting to the mediation and arbitration mechanisms of your local jurisdiction.',
     },
   ];
 
@@ -69,7 +69,7 @@ export default function TermsScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Términos de Servicio</Text>
+        <Text style={s.headerTitle}>Terms of Service</Text>
         <View style={{ width: 36 }} />
       </LinearGradient>
 
@@ -79,10 +79,10 @@ export default function TermsScreen() {
           <View style={s.heroIconWrap}>
             <MaterialCommunityIcons name="shield-check" size={40} color="#49C788" />
           </View>
-          <Text style={s.heroTitle}>Acuerdo de Uso</Text>
+          <Text style={s.heroTitle}>Usage Agreement</Text>
           <Text style={s.heroSub}>
-            Al usar las funciones legales de RoommateFinder, aceptas los siguientes términos.
-            Última actualización: Mayo 2026
+            By using RoommateFinder's legal features, you agree to the following terms.
+            Last updated: May 2026
           </Text>
         </View>
 
@@ -90,8 +90,8 @@ export default function TermsScreen() {
         <View style={s.intermediaryCard}>
           <MaterialCommunityIcons name="information-outline" size={20} color="#49C788" />
           <Text style={s.intermediaryText}>
-            <Text style={{ fontWeight: '800', color: '#49C788' }}>RoommateFinder es un intermediario.</Text>
-            {' '}No somos parte de los contratos generados entre usuarios. Nuestra plataforma facilita el proceso, pero la responsabilidad contractual recae sobre las partes involucradas.
+            <Text style={{ fontWeight: '800', color: '#49C788' }}>RoommateFinder is an intermediary.</Text>
+            {' '}We are not a party to the contracts generated between users. Our platform facilitates the process, but contractual responsibility lies solely with the parties involved.
           </Text>
         </View>
 
@@ -109,9 +109,9 @@ export default function TermsScreen() {
         {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>
-            Si tienes preguntas sobre estos términos, contáctanos antes de usar las funciones de contratos.
+            If you have questions about these terms, contact us before using the contract features.
           </Text>
-          <Text style={s.footerVersion}>RoommateFinder · Legal & Agreements v1.0 · Mayo 2026</Text>
+          <Text style={s.footerVersion}>RoommateFinder · Legal & Agreements v1.0 · May 2026</Text>
         </View>
 
         <View style={{ height: 40 }} />

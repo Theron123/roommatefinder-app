@@ -1,10 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ExploreIcon } from '@/components/ui/ExploreIcon';
 import Swiper from 'react-native-deck-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
@@ -45,6 +46,54 @@ export default function ExploreScreen() {
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { count, error } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', session.user.id)
+        .eq('is_read', false);
+
+      if (!error && count !== null) {
+        setUnreadCount(count);
+      }
+    } catch (e) {
+      console.log('Error fetching unread count:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    let unreadChannel: any = null;
+
+    const setupUnreadSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      unreadChannel = supabase
+        .channel('public:unread_messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          fetchUnreadCount();
+        })
+        .subscribe();
+    };
+
+    setupUnreadSubscription();
+
+    return () => {
+      if (unreadChannel) {
+        supabase.removeChannel(unreadChannel);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -288,7 +337,7 @@ export default function ExploreScreen() {
           Alert.alert('Match Error', `${matchError.message}\n\nCode: ${matchError.code}`);
         } else {
           console.log('Mutual Match created!', matchData);
-          Alert.alert('¡Es un Match! 🎉', `¡Tú y ${likedProfile.name || 'alguien'} se han dado like mutuamente! Ya pueden chatear.`);
+          Alert.alert("It's a Match! 🎉", `You and ${likedProfile.name || 'someone'} liked each other! You can now start chatting.`);
           
           try {
             await notifyNewMatch(likedProfile.name || 'Roommate', likedProfile.id);
@@ -359,9 +408,9 @@ export default function ExploreScreen() {
     const compatibility = calculateCompatibility(currentUser, card);
 
     const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
-      looking_urgent: { label: 'Buscando Urgente', color: '#34C759', icon: 'lightning-bolt' },
-      exploring: { label: 'Solo Explorando', color: '#FFCC00', icon: 'compass' },
-      have_room: { label: 'Tengo Cuarto', color: '#0A84FF', icon: 'home-account' }
+      looking_urgent: { label: 'Looking Urgent', color: '#34C759', icon: 'lightning-bolt' },
+      exploring: { label: 'Just Exploring', color: '#FFCC00', icon: 'compass' },
+      have_room: { label: 'Have Room', color: '#0A84FF', icon: 'home-account' }
     };
     const statusConfig = card.availability_status ? STATUS_MAP[card.availability_status] : null;
 
@@ -497,24 +546,6 @@ export default function ExploreScreen() {
     );
   };
 
-  if (currentUser?.role === 'landlord') {
-    return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <MaterialCommunityIcons name="home-city" size={80} color="#49C788" />
-        <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: 16 }}>Modo Landlord</Text>
-        <Text style={{ color: '#aaa', fontSize: 16, textAlign: 'center', marginTop: 12, paddingHorizontal: 40, lineHeight: 22 }}>
-          Ya tienes un cuarto disponible para rentar. Tu propiedad será mostrada a los usuarios que busquen, por lo que no necesitas hacer swipe.
-        </Text>
-        <Pressable 
-          onPress={() => router.push('/inbox')}
-          style={{ marginTop: 32, backgroundColor: '#49C788', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 25 }}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Ir a Mensajes</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -530,11 +561,26 @@ export default function ExploreScreen() {
             </View>
             
             <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              {/* WhatsApp-Style Chat Shortcut Button in Explore Header */}
+              <TouchableOpacity
+                style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8, position: 'relative' }]}
+                onPress={() => router.push('/inbox')}
+              >
+                <ExploreIcon name="message-text" size={20} color="#49C788" />
+                {unreadCount > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>
+                      {unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
                 onPress={() => router.push('/explore/filters')}
               >
-                <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
+                <ExploreIcon name="filter-variant" size={20} color="#49C788" />
               </TouchableOpacity>
               
               <View style={styles.toggleContainer}>
@@ -542,13 +588,13 @@ export default function ExploreScreen() {
                   style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
                   onPress={() => setViewMode('swipe')}
                 >
-                  <MaterialCommunityIcons name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+                  <ExploreIcon name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
                   onPress={() => setViewMode('map')}
                 >
-                  <MaterialCommunityIcons name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
+                  <ExploreIcon name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -594,8 +640,8 @@ export default function ExploreScreen() {
                   <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
                     <View style={styles.calloutContainer}>
                       <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
-                      <Text style={styles.calloutRole}>{profile.role === 'host' ? 'Tiene cuarto' : 'Busca cuarto'}</Text>
-                      <Text style={styles.calloutAction}>Ver perfil</Text>
+                      <Text style={styles.calloutRole}>{profile.role === 'host' ? 'Has room' : 'Looking for room'}</Text>
+                      <Text style={styles.calloutAction}>View profile</Text>
                     </View>
                   </Callout>
                 </Marker>
@@ -753,14 +799,14 @@ export default function ExploreScreen() {
                 style={[styles.actionButton, styles.buttonNope]} 
                 onPress={() => swiperRef.current?.swipeLeft()}
               >
-                <MaterialCommunityIcons name="close" size={28} color="#FF4B4B" />
+                <ExploreIcon name="close" size={28} color="#FF4B4B" />
               </TouchableOpacity>
 
               <TouchableOpacity 
                 style={[styles.actionButton, styles.buttonSkip]} 
                 onPress={() => swiperRef.current?.swipeBottom()}
               >
-                <MaterialCommunityIcons name="skip-next" size={28} color="#ff9800" />
+                <ExploreIcon name="skip-next" size={28} color="#ff9800" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -770,7 +816,7 @@ export default function ExploreScreen() {
                   if (card) router.push(`/chat/${card.id}`);
                 }}
               >
-                <MaterialCommunityIcons name="message-text" size={24} color="#49C788" />
+                <ExploreIcon name="message-text" size={24} color="#49C788" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -782,7 +828,7 @@ export default function ExploreScreen() {
                   swiperRef.current?.swipeRight();
                 }}
               >
-                <MaterialCommunityIcons name="heart" size={28} color="#4caf50" />
+                <ExploreIcon name="heart" size={28} color="#4caf50" />
               </TouchableOpacity>
             </View>
           </>
@@ -1140,6 +1186,26 @@ const styles = StyleSheet.create({
   },
   buttonLike: {
     borderColor: '#4caf50',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#25D366', // WhatsApp bright green
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#000',
+  },
+  unreadBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'center',
   },
 });
 

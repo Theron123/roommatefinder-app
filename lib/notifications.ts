@@ -146,8 +146,8 @@ export async function notifyNewMessage(senderName: string, messagePreview: strin
  */
 export async function notifyNewMatch(matchedUserName: string, matchedUserId: string) {
   await sendLocalNotification(
-    `🎉 ¡Nuevo Match!`,
-    `${matchedUserName} también está interesado en conectar contigo.`,
+    `🎉 New Match!`,
+    `${matchedUserName} is also interested in connecting with you.`,
     { type: 'new_match', matchedUserId }
   );
 }
@@ -157,9 +157,20 @@ export async function notifyNewMatch(matchedUserName: string, matchedUserId: str
  */
 export async function notifyContractUpdate(contractId: string, message: string) {
   await sendLocalNotification(
-    `📄 Actualización de Contrato`,
+    `📄 Contract Update`,
     message,
     { type: 'contract_update', contractId }
+  );
+}
+
+/**
+ * Helper to notify about a major warning or security alert.
+ */
+export async function notifyMajorWarning(title: string, message: string, data?: Record<string, any>) {
+  await sendLocalNotification(
+    `⚠️ ${title}`,
+    message,
+    { type: 'major_warning', ...data }
   );
 }
 

@@ -8,38 +8,38 @@ import * as ImagePicker from 'expo-image-picker';
 
 const VERIFY_CONFIG: any = {
   identity: {
-    title: 'Verificar Identidad',
+    title: 'Verify Identity',
     icon: 'face-recognition',
-    desc: 'Necesitaremos una foto clara de tu identificación oficial (INE, Pasaporte) y una selfie en tiempo real para confirmar tu identidad.',
-    btnLabel: 'Tomar Foto del Documento',
+    desc: 'We will need a clear photo of your official ID (Passport, National ID) and a real-time selfie to confirm your identity.',
+    btnLabel: 'Take Document Photo',
     color: '#0A84FF'
   },
   university: {
-    title: 'Verificación Universitaria',
+    title: 'University Verification',
     icon: 'school',
-    desc: 'Ingresa tu correo institucional (.edu o similar). Te enviaremos un código de verificación para confirmar que estudias allí.',
-    btnLabel: 'Enviar Enlace',
+    desc: 'Enter your institutional email (.edu or similar). We will send a verification code to confirm you study there.',
+    btnLabel: 'Send Link',
     color: '#34C759'
   },
   workplace: {
-    title: 'Verificar Trabajo',
+    title: 'Verify Employment',
     icon: 'briefcase',
-    desc: 'Conecta tu correo corporativo o sube una constancia de trabajo reciente para obtener el badge de Profesional.',
-    btnLabel: 'Enviar Código al Correo',
+    desc: 'Connect your corporate email or upload a recent employment certificate to get the Professional badge.',
+    btnLabel: 'Send Code to Email',
     color: '#5E5CE6'
   },
   income: {
-    title: 'Verificar Ingresos',
+    title: 'Verify Income',
     icon: 'cash-multiple',
-    desc: 'Sube tu recibo de nómina más reciente o estado de cuenta. Esta información es 100% privada y solo se usará para confirmar solvencia.',
-    btnLabel: 'Subir Documento PDF',
+    desc: 'Upload your most recent pay stub or bank statement. This information is 100% private and will only be used to confirm solvency.',
+    btnLabel: 'Upload PDF Document',
     color: '#FF9F0A'
   },
   social: {
-    title: 'Conectar Redes Sociales',
+    title: 'Connect Social Media',
     icon: 'instagram',
-    desc: 'Vincula tu cuenta de Instagram o Facebook para demostrar que eres una persona real y generar mayor confianza en la comunidad.',
-    btnLabel: 'Conectar con Instagram',
+    desc: 'Link your Instagram or Facebook account to show you are a real person and build greater trust in the community.',
+    btnLabel: 'Connect with Instagram',
     color: '#E1306C'
   }
 };
@@ -68,7 +68,7 @@ export default function VerificationWizard() {
       submitVerification();
     } else {
       if (!inputValue.includes('@')) {
-        Alert.alert('Error', 'Ingresa un correo electrónico válido.');
+        Alert.alert('Error', 'Please enter a valid email address.');
         return;
       }
       submitVerification();
@@ -105,13 +105,13 @@ export default function VerificationWizard() {
       await supabase.from('profiles').update(updateData).eq('id', session.user.id);
 
       Alert.alert(
-        '¡Solicitud Enviada!',
-        'Para propósitos de esta demostración, tu verificación ha sido aprobada instantáneamente.',
-        [{ text: 'Genial', onPress: () => router.back() }]
+        'Request Sent!',
+        'For demonstration purposes, your verification has been approved instantly.',
+        [{ text: 'Awesome', onPress: () => router.back() }]
       );
 
     } catch (e) {
-      Alert.alert('Error', 'Hubo un problema al enviar la verificación.');
+      Alert.alert('Error', 'There was a problem submitting the verification.');
     } finally {
       setLoading(false);
     }
@@ -134,15 +134,15 @@ export default function VerificationWizard() {
 
         <View style={s.secureBadge}>
           <MaterialCommunityIcons name="lock" size={16} color="#34C759" />
-          <Text style={s.secureText}>Encriptación 256-bit. Tus datos no se comparten.</Text>
+          <Text style={s.secureText}>256-bit encryption. Your data is not shared.</Text>
         </View>
 
         {(type === 'university' || type === 'workplace') && (
           <View style={s.inputWrapper}>
-            <Text style={s.inputLabel}>Correo electrónico</Text>
+            <Text style={s.inputLabel}>Email address</Text>
             <TextInput
               style={s.input}
-              placeholder={type === 'university' ? "tu_nombre@universidad.edu" : "tu_nombre@empresa.com"}
+              placeholder={type === 'university' ? "your_name@university.edu" : "your_name@company.com"}
               placeholderTextColor="#555"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -162,7 +162,7 @@ export default function VerificationWizard() {
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.mainBtnText}>{config.btnLabel}</Text>}
         </Pressable>
         <Text style={s.footerNote}>
-          Al continuar, aceptas nuestros <Text style={{ textDecorationLine: 'underline' }}>Términos de Privacidad Biómetrica y Documental</Text>.
+          By continuing, you agree to our <Text style={{ textDecorationLine: 'underline' }}>Biometric and Document Privacy Terms</Text>.
         </Text>
       </View>
     </SafeAreaView>

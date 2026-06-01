@@ -12,48 +12,48 @@ export default function SecurityTipsScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Consejos de Seguridad</Text>
+        <Text style={s.headerTitle}>Security Tips</Text>
         <View style={{ width: 36 }} />
       </LinearGradient>
 
       <ScrollView contentContainerStyle={s.scroll}>
         <View style={s.hero}>
           <MaterialCommunityIcons name="shield-star" size={50} color="#49C788" />
-          <Text style={s.heroTitle}>Tu seguridad es primero</Text>
+          <Text style={s.heroTitle}>Your safety comes first</Text>
           <Text style={s.heroDesc}>
-            En RoommateFinder trabajamos para mantener una comunidad segura, pero la prevención empieza contigo. Sigue estos consejos clave.
+            At RoommateFinder we work to maintain a safe community, but prevention starts with you. Follow these key tips.
           </Text>
         </View>
 
         <TipCard 
           icon="currency-usd-off"
-          title="Nunca pagues fuera de la app"
-          desc="Mantén todas las transacciones de reservas y depósitos dentro de nuestra plataforma o de manera presencial tras firmar. Nunca hagas transferencias bancarias internacionales ni uses giros postales."
+          title="Never pay outside the app"
+          desc="Keep all booking and deposit transactions within our platform or in person after signing. Never make international bank transfers or use postal money orders."
         />
         <TipCard 
           icon="account-search"
-          title="Conoce a la persona cara a cara"
-          desc="Antes de firmar un contrato, agenda una videollamada o una reunión presencial en un lugar público seguro para verificar que sea una persona real."
+          title="Meet face-to-face"
+          desc="Before signing a contract, schedule a video call or an in-person meeting in a safe public place to verify they are a real person."
         />
         <TipCard 
           icon="shield-check"
-          title="Filtra por perfiles verificados"
-          desc="Prioriza usuarios que tienen badges de identidad oficial, universidad, redes sociales o trabajo verificado. Tienen un Trust Score mucho más alto."
+          title="Filter by verified profiles"
+          desc="Priorize users who have official ID, university, social media, or work verification badges. They have a much higher Trust Score."
         />
         <TipCard 
           icon="alert-octagon"
-          title="Cuidado con las 'ofertas increíbles'"
-          desc="Si el precio de una habitación es increíblemente bajo para la zona y las fotos parecen de revista, podría ser una estafa. Confía en tu instinto."
+          title="Beware of 'incredible offers'"
+          desc="If the price of a room is unbelievably low for the area and the photos look like they are from a magazine, it could be a scam. Trust your gut."
         />
         <TipCard 
           icon="file-sign"
-          title="Formaliza acuerdos en el Legal Hub"
-          desc="No te bases solo en la palabra. Usa nuestra herramienta de Contratos Inteligentes para dejar por escrito las políticas de pagos, visitas y limpieza."
+          title="Formalize agreements in the Legal Hub"
+          desc="Don't rely solely on word of mouth. Use our Smart Contracts tool to get payment, guest, and cleaning policies in writing."
         />
         <TipCard 
           icon="map-marker-radius"
-          title="No compartas la dirección exacta de inmediato"
-          desc="Si estás publicando un cuarto, comparte solo la zona general inicialmente. Da la dirección exacta solo cuando hayas validado el perfil del interesado y vayan a hacer una visita."
+          title="Don't share the exact address immediately"
+          desc="If you are listing a room, share only the general area initially. Give the exact address only after you have verified the interested person's profile and they are about to make a visit."
         />
 
         <View style={{ height: 40 }} />
