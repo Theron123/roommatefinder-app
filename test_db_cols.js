@@ -6,7 +6,7 @@ async function run() {
   if (data && data.length > 0) {
     console.log(Object.keys(data[0]));
   } else {
-    console.log("No messages found or error", error);
+    console.log("No messages or error:", error);
   }
 }
 run();

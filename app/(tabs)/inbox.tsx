@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function InboxScreen() {
@@ -113,15 +114,23 @@ export default function InboxScreen() {
         console.error("Error fetching messages for inbox:", msgsError);
       }
 
+      const deletedRaw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
+      const deletedMsgs = deletedRaw ? JSON.parse(deletedRaw) : [];
+
       if (msgs && msgs.length > 0) {
+        const validMsgs = msgs.filter(m => !deletedMsgs.includes(m.id));
         const uniqueUserIds = new Set<string>();
         const lastMsgs = new Map<string, any>();
+        const unreadCounts = new Map<string, number>();
 
-        msgs.forEach(msg => {
+        validMsgs.forEach(msg => {
           const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
           if (!uniqueUserIds.has(otherId)) {
             uniqueUserIds.add(otherId);
             lastMsgs.set(otherId, msg);
+          }
+          if (msg.receiver_id === myId && !msg.is_read) {
+            unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
           }
         });
 
@@ -144,7 +153,7 @@ export default function InboxScreen() {
               photoUrl: p.photoUrl,
               lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
-              unread: lastMsg.receiver_id === myId && lastMsg.is_read === false,
+              unreadCount: unreadCounts.get(p.id) || 0,
             };
           });
 

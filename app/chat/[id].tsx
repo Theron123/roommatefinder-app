@@ -22,6 +22,7 @@ export default function ChatScreen() {
   const router = useRouter();
 
   const [messages, setMessages] = useState<any[]>([]);
+  const [deletedMsgsForMe, setDeletedMsgsForMe] = useState<string[]>([]);
   const [inputText, setInputText] = useState('');
   const [otherUser, setOtherUser] = useState<any>(null);
   const [myId, setMyId] = useState<string | null>(null);
@@ -46,8 +47,8 @@ export default function ChatScreen() {
 
   // Attach Menu
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-
-  // Voice recording
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [inputHeight, setInputHeight] = useState(40);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -76,6 +77,18 @@ export default function ChatScreen() {
     { id: 'aurora', name: 'Deep Purple', value: '#120d1c', color: '#120d1c' },
     { id: 'chocolate', name: 'Deep Brown', value: '#1a1412', color: '#1a1412' },
   ];
+
+  useEffect(() => {
+    const loadDeleted = async () => {
+      try {
+        const raw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
+        if (raw) setDeletedMsgsForMe(JSON.parse(raw));
+      } catch (e) {}
+    };
+    loadDeleted();
+  }, []);
+
+  const visibleMessages = messages.filter(m => !deletedMsgsForMe.includes(m.id));
 
   useEffect(() => {
     const loadWallpaper = async () => {
@@ -137,10 +150,8 @@ export default function ChatScreen() {
     if (unreadMsgs.length > 0) {
       const unreadIds = unreadMsgs.map(m => m.id);
       
-      // Optimistically update local state so badges disappear immediately
       setMessages(prev => prev.map(m => unreadIds.includes(m.id) ? { ...m, is_read: true } : m));
 
-      // Update in background
       supabase
         .from('messages')
         .update({ is_read: true })
@@ -206,7 +217,6 @@ export default function ChatScreen() {
       setMessages(history.map(m => ({ ...m, status: 'sent' })));
     }
 
-    // Load profiles for forward
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name')
@@ -214,7 +224,6 @@ export default function ChatScreen() {
     if (profiles) setAllProfiles(profiles);
   };
 
-  // ─── Send Text ───────────────────────────────────────────────
   const sendMessage = async () => {
     if (!inputText.trim() || !myId) return;
     const textToSend = inputText.trim();
@@ -246,9 +255,27 @@ export default function ChatScreen() {
     }
   };
 
-  // scrollToEnd is removed because we use inverted FlatList
+  const deleteForMe = async (msgId: string) => {
+    try {
+      const updated = [...deletedMsgsForMe, msgId];
+      setDeletedMsgsForMe(updated);
+      await AsyncStorage.setItem('@roommatefinder:deleted_msgs_for_me', JSON.stringify(updated));
+      setShowActionMenu(false);
+    } catch (e) {
+      console.error('Error deleting for me', e);
+    }
+  };
 
-  // ─── Voice Recording ──────────────────────────────────────────
+  const deleteForEveryone = async (msgId: string) => {
+    try {
+      await supabase.from('messages').delete().eq('id', msgId);
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      setShowActionMenu(false);
+    } catch (e) {
+      console.error('Error deleting for everyone', e);
+    }
+  };
+
   const startRecording = async () => {
     try {
       setLiveWaveform(new Array(20).fill(4));
@@ -461,7 +488,6 @@ export default function ChatScreen() {
     } catch (e) { console.error('playAudio error', e); setPlayingId(null); }
   };
 
-  // ─── File Picker & Upload ───────────────────────────────────
   const pickMedia = async () => {
     setShowAttachMenu(false);
     if (!myId) return;
@@ -531,22 +557,18 @@ export default function ChatScreen() {
     }
   };
 
-  // ─── Download Image ───────────────────────────────────────────
   const downloadImage = async (url: string) => {
-    // Web: open in new tab so user can save manually
     if (Platform.OS === 'web') {
       window.open(url, '_blank');
       return;
     }
 
-    // Native (iOS / Android)
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission required', 'Allow media access to save photos.');
         return;
       }
-      // Use documentDirectory which is guaranteed to exist
       const destUri = (FileSystem.documentDirectory ?? '') + `chat_img_${Date.now()}.jpg`;
       const { uri } = await FileSystem.downloadAsync(url, destUri);
       await MediaLibrary.saveToLibraryAsync(uri);
@@ -557,7 +579,6 @@ export default function ChatScreen() {
     }
   };
 
-  // ─── Forward ─────────────────────────────────────────────────
   const openForward = (content: { url?: string; text?: string }) => {
     setForwardContent(content);
     setShowForwardModal(true);
@@ -583,13 +604,12 @@ export default function ChatScreen() {
     Alert.alert('✅ Forwarded!', 'Message forwarded successfully.');
   };
 
-  // ─── Long Press Action Menu ───────────────────────────────────
   const handleLongPress = (item: any) => {
     setActiveMessage(item);
+    setShowDeleteOptions(false);
     setShowActionMenu(true);
   };
 
-  // ─── Render Helpers ──────────────────────────────────────────
   const getReplyPreview = (replyId: string) => {
     return messages.find(m => m.id === replyId);
   };
@@ -614,7 +634,6 @@ export default function ChatScreen() {
             <MaterialCommunityIcons name="chevron-down" size={16} color="rgba(255,255,255,0.5)" />
           </Pressable>
 
-          {/* Reply preview */}
           {repliedMsg && (
             <View style={styles.replyPreview}>
               <Text style={styles.replyPreviewText} numberOfLines={1}>
@@ -622,7 +641,6 @@ export default function ChatScreen() {
               </Text>
             </View>
           )}
-          {/* Media */}
           {item.media_type === 'video' && item.media_url ? (
             <Video
               source={{ uri: item.media_url }}
@@ -638,7 +656,6 @@ export default function ChatScreen() {
             </Pressable>
           ) : item.media_type === 'audio' && item.media_url ? (
             (() => {
-              // Generate stable wave pattern from message id
               const getMessageWaveform = (msgId: string) => {
                 const wave: number[] = [];
                 const idStr = msgId || 'default';
@@ -695,13 +712,11 @@ export default function ChatScreen() {
               <Image source={{ uri: item.media_url }} style={styles.messageImage} />
             </Pressable>
           ) : null}
-          {/* Text */}
           {!(item.media_url && (item.content === '📸 Image' || item.content === '🎥 Video' || item.content === '🎵 Audio' || item.content === '📄 Archivo' || item.content === '🎙️ Mensaje de voz')) && (
             <Text style={[styles.msgText, isMine ? styles.myMsgText : styles.theirMsgText]}>
               {item.content}
             </Text>
           )}
-          {/* Meta Info: Time and Double Tick */}
           <View style={styles.bubbleMeta}>
             <Text style={[styles.msgTime, !isMine && styles.theirMsgTime]}>{timeStr}</Text>
             {isMine && (
@@ -720,7 +735,6 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Background Wallpaper */}
       {wallpaper !== 'default' && (
         wallpaper.startsWith('http') || wallpaper.startsWith('file://') || wallpaper.includes('/') ? (
           <View style={StyleSheet.absoluteFillObject}>
@@ -738,7 +752,6 @@ export default function ChatScreen() {
         </View>
       )}
 
-      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="chevron-left" size={28} color="#49C788" />
@@ -763,7 +776,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <FlatList
           ref={flatListRef}
-          data={[...messages].reverse()}
+          data={[...visibleMessages].reverse()}
           inverted
           keyExtractor={item => item.id}
           renderItem={renderMessage}
@@ -775,7 +788,6 @@ export default function ChatScreen() {
           )}
         />
 
-        {/* Reply Banner */}
         {replyingTo && (
           <View style={styles.replyBanner}>
             <Text style={styles.replyBannerText} numberOfLines={1}>
@@ -787,7 +799,6 @@ export default function ChatScreen() {
           </View>
         )}
 
-        {/* Input Row */}
         <View style={styles.inputRow}>
           <Pressable onPress={() => setShowAttachMenu(true)} style={styles.attachBtn}>
             <MaterialCommunityIcons name="plus" size={26} color="#49C788" />
@@ -852,13 +863,10 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* ─── Image Viewer Modal ─── */}
       <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
         <View style={styles.modalContainer}>
-          {/* Close area */}
           <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSelectedImage(null)} />
 
-          {/* Top Controls */}
           <View style={styles.imageModalTopBar}>
             <Pressable style={styles.modalActionBtn} onPress={() => setSelectedImage(null)}>
               <Text style={styles.modalActionText}>✕ Close</Text>
@@ -875,7 +883,6 @@ export default function ChatScreen() {
             </View>
           </View>
 
-          {/* Image with tap-to-zoom */}
           {selectedImage && (
             <Pressable onPress={(e) => {
               if (imageScale > 1) {
@@ -885,7 +892,7 @@ export default function ChatScreen() {
                 const { pageX, pageY } = e.nativeEvent;
                 const cx = pageX - (SCREEN_WIDTH / 2);
                 const cy = pageY - (SCREEN_HEIGHT / 2);
-                const S = 2.5; // Zoom factor
+                const S = 2.5;
                 
                 setImageScale(S);
                 setZoomOffset({ x: -cx, y: -cy });
@@ -908,7 +915,6 @@ export default function ChatScreen() {
             </Pressable>
           )}
 
-          {/* Zoom indicator */}
           <View style={styles.zoomBadge}>
             <Text style={styles.zoomBadgeText}>{Math.round(imageScale * 100)}%</Text>
             {imageScale !== 1 && (
@@ -920,66 +926,92 @@ export default function ChatScreen() {
         </View>
       </Modal>
 
-      {/* ─── Message Action Menu ─── */}
       <Modal visible={showActionMenu} transparent animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
         <Pressable style={styles.actionMenuOverlay} onPress={() => setShowActionMenu(false)}>
           <View style={styles.actionMenu}>
             <Text style={styles.actionMenuTitle} numberOfLines={1}>
-              "{activeMessage?.content}"
+              "{activeMessage?.content || 'Message'}"
             </Text>
-            <Pressable style={styles.actionMenuItem} onPress={() => {
-              setReplyingTo(activeMessage);
-              setShowActionMenu(false);
-            }}>
-              <Text style={styles.actionMenuItemText}>↩  Reply</Text>
-            </Pressable>
-            <Pressable style={styles.actionMenuItem} onPress={() => {
-              openForward(
-                activeMessage?.media_url
-                  ? { url: activeMessage.media_url }
-                  : { text: activeMessage?.content }
-              );
-            }}>
-              <Text style={styles.actionMenuItemText}>➡  Forward</Text>
-            </Pressable>
-            
-            <Pressable style={styles.actionMenuItem} onPress={async () => {
-              await Clipboard.setStringAsync(activeMessage?.content || '');
-              setShowActionMenu(false);
-              Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
-            }}>
-              <Text style={styles.actionMenuItemText}>📄  Copy</Text>
-            </Pressable>
 
-            {activeMessage?.sender_id === myId && (
-              <Pressable style={styles.actionMenuItem} onPress={() => {
-                setShowActionMenu(false);
-                const isRead = activeMessage.is_read;
-                const timeStr = new Date(activeMessage.created_at).toLocaleString();
-                Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
-              }}>
-                <Text style={styles.actionMenuItemText}>ℹ️  Info</Text>
-              </Pressable>
-            )}
+            {showDeleteOptions ? (
+              <>
+                <Text style={{color: '#888', textAlign: 'center', marginBottom: 10, fontSize: 13, paddingHorizontal: 10}}>¿Deseas eliminar este mensaje para ti o para todos?</Text>
+                <Pressable style={styles.actionMenuItem} onPress={() => deleteForMe(activeMessage!.id)}>
+                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para mí</Text>
+                </Pressable>
+                <Pressable style={styles.actionMenuItem} onPress={() => deleteForEveryone(activeMessage!.id)}>
+                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para todos</Text>
+                </Pressable>
+                <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowDeleteOptions(false)}>
+                  <Text style={[styles.actionMenuItemText, { color: '#fff' }]}>Cancelar</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable style={styles.actionMenuItem} onPress={() => {
+                  setReplyingTo(activeMessage);
+                  setShowActionMenu(false);
+                }}>
+                  <Text style={styles.actionMenuItemText}>↩  Reply</Text>
+                </Pressable>
+                <Pressable style={styles.actionMenuItem} onPress={() => {
+                  openForward(
+                    activeMessage?.media_url
+                      ? { url: activeMessage.media_url }
+                      : { text: activeMessage?.content }
+                  );
+                }}>
+                  <Text style={styles.actionMenuItemText}>➡  Forward</Text>
+                </Pressable>
+                
+                <Pressable style={styles.actionMenuItem} onPress={async () => {
+                  await Clipboard.setStringAsync(activeMessage?.content || '');
+                  setShowActionMenu(false);
+                  Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
+                }}>
+                  <Text style={styles.actionMenuItemText}>📄  Copy</Text>
+                </Pressable>
 
-            {activeMessage?.sender_id === myId && (
-              <Pressable style={styles.actionMenuItem} onPress={async () => {
-                Alert.alert('Eliminar mensaje', '¿Eliminar para todos?', [
-                  { text: 'Cancelar', style: 'cancel' },
-                  { text: 'Eliminar', style: 'destructive', onPress: async () => {
-                    await supabase.from('messages').delete().eq('id', activeMessage.id);
-                    setMessages(prev => prev.filter(m => m.id !== activeMessage.id));
+                {activeMessage?.sender_id === myId && (
+                  <Pressable style={styles.actionMenuItem} onPress={() => {
                     setShowActionMenu(false);
-                  }}
-                ]);
-              }}>
-                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑  Delete</Text>
-              </Pressable>
+                    const isRead = activeMessage.is_read;
+                    const timeStr = new Date(activeMessage.created_at).toLocaleString();
+                    Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
+                  }}>
+                    <Text style={styles.actionMenuItemText}>ℹ️  Info</Text>
+                  </Pressable>
+                )}
+
+                <Pressable style={styles.actionMenuItem} onPress={() => {
+                  if (activeMessage) {
+                    if (myId === activeMessage.sender_id) {
+                      setShowDeleteOptions(true);
+                    } else {
+                      if (Platform.OS === 'web') {
+                        if (window.confirm('¿Eliminar este mensaje para ti?')) {
+                          deleteForMe(activeMessage.id);
+                        } else {
+                          setShowActionMenu(false);
+                        }
+                      } else {
+                        Alert.alert('Eliminar mensaje', '¿Eliminar este mensaje para ti?', [
+                          { text: 'Cancelar', style: 'cancel' },
+                          { text: 'Eliminar para mí', style: 'destructive', onPress: () => deleteForMe(activeMessage.id) }
+                        ]);
+                      }
+                    }
+                  }
+                }}>
+                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑  Delete</Text>
+                </Pressable>
+
+                <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]}
+                  onPress={() => setShowActionMenu(false)}>
+                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
+                </Pressable>
+              </>
             )}
-            <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]}
-              onPress={() => setShowActionMenu(false)}>
-              <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
-            </Pressable>
           </View>
         </Pressable>
       </Modal>
