@@ -798,17 +798,28 @@ export default function ExploreScreen() {
             
             <View style={styles.floatingActionButtons} pointerEvents="box-none">
               <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonNope]} 
-                onPress={() => swiperRef.current?.swipeLeft()}
-              >
-                <ExploreIcon name="close" size={28} color="#FF4B4B" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
                 style={[styles.actionButton, styles.buttonSkip]} 
                 onPress={() => swiperRef.current?.swipeBottom()}
               >
-                <ExploreIcon name="skip-next" size={28} color="#ff9800" />
+                <ExploreIcon name="skip-next" size={24} color="#ff9800" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButtonBig, styles.buttonNope]} 
+                onPress={() => swiperRef.current?.swipeLeft()}
+              >
+                <ExploreIcon name="close" size={36} color="#FF4B4B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButtonBig, styles.buttonLike]} 
+                onPress={async () => {
+                  const idx = currentIndex;
+                  await onSwipedRight(idx);
+                  swiperRef.current?.swipeRight();
+                }}
+              >
+                <ExploreIcon name="heart" size={34} color="#4caf50" />
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -819,18 +830,6 @@ export default function ExploreScreen() {
                 }}
               >
                 <ExploreIcon name="message-text" size={24} color="#49C788" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonLike]} 
-                onPress={async () => {
-                  const idx = currentIndex;
-                  // Call match logic directly (swiper callback may not fire on web)
-                  await onSwipedRight(idx);
-                  swiperRef.current?.swipeRight();
-                }}
-              >
-                <ExploreIcon name="heart" size={28} color="#4caf50" />
               </TouchableOpacity>
             </View>
           </>
@@ -1152,35 +1151,47 @@ const styles = StyleSheet.create({
   },
   floatingActionButtons: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 20,
     paddingHorizontal: 20,
     zIndex: 100,
   },
   actionButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 6,
     borderWidth: 1.5,
+  },
+  actionButtonBig: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 2,
   },
   buttonNope: {
     borderColor: '#FF4B4B',
   },
   buttonMessage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
     borderColor: '#49C788',
   },
   buttonSkip: {

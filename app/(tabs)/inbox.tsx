@@ -217,9 +217,8 @@ export default function InboxScreen() {
               {conversations.filter(c => c.unread).length} {conversations.filter(c => c.unread).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
             </Text>
           </View>
-          <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
-             <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
-             <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
+          <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
+             <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
           </Pressable>
         </View>
         
@@ -395,7 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  followersIcon: {
+  activityIcon: {
     position: 'relative',
     padding: 8,
     backgroundColor: 'rgba(73, 199, 136, 0.12)',
