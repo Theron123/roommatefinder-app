@@ -1,13 +1,44 @@
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, Switch, ActivityIndicator } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
+  const [isPremium, setIsPremium] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSubscriptionStatus();
+  }, []);
+
+  const fetchSubscriptionStatus = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('mock_premium');
+      if (stored !== null) {
+        setIsPremium(stored === 'true');
+      }
+    } catch (e) {
+      // error reading value
+    }
+    setLoading(false);
+  };
+
+  const toggleSubscription = async (value: boolean) => {
+    setIsPremium(value);
+    try {
+      await AsyncStorage.setItem('mock_premium', value ? 'true' : 'false');
+    } catch (e) {
+      console.error('Failed to save mock premium status', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
@@ -19,35 +50,29 @@ export default function SubscriptionsScreen() {
       <View style={styles.premiumSection}>
         <View style={styles.premiumHeader}>
           <IconSymbol name="star.fill" size={24} color="#49C788" />
-          <Text style={styles.premiumTitle}>Upgrade to Premium</Text>
+          <Text style={styles.premiumTitle}>Test Subscription</Text>
         </View>
-        
-        <Pressable style={styles.subCard}>
-          <View>
-            <Text style={styles.subDuration}>15 Days</Text>
-            <Text style={styles.subDesc}>Short term access</Text>
-          </View>
-          <Text style={styles.subPrice}>$4.99</Text>
-        </Pressable>
-        
-        <Pressable style={[styles.subCard, styles.subCardPopular]}>
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>MOST POPULAR</Text>
-          </View>
-          <View>
-            <Text style={styles.subDuration}>Quarterly</Text>
-            <Text style={styles.subDesc}>3 months of benefits</Text>
-          </View>
-          <Text style={styles.subPrice}>$14.99</Text>
-        </Pressable>
 
-        <Pressable style={styles.subCard}>
-          <View>
-            <Text style={styles.subDuration}>Annual</Text>
-            <Text style={styles.subDesc}>Best overall value</Text>
+        <Text style={styles.infoText}>
+          Use this toggle to mock your subscription status and test the paywall feature on the Home feed.
+        </Text>
+        
+        {loading ? (
+          <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 20 }} />
+        ) : (
+          <View style={styles.subCard}>
+            <View>
+              <Text style={styles.subDuration}>Premium Access</Text>
+              <Text style={styles.subDesc}>{isPremium ? 'Currently Active' : 'Currently Free Plan'}</Text>
+            </View>
+            <Switch
+              value={isPremium}
+              onValueChange={toggleSubscription}
+              trackColor={{ false: '#333', true: '#49C788' }}
+              thumbColor={'#fff'}
+            />
           </View>
-          <Text style={styles.subPrice}>$49.99</Text>
-        </Pressable>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -82,13 +107,19 @@ const styles = StyleSheet.create({
   premiumHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
     gap: 8,
   },
   premiumTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#49C788',
+  },
+  infoText: {
+    color: '#aaa',
+    marginBottom: 24,
+    fontSize: 14,
+    lineHeight: 20,
   },
   subCard: {
     backgroundColor: '#111',
@@ -99,26 +130,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  subCardPopular: {
-    borderColor: '#49C788',
-    backgroundColor: 'rgba(108, 99, 255, 0.1)',
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: -12,
-    right: 20,
-    backgroundColor: '#49C788',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  popularText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
   },
   subDuration: {
     fontSize: 18,
@@ -128,10 +139,5 @@ const styles = StyleSheet.create({
   subDesc: {
     color: '#888',
     marginTop: 4,
-  },
-  subPrice: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
   },
 });

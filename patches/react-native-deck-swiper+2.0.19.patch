@@ -1,0 +1,15 @@
+diff --git a/node_modules/react-native-deck-swiper/index.d.ts b/node_modules/react-native-deck-swiper/index.d.ts
+index bd88f36..4aacf6e 100644
+--- a/node_modules/react-native-deck-swiper/index.d.ts
++++ b/node_modules/react-native-deck-swiper/index.d.ts
+@@ -43,8 +43,8 @@ declare module 'react-native-deck-swiper' {
+     onTapCardDeadZone?: number;
+     outputCardOpacityRangeX?: [number, number, number, number, number];
+     outputCardOpacityRangeY?: [number, number, number, number, number];
+-    outputOverlayLabelsOpacityRangeX?: [number, number, number];
+-    outputOverlayLabelsOpacityRangeY?: [number, number, number];
++    outputOverlayLabelsOpacityRangeX?: [number, number, number, number, number];
++    outputOverlayLabelsOpacityRangeY?: [number, number, number, number, number];
+     outputRotationRange?: [string, string, string];
+     overlayLabels?: object;
+     overlayLabelStyle?: StyleProp<ViewStyle>;

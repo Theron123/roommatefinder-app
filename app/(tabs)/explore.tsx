@@ -1,15 +1,19 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ExploreIcon } from '@/components/ui/ExploreIcon';
 import Swiper from 'react-native-deck-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
 import * as Location from 'expo-location';
 import { getActiveFilters } from '@/app/explore/filters';
+import { LinearGradient } from 'expo-linear-gradient';
+import { notifyNewMatch } from '@/lib/notifications';
+import { useTranslation } from '../../context/LanguageContext';
 
 const { height, width } = Dimensions.get('window');
 
@@ -19,98 +23,220 @@ type Profile = {
   preferences: string;
   dealbreakers: string;
   photoUrl?: string;
+  photos?: string[];
   name?: string;
   age?: number;
   lifestyle?: any;
   role?: 'landlord' | 'host' | 'seeker';
   latitude?: number;
   longitude?: number;
+  availability_status?: string;
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
 const LIMITS = { like: 30, reject: 30, skip: 5 };
 
 export default function ExploreScreen() {
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { count, error } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', session.user.id)
+        .eq('is_read', false);
+
+      if (!error && count !== null) {
+        setUnreadCount(count);
+      }
+    } catch (e) {
+      console.log('Error fetching unread count:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    let unreadChannel: any = null;
+
+    const setupUnreadSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      unreadChannel = supabase
+        .channel('public:unread_messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+          fetchUnreadCount();
+        })
+        .subscribe();
+    };
+
+    setupUnreadSubscription();
+
+    return () => {
+      if (unreadChannel) {
+        supabase.removeChannel(unreadChannel);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Prevent browser native gestures (pull-to-refresh, back navigation) from cancelling swipes
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+    }
+    return () => {
+      if (Platform.OS === 'web') {
+        document.body.style.overscrollBehavior = 'auto';
+        document.body.style.touchAction = 'auto';
+      }
+    };
+  }, []);
 
   const fetchProfiles = async () => {
     setLoading(true);
     setAllSwiped(false);
     setCurrentIndex(0);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: currentUserData } = await supabase
+        .from('profiles')
+        .select('id, latOffset, lngOffset, likes, preferences, dealbreakers')
+        .eq('id', session.user.id)
+        .single();
+      if (currentUserData) {
+        setCurrentUser(currentUserData);
+      }
+
+      // Fetch user's swipes to exclude them from the feed
+      const { data: userSwipes } = await supabase
+        .from('swipes')
+        .select('swiped')
+        .eq('swiper', session.user.id);
+      
+      const swipedUserIds = userSwipes?.map(s => s.swiped) || [];
+
+      const filters = getActiveFilters();
+      let query = supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
+        .neq('id', session.user.id)
+        .neq('role', 'landlord');
+
+      if (filters.role !== 'all') query = query.eq('role', filters.role);
+      if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
+      
+      // Exclude profiles that the user has already swiped on!
+      if (swipedUserIds.length > 0) {
+        query = query.not('id', 'in', `(${swipedUserIds.join(',')})`);
+      }
+
+      // Limit to 50 profiles
+      query = query.limit(50);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching profiles:', error);
+      }
+        
+      if (data) {
+        // Shuffle or sort the profiles to make the explore feed dynamic
+        const shuffledProfiles = data.sort(() => 0.5 - Math.random());
+        // Prefetch images for faster loading
+        const urlsToPrefetch = shuffledProfiles
+          .map(p => p.photoUrl)
+          .filter(Boolean) as string[];
+        if (urlsToPrefetch.length > 0) {
+          Image.prefetch(urlsToPrefetch);
+        }
+        
+        // Define base coordinates (fallback or user location if already fetched)
+        const baseLat = userLocation?.latitude || 19.4326;
+        const baseLng = userLocation?.longitude || -99.1332;
+
+        const mapReadyProfiles = shuffledProfiles.map((p) => {
+          // If they don't have lat/lon, randomly scatter them within ~10km of base
+          if (!p.latitude || !p.longitude) {
+            const latOffset = (Math.random() - 0.5) * 0.1;
+            const lngOffset = (Math.random() - 0.5) * 0.1;
+            return { ...p, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
+          }
+          return p;
+        });
+
+        setProfiles(mapReadyProfiles);
+      }
+    } catch (e) {
+      console.error('Error in fetchProfiles:', e);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: currentUserData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    if (currentUserData) {
-      setCurrentUser(currentUserData);
-    }
-
-    const filters = getActiveFilters();
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .neq('id', session.user.id)
-      .neq('role', 'landlord')
-      .limit(50);
-
-    if (filters.role !== 'all') query = query.eq('role', filters.role);
-    if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
-
-    const { data, error } = await query;
-      
-    if (data) {
-      // Shuffle or sort the profiles to make the explore feed dynamic
-      const shuffledProfiles = data.sort(() => 0.5 - Math.random());
-      // Prefetch images for faster loading
-      const urlsToPrefetch = shuffledProfiles
-        .map(p => p.photoUrl)
-        .filter(Boolean) as string[];
-      if (urlsToPrefetch.length > 0) {
-        Image.prefetch(urlsToPrefetch);
-      }
-      
-      // Request location to center map and generate mock coordinates if null
-      let loc = { latitude: 19.4326, longitude: -99.1332 }; // Default to Mexico City
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          let location = await Location.getCurrentPositionAsync({});
-          loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
-          setUserLocation(loc);
-        }
-      } catch (e) {
-        console.log('Location error', e);
-      }
-      
-      const mapReadyProfiles = shuffledProfiles.map((p, index) => {
-        // If they don't have lat/lon, randomly scatter them within ~10km of user
-        if (!p.latitude || !p.longitude) {
-          const latOffset = (Math.random() - 0.5) * 0.1;
-          const lngOffset = (Math.random() - 0.5) * 0.1;
-          return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
-        }
-        return p;
-      });
-
-      setProfiles(mapReadyProfiles);
-    }
-    setLoading(false);
   };
 
   useEffect(() => {
     fetchProfiles();
+
+    // Fetch device location in the background without blocking the profiles load
+    const getDeviceLocation = async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          // Try to get last known location first (very fast, no permission pop-up hang)
+          let location = await Location.getLastKnownPositionAsync({});
+          if (!location) {
+            // Fallback to getCurrentPositionAsync with accuracy set to balanced
+            location = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+          }
+          if (location) {
+            const loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+            setUserLocation(loc);
+
+            // Update any profiles that don't have static coordinates to center around the new userLocation
+            setProfiles(prevProfiles => 
+              prevProfiles.map(p => {
+                if (!p.latitude || !p.longitude) {
+                  const latOffset = (Math.random() - 0.5) * 0.1;
+                  const lngOffset = (Math.random() - 0.5) * 0.1;
+                  return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
+                }
+                return p;
+              })
+            );
+          }
+        }
+      } catch (e) {
+        console.log('Location error in background fetch:', e);
+      }
+    };
+
+    getDeviceLocation();
   }, []);
 
   const onSwiped = () => {
@@ -141,14 +267,90 @@ export default function ExploreScreen() {
     }
   };
 
+  const recordSwipe = async (targetId: string, liked: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      await supabase.from('swipes').insert({
+        swiper: myId,
+        swiped: targetId,
+        liked: liked,
+      });
+    } catch (err) {
+      console.error('Error in recordSwipe:', err);
+    }
+  };
+
   const onSwipedLeft = async (index: number) => {
     const allowed = await checkQuota('reject');
-    if (allowed) console.log('Passed on', profiles[index].id);
+    if (allowed) {
+      const targetProfile = profiles[index];
+      await recordSwipe(targetProfile.id, false);
+      console.log('Passed on', targetProfile.id);
+    }
   };
 
   const onSwipedRight = async (index: number) => {
     const allowed = await checkQuota('like');
-    if (allowed) console.log('Liked', profiles[index].id);
+    if (allowed) {
+      const likedProfile = profiles[index];
+      console.log('Liked', likedProfile.id);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        Alert.alert('Error', 'No authenticated session found. Please log in again.');
+        return;
+      }
+      
+      const myId = session.user.id;
+      
+      // 1. Record the swipe as liked: true
+      await recordSwipe(likedProfile.id, true);
+
+      // 2. Check if the other user has already liked us!
+      const { data: matchingSwipe, error: swipeError } = await supabase
+        .from('swipes')
+        .select('*')
+        .eq('swiper', likedProfile.id)
+        .eq('swiped', myId)
+        .eq('liked', true)
+        .maybeSingle();
+
+      if (swipeError) {
+        console.error('Error checking matching swipe:', swipeError);
+      }
+
+      // 3. If there is a matching swipe, create the mutual match!
+      if (matchingSwipe) {
+        const { data: matchData, error: matchError } = await supabase
+          .from('matches')
+          .insert({
+            user1: myId,
+            user2: likedProfile.id,
+            status: 'active',
+          })
+          .select()
+          .single();
+
+        if (matchError) {
+          console.error('Match insert error:', matchError.code, matchError.message);
+          Alert.alert('Match Error', `${matchError.message}\n\nCode: ${matchError.code}`);
+        } else {
+          console.log('Mutual Match created!', matchData);
+          Alert.alert("It's a Match! 🎉", `You and ${likedProfile.name || 'someone'} liked each other! You can now start chatting.`);
+          
+          try {
+            await notifyNewMatch(likedProfile.name || 'Roommate', likedProfile.id);
+          } catch (notifErr) {
+            console.error('Notification error', notifErr);
+          }
+        }
+      } else {
+        console.log('Like registered. Waiting for mutual like.');
+      }
+    }
   };
 
   const onSwipedBottom = async (index: number) => {
@@ -195,93 +397,152 @@ export default function ExploreScreen() {
   const renderCard = (card: Profile | null) => {
     if (!card) return null;
     
-    // Fallback image if user has no photoUrl (increased quality and resolution)
-    const imageSource = card.photoUrl 
-      ? { uri: card.photoUrl } 
-      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' }; // High-res default image
+    const photosList = Array.isArray(card.photos) && card.photos.length > 0
+      ? card.photos
+      : [card.photoUrl].filter(Boolean);
+
+    const activePhotoIdx = cardPhotoIndices[card.id] || 0;
+
+    const imageSource = photosList[activePhotoIdx]
+      ? { uri: photosList[activePhotoIdx] }
+      : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' };
 
     const compatibility = calculateCompatibility(currentUser, card);
+
+    const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
+      looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+      exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+      have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
+    };
+    const statusConfig = card.availability_status ? STATUS_MAP[card.availability_status] : null;
 
     return (
       <View style={styles.cardContainer}>
         <Image 
           source={imageSource} 
-          style={[StyleSheet.absoluteFill, styles.cardImageRounded]}
+          style={[StyleSheet.absoluteFill, styles.cardImageRounded, { userSelect: 'none', WebkitUserDrag: 'none' } as any]}
           contentFit="cover"
           transition={200}
           cachePolicy="memory-disk"
           priority="high"
+          //@ts-ignore
+          draggable={false}
         />
-        <View style={styles.cardContentWrapper}>
-          <View style={styles.textOverlay}>
-            {compatibility !== null && (
-              <View style={styles.compatibilityBadge}>
-                <MaterialCommunityIcons name="star-four-points" size={14} color="#000" />
-                <Text style={styles.compatibilityText}>{compatibility}% compatible</Text>
-              </View>
-            )}
+        {/* Instagram-style progress indicators */}
+        {photosList.length > 1 && (
+          <View style={styles.indicatorContainer}>
+            {photosList.map((_: any, idx: number) => (
+              <View
+                key={idx}
+                style={[
+                  styles.indicatorBar,
+                  {
+                    backgroundColor: idx === activePhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.4)',
+                    width: `${100 / photosList.length - 2}%`,
+                  }
+                ]}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Tap navigation overlays */}
+        {photosList.length > 1 ? (
+          <View style={styles.tapNavigationOverlay}>
+            <Pressable
+              style={styles.tapSide}
+              onPress={() => {
+                setCardPhotoIndices(prev => ({
+                  ...prev,
+                  [card.id]: Math.max(0, activePhotoIdx - 1)
+                }));
+              }}
+            />
+            <Pressable
+              style={styles.tapMiddle}
+              onPress={() => {
+                router.push(`/profile/${card.id}`);
+              }}
+            />
+            <Pressable
+              style={styles.tapSide}
+              onPress={() => {
+                setCardPhotoIndices(prev => ({
+                  ...prev,
+                  [card.id]: Math.min(photosList.length - 1, activePhotoIdx + 1)
+                }));
+              }}
+            />
+          </View>
+        ) : (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              router.push(`/profile/${card.id}`);
+            }}
+          />
+        )}
+
+        {/* Counter badge */}
+        {photosList.length > 1 && (
+          <View style={styles.pageBadge}>
+            <Text style={styles.pageBadgeText}>{activePhotoIdx + 1} / {photosList.length}</Text>
+          </View>
+        )}
+
+        <View style={[styles.cardContentWrapper, { userSelect: 'none' } as any]} pointerEvents="box-none">
+          <Pressable 
+            style={styles.textOverlay}
+            onPress={() => {
+              router.push(`/profile/${card.id}`);
+            }}
+          >
+            <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+              {compatibility !== null && (
+                <View style={styles.compatibilityBadge}>
+                  <MaterialCommunityIcons name="star-four-points" size={14} color="#000" />
+                  <Text style={styles.compatibilityText}>{compatibility}% compatible</Text>
+                </View>
+              )}
+              {statusConfig && (
+                <View style={[styles.compatibilityBadge, { backgroundColor: statusConfig.color, marginBottom: 0 }]}>
+                  <MaterialCommunityIcons name={statusConfig.icon as any} size={14} color="#000" />
+                  <Text style={styles.compatibilityText}>{statusConfig.label}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.cardTitle}>
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
             </Text>
             
             <View style={styles.rowContainer}>
               <View style={[styles.infoSection, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.subtitle}>Likes & Hobbies</Text>
+                <Text style={styles.subtitle}>{t('explore.likes_hobbies')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="thumb-up-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{card.likes || 'Open to anything'}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.likes) || t('explore.open_anything', 'Open to anything')}</Text>
                 </View>
               </View>
 
               <View style={[styles.infoSection, { flex: 1 }]}>
-                <Text style={styles.subtitle}>Preferences</Text>
+                <Text style={styles.subtitle}>{t('explore.preferences')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{card.preferences || 'Flexible'}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.preferences) || t('explore.flexible', 'Flexible')}</Text>
                 </View>
               </View>
             </View>
 
             {card.dealbreakers ? (
               <View style={styles.infoSection}>
-                <Text style={styles.subtitleDealbreaker}>Dealbreakers</Text>
+                <Text style={styles.subtitleDealbreaker}>{t('myprofile.dealbreakers')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF4B4B" />
-                  <Text style={styles.dealbreakerText} numberOfLines={2}>{card.dealbreakers}</Text>
+                  <Text style={styles.dealbreakerText} numberOfLines={2}>{translateDealbreakersList(card.dealbreakers)}</Text>
                 </View>
               </View>
             ) : null}
-
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonNope]} 
-                onPress={() => swiperRef.current?.swipeLeft()}
-              >
-                <MaterialCommunityIcons name="close" size={24} color="#FF4B4B" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonSkip]} 
-                onPress={() => swiperRef.current?.swipeBottom()}
-              >
-                <MaterialCommunityIcons name="skip-next" size={24} color="#ff9800" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonMessage]} 
-                onPress={() => router.push(`/chat/${card.id}`)}
-              >
-                <MaterialCommunityIcons name="message-text" size={20} color="#2196f3" />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonLike]} 
-                onPress={() => swiperRef.current?.swipeRight()}
-              >
-                <MaterialCommunityIcons name="heart" size={24} color="#4caf50" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          </Pressable>
         </View>
       </View>
     );
@@ -289,43 +550,65 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.headerContainer} edges={['top']}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.mainTitle}>Explore</Text>
-            <Text style={styles.subTitle}>Find your ideal roommate.</Text>
-          </View>
-          
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity
-              style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
-              onPress={() => router.push('/explore/filters')}
-            >
-              <MaterialCommunityIcons name="filter-variant" size={20} color="#49C788" />
-            </TouchableOpacity>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity 
-                style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
-                onPress={() => setViewMode('swipe')}
+      <LinearGradient
+        colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.4)', 'rgba(0, 0, 0, 0)']}
+        locations={[0, 0.5, 1]}
+        style={styles.headerContainer}
+      >
+        <SafeAreaView edges={['top']} pointerEvents="box-none">
+          <View style={styles.header} pointerEvents="box-none">
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.mainTitle}>{t('tabs.explore')}</Text>
+              <Text style={styles.subTitle} numberOfLines={1}>{t('explore.subtitle')}</Text>
+            </View>
+            
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+              {/* WhatsApp-Style Chat Shortcut Button in Explore Header */}
+              <TouchableOpacity
+                style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8, position: 'relative' }]}
+                onPress={() => router.push('/inbox')}
               >
-                <MaterialCommunityIcons name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+                <ExploreIcon name="message-text" size={20} color="#49C788" />
+                {unreadCount > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>
+                      {unreadCount}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
-                onPress={() => setViewMode('map')}
+
+              <TouchableOpacity
+                style={[styles.toggleBtn, { backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: '#333', borderRadius: 20, padding: 8 }]}
+                onPress={() => router.push('/explore/filters')}
               >
-                <MaterialCommunityIcons name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
+                <ExploreIcon name="filter-variant" size={20} color="#49C788" />
               </TouchableOpacity>
+              
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity 
+                  style={[styles.toggleBtn, viewMode === 'swipe' && styles.toggleBtnActive]}
+                  onPress={() => setViewMode('swipe')}
+                >
+                  <ExploreIcon name="cards-outline" size={20} color={viewMode === 'swipe' ? '#fff' : '#888'} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.toggleBtn, viewMode === 'map' && styles.toggleBtnActive]}
+                  onPress={() => setViewMode('map')}
+                >
+                  <ExploreIcon name="map-outline" size={20} color={viewMode === 'map' ? '#fff' : '#888'} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
 
       <View style={styles.swiperContainer}>
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color="#49C788" size="large" />
-            <Text style={styles.loadingText}>Finding people...</Text>
+            <Text style={styles.loadingText}>{t('explore.finding_people')}</Text>
           </View>
         ) : viewMode === 'map' ? (
           <MapView
@@ -359,8 +642,8 @@ export default function ExploreScreen() {
                   <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
                     <View style={styles.calloutContainer}>
                       <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
-                      <Text style={styles.calloutRole}>{profile.role === 'host' ? 'Tiene cuarto' : 'Busca cuarto'}</Text>
-                      <Text style={styles.calloutAction}>Ver perfil</Text>
+                      <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
+                      <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
                     </View>
                   </Callout>
                 </Marker>
@@ -370,9 +653,9 @@ export default function ExploreScreen() {
         ) : allSwiped || profiles.length === 0 ? (
           <View style={styles.center}>
             <MaterialCommunityIcons name="account-search-outline" size={60} color="#555" />
-            <Text style={styles.emptyText}>No more roommates to show.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_more')}</Text>
             <TouchableOpacity style={styles.reloadButton} onPress={fetchProfiles}>
-              <Text style={styles.reloadButtonText}>Refresh</Text>
+              <Text style={styles.reloadButtonText}>{t('explore.reload')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -392,11 +675,16 @@ export default function ExploreScreen() {
               backgroundColor="transparent"
               stackSize={3}
               stackSeparation={15}
-              animateCardOpacity
               swipeBackCard
+              useViewOverflow={false}
+              animateOverlayLabelsOpacity
               overlayOpacityHorizontalThreshold={10}
               overlayOpacityVerticalThreshold={10}
-              containerStyle={styles.swiper}
+              inputOverlayLabelsOpacityRangeX={[-150, -75, 0, 75, 150]}
+              outputOverlayLabelsOpacityRangeX={[1, 0.5, 0, 0.5, 1]}
+              inputOverlayLabelsOpacityRangeY={[-150, -75, 0, 75, 150]}
+              outputOverlayLabelsOpacityRangeY={[1, 0.5, 0, 0.5, 1]}
+              containerStyle={[styles.swiper, { touchAction: 'none' } as any]}
               cardStyle={styles.cardStyle}
               overlayLabels={{
                 left: {
@@ -415,7 +703,7 @@ export default function ExploreScreen() {
                       justifyContent: 'flex-start',
                       paddingTop: 40,
                       paddingRight: 40,
-                      backgroundColor: 'rgba(255, 75, 75, 0.4)',
+                      backgroundColor: 'rgba(255, 75, 75, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -442,7 +730,7 @@ export default function ExploreScreen() {
                       justifyContent: 'flex-start',
                       paddingTop: 40,
                       paddingLeft: 40,
-                      backgroundColor: 'rgba(76, 175, 80, 0.4)',
+                      backgroundColor: 'rgba(76, 175, 80, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -468,7 +756,7 @@ export default function ExploreScreen() {
                       alignItems: 'center',
                       justifyContent: 'flex-end',
                       paddingBottom: 60,
-                      backgroundColor: 'rgba(33, 150, 243, 0.4)',
+                      backgroundColor: 'rgba(33, 150, 243, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -494,7 +782,7 @@ export default function ExploreScreen() {
                       alignItems: 'center',
                       justifyContent: 'flex-start',
                       paddingTop: 60,
-                      backgroundColor: 'rgba(255, 152, 0, 0.4)',
+                      backgroundColor: 'rgba(255, 152, 0, 0.85)',
                       width: '100%',
                       height: '100%',
                       position: 'absolute',
@@ -507,6 +795,43 @@ export default function ExploreScreen() {
                 }
               }}
             />
+            
+            <View style={styles.floatingActionButtons} pointerEvents="box-none">
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonSkip]} 
+                onPress={() => swiperRef.current?.swipeBottom()}
+              >
+                <ExploreIcon name="skip-next" size={24} color="#ff9800" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButtonBig, styles.buttonNope]} 
+                onPress={() => swiperRef.current?.swipeLeft()}
+              >
+                <ExploreIcon name="close" size={36} color="#FF4B4B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButtonBig, styles.buttonLike]} 
+                onPress={async () => {
+                  const idx = currentIndex;
+                  await onSwipedRight(idx);
+                  swiperRef.current?.swipeRight();
+                }}
+              >
+                <ExploreIcon name="heart" size={34} color="#4caf50" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.buttonMessage]} 
+                onPress={() => {
+                  const card = profiles[currentIndex];
+                  if (card) router.push(`/chat/${card.id}`);
+                }}
+              >
+                <ExploreIcon name="message-text" size={24} color="#49C788" />
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </View>
@@ -517,7 +842,57 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#000',
+    // @ts-ignore - Required for web dragging PanResponder
+    touchAction: 'none',
+    userSelect: 'none',
+    // @ts-ignore
+    WebkitUserSelect: 'none',
+  },
+  indicatorContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  indicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  tapNavigationOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  tapSide: {
+    width: '35%',
+    height: '100%',
+  },
+  tapMiddle: {
+    width: '30%',
+    height: '100%',
+  },
+  pageBadge: {
+    position: 'absolute',
+    top: 24,
+    right: 16,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    zIndex: 10,
+  },
+  pageBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   headerContainer: {
     zIndex: 10,
@@ -532,7 +907,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start'
+    alignItems: 'center'
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -633,21 +1008,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   mainTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#000',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Bold' : 'sans-serif-medium',
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subTitle: {
-    fontSize: 16,
-    color: '#000',
+    fontSize: 13,
+    color: '#ccc',
     marginTop: 2,
-    fontWeight: '800',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Medium' : 'sans-serif',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   cardContainer: {
     flex: 1,
@@ -661,6 +1039,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8,
     backgroundColor: '#1a1a1a', 
+    // @ts-ignore
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
   },
   cardContentWrapper: {
     flex: 1,
@@ -676,7 +1057,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 12, 
-    paddingBottom: 16, 
+    paddingBottom: 90, 
   },
   compatibilityBadge: {
     backgroundColor: '#49C788',
@@ -684,7 +1065,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
-    marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -769,41 +1149,76 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingTop: 8,
+  floatingActionButtons: {
+    position: 'absolute',
+    bottom: 30,
     width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingHorizontal: 20,
+    zIndex: 100,
   },
   actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#111',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
+    elevation: 6,
     borderWidth: 1.5,
+  },
+  actionButtonBig: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#111',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 2,
   },
   buttonNope: {
     borderColor: '#FF4B4B',
   },
   buttonMessage: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderColor: '#2196f3',
+    borderColor: '#49C788',
   },
   buttonSkip: {
     borderColor: '#ff9800',
   },
   buttonLike: {
     borderColor: '#4caf50',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#25D366', // WhatsApp bright green
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#000',
+  },
+  unreadBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+    textAlign: 'center',
   },
 });
 

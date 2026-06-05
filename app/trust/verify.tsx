@@ -8,32 +8,39 @@ import * as ImagePicker from 'expo-image-picker';
 
 const VERIFY_CONFIG: any = {
   identity: {
-    title: 'Verificar Identidad',
+    title: 'Verify Identity',
     icon: 'face-recognition',
-    desc: 'Necesitaremos una foto clara de tu identificación oficial (INE, Pasaporte) y una selfie en tiempo real para confirmar tu identidad.',
-    btnLabel: 'Tomar Foto del Documento',
+    desc: 'We will need a clear photo of your official ID (Passport, National ID) and a real-time selfie to confirm your identity.',
+    btnLabel: 'Take Document Photo',
     color: '#0A84FF'
   },
   university: {
-    title: 'Verificación Universitaria',
+    title: 'University Verification',
     icon: 'school',
-    desc: 'Ingresa tu correo institucional (.edu o similar). Te enviaremos un código de verificación para confirmar que estudias allí.',
-    btnLabel: 'Enviar Enlace',
+    desc: 'Enter your institutional email (.edu or similar). We will send a verification code to confirm you study there.',
+    btnLabel: 'Send Link',
     color: '#34C759'
   },
   workplace: {
-    title: 'Verificar Trabajo',
+    title: 'Verify Employment',
     icon: 'briefcase',
-    desc: 'Conecta tu correo corporativo o sube una constancia de trabajo reciente para obtener el badge de Profesional.',
-    btnLabel: 'Enviar Código al Correo',
+    desc: 'Connect your corporate email or upload a recent employment certificate to get the Professional badge.',
+    btnLabel: 'Send Code to Email',
     color: '#5E5CE6'
   },
   income: {
-    title: 'Verificar Ingresos',
+    title: 'Verify Income',
     icon: 'cash-multiple',
-    desc: 'Sube tu recibo de nómina más reciente o estado de cuenta. Esta información es 100% privada y solo se usará para confirmar solvencia.',
-    btnLabel: 'Subir Documento PDF',
+    desc: 'Upload your most recent pay stub or bank statement. This information is 100% private and will only be used to confirm solvency.',
+    btnLabel: 'Upload PDF Document',
     color: '#FF9F0A'
+  },
+  social: {
+    title: 'Connect Social Media',
+    icon: 'instagram',
+    desc: 'Link your Instagram or Facebook account to show you are a real person and build greater trust in the community.',
+    btnLabel: 'Connect with Instagram',
+    color: '#E1306C'
   }
 };
 
@@ -48,7 +55,7 @@ export default function VerificationWizard() {
   const handleAction = async () => {
     if (type === 'identity' || type === 'income') {
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8,
       });
@@ -57,9 +64,11 @@ export default function VerificationWizard() {
         setImageUri(result.assets[0].uri);
         submitVerification();
       }
+    } else if (type === 'social') {
+      submitVerification();
     } else {
       if (!inputValue.includes('@')) {
-        Alert.alert('Error', 'Ingresa un correo electrónico válido.');
+        Alert.alert('Error', 'Please enter a valid email address.');
         return;
       }
       submitVerification();
@@ -86,6 +95,7 @@ export default function VerificationWizard() {
       if (type === 'university') updateData.is_university_verified = true;
       if (type === 'workplace') updateData.is_workplace_verified = true;
       if (type === 'income') updateData.is_income_verified = true;
+      if (type === 'social') updateData.is_social_verified = true;
 
       // Increase trust score
       const { data: profile } = await supabase.from('profiles').select('trust_score').eq('id', session.user.id).single();
@@ -95,13 +105,13 @@ export default function VerificationWizard() {
       await supabase.from('profiles').update(updateData).eq('id', session.user.id);
 
       Alert.alert(
-        '¡Solicitud Enviada!',
-        'Para propósitos de esta demostración, tu verificación ha sido aprobada instantáneamente.',
-        [{ text: 'Genial', onPress: () => router.back() }]
+        'Request Sent!',
+        'For demonstration purposes, your verification has been approved instantly.',
+        [{ text: 'Awesome', onPress: () => router.back() }]
       );
 
     } catch (e) {
-      Alert.alert('Error', 'Hubo un problema al enviar la verificación.');
+      Alert.alert('Error', 'There was a problem submitting the verification.');
     } finally {
       setLoading(false);
     }
@@ -124,15 +134,15 @@ export default function VerificationWizard() {
 
         <View style={s.secureBadge}>
           <MaterialCommunityIcons name="lock" size={16} color="#34C759" />
-          <Text style={s.secureText}>Encriptación 256-bit. Tus datos no se comparten.</Text>
+          <Text style={s.secureText}>256-bit encryption. Your data is not shared.</Text>
         </View>
 
         {(type === 'university' || type === 'workplace') && (
           <View style={s.inputWrapper}>
-            <Text style={s.inputLabel}>Correo electrónico</Text>
+            <Text style={s.inputLabel}>Email address</Text>
             <TextInput
               style={s.input}
-              placeholder={type === 'university' ? "tu_nombre@universidad.edu" : "tu_nombre@empresa.com"}
+              placeholder={type === 'university' ? "your_name@university.edu" : "your_name@company.com"}
               placeholderTextColor="#555"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -152,7 +162,7 @@ export default function VerificationWizard() {
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.mainBtnText}>{config.btnLabel}</Text>}
         </Pressable>
         <Text style={s.footerNote}>
-          Al continuar, aceptas nuestros <Text style={{ textDecorationLine: 'underline' }}>Términos de Privacidad Biómetrica y Documental</Text>.
+          By continuing, you agree to our <Text style={{ textDecorationLine: 'underline' }}>Biometric and Document Privacy Terms</Text>.
         </Text>
       </View>
     </SafeAreaView>
@@ -164,7 +174,7 @@ const s = StyleSheet.create({
   header: { padding: 20 },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
   content: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center', marginTop: -60 },
-  iconBox: { width: 100, height: 100, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  iconBox: { width: 100, height: 100, borderRadius: 50, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
   title: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 12, textAlign: 'center' },
   desc: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10, marginBottom: 24 },
   secureBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#111', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, gap: 8, marginBottom: 40 },
@@ -172,10 +182,10 @@ const s = StyleSheet.create({
   
   inputWrapper: { width: '100%', marginBottom: 20 },
   inputLabel: { color: '#888', fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  input: { backgroundColor: '#111', color: '#fff', padding: 16, borderRadius: 12, fontSize: 16, borderWidth: 1, borderColor: '#333' },
+  input: { backgroundColor: '#111', color: '#fff', padding: 16, borderRadius: 20, fontSize: 16, borderWidth: 1, borderColor: '#333' },
 
   footer: { padding: 24, paddingBottom: 40 },
-  mainBtn: { padding: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+  mainBtn: { padding: 18, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   mainBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   footerNote: { color: '#555', fontSize: 11, textAlign: 'center', marginTop: 16, lineHeight: 16 }
 });

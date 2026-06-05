@@ -21,6 +21,14 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === 'web') {
     console.log('[Notifications] Push notifications are not configured for web in dev mode.');
+    // Prompt for standard HTML5 Web Notifications on browsers
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          console.log('[Notifications] Web notification permission:', permission);
+        });
+      }
+    }
     return null;
   }
 
@@ -84,6 +92,33 @@ export async function sendLocalNotification(
   body: string,
   data?: Record<string, any>
 ) {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        const notif = new Notification(title, {
+          body,
+          tag: data?.type || 'notification',
+        });
+        notif.onclick = () => {
+          window.focus();
+        };
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            const notif = new Notification(title, {
+              body,
+              tag: data?.type || 'notification',
+            });
+            notif.onclick = () => {
+              window.focus();
+            };
+          }
+        });
+      }
+    }
+    return;
+  }
+
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -111,8 +146,8 @@ export async function notifyNewMessage(senderName: string, messagePreview: strin
  */
 export async function notifyNewMatch(matchedUserName: string, matchedUserId: string) {
   await sendLocalNotification(
-    `🎉 ¡Nuevo Match!`,
-    `${matchedUserName} también está interesado en conectar contigo.`,
+    `🎉 New Match!`,
+    `${matchedUserName} is also interested in connecting with you.`,
     { type: 'new_match', matchedUserId }
   );
 }
@@ -122,8 +157,28 @@ export async function notifyNewMatch(matchedUserName: string, matchedUserId: str
  */
 export async function notifyContractUpdate(contractId: string, message: string) {
   await sendLocalNotification(
-    `📄 Actualización de Contrato`,
+    `📄 Contract Update`,
     message,
     { type: 'contract_update', contractId }
   );
+}
+
+/**
+ * Helper to notify about a major warning or security alert.
+ */
+export async function notifyMajorWarning(title: string, message: string, data?: Record<string, any>) {
+  await sendLocalNotification(
+    `⚠️ ${title}`,
+    message,
+    { type: 'major_warning', ...data }
+  );
+}
+
+// Shared active chat state to prevent notifying when already chatting with the sender
+let _activeChatUserId: string | null = null;
+export function setActiveChatUserId(id: string | null) {
+  _activeChatUserId = id;
+}
+export function getActiveChatUserId(): string | null {
+  return _activeChatUserId;
 }

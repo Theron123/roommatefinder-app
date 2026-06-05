@@ -1,12 +1,16 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Pressable } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
 import { Image } from 'expo-image';
+import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
+import { BlurView } from 'expo-blur';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from '../../context/LanguageContext';
 
 type Profile = {
   id: string;
@@ -28,15 +32,26 @@ type Profile = {
 };
 
 export default function HomeScreen() {
+  const { t, translateHobbiesList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [feedMode, setFeedMode] = useState<'people' | 'apartments'>('people');
+  const [isPremium, setIsPremium] = useState(false);
   const router = useRouter();
 
-  const fetchMatches = async () => {
-    if (profiles.length === 0) {
+  const fetchMatches = async (isRefresh = false) => {
+    if (profiles.length === 0 && !isRefresh) {
       setLoading(true);
+    }
+    if (isRefresh) setRefreshing(true);
+
+    try {
+      const stored = await AsyncStorage.getItem('mock_premium');
+      setIsPremium(stored === 'true');
+    } catch (e) {
+      // error reading value
     }
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -45,17 +60,18 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: currentUserProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    const { data: currentUserProfile } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences').eq('id', session.user.id).single();
     
     if (!currentUserProfile) {
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
     // Fetch profiles without the listings join since the foreign key is missing
     const { data: otherProfiles } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, name, age, photoUrl, likes, preferences, dealbreakers, latOffset, lngOffset')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
       .limit(50);
@@ -102,13 +118,18 @@ export default function HomeScreen() {
     }
     
     setLoading(false);
+    setRefreshing(false);
   };
 
-  const fetchListings = async () => {
-    if (listings.length === 0) setLoading(true);
-    const { data } = await supabase.from('listings').select('*').limit(50);
+  const fetchListings = async (isRefresh = false) => {
+    if (listings.length === 0 && !isRefresh) setLoading(true);
+    if (isRefresh) setRefreshing(true);
+    
+    const { data } = await supabase.from('listings').select('id, images, price, utilities_included, title, address, description').limit(50);
     if (data) setListings(data);
+    
     setLoading(false);
+    setRefreshing(false);
   };
 
   useFocusEffect(
@@ -121,56 +142,81 @@ export default function HomeScreen() {
     }, [feedMode])
   );
 
-  const renderProfile = ({ item }: { item: Profile }) => {
-    const distanceText = item.distance != null ? `${item.distance.toFixed(1)} km away` : 'Location unknown';
-    const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} matching keywords` : '';
+  const renderProfile = useCallback(({ item, index }: { item: Profile, index: number }) => {
+    const isBlurred = index >= 5 && !isPremium;
+    const distanceText = item.distance != null ? `${item.distance.toFixed(1)} ${t('explore.away')}` : t('explore.loc_unknown');
+    const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} ${t('explore.matching')}` : '';
 
     return (
-      <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.cardContainer}>
-        <LinearGradient
-          colors={['#1a1a24', '#0a0a0f']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.card}
-        >
-          <View style={styles.cardHeader}>
-          {item.photoUrl ? (
-            <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
-          ) : (
-            <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+      <Pressable 
+        onPress={() => {
+          if (isBlurred) {
+            router.push('/subscriptions');
+          } else {
+            router.push(`/profile/${item.id}`);
+          }
+        }} 
+        style={styles.cardContainer}
+      >
+        <View style={{ borderRadius: 20, overflow: 'hidden', backgroundColor: '#0a0a0f' }}>
+          <LinearGradient
+            colors={['#1a1a24', '#0a0a0f']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.card}
+          >
+            <View style={styles.cardHeader}>
+            {item.photoUrl ? (
+              <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
+            ) : (
+              <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+            )}
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.cardTitle}>{item.name || 'Roommate'}{item.age ? `, ${item.age}` : ''}</Text>
+              <Text style={styles.cardSubtitle}>{t('explore.tap_view')}</Text>
+            </View>
+          </View>
+
+          <View style={styles.metaRow}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{distanceText}</Text>
+            </View>
+            {matchTag ? (
+              <View style={[styles.badge, styles.badgeMatch]}>
+                <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
+              </View>
+            ) : null}
+            {item.hasListing ? (
+              <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
+                <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>{t('explore.has_room')}</Text>
+              </View>
+            ) : null}
+          </View>
+          
+          <Text style={styles.label}>{t('explore.likes_hobbies')}</Text>
+          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.likes) || t('explore.no_pref')}</Text>
+
+          <Text style={styles.label}>{t('explore.preferences')}</Text>
+          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.preferences) || t('explore.no_pref')}</Text>
+          </LinearGradient>
+          
+          {isBlurred && (
+            <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill}>
+              <View style={styles.blurOverlayContent}>
+                <IconSymbol name="lock.fill" size={40} color="#49C788" />
+                <Text style={styles.blurTitle}>{t('explore.premium_match')}</Text>
+                <Text style={styles.blurDesc}>{t('explore.premium_desc')}</Text>
+                <View style={styles.blurBtn}>
+                  <Text style={styles.blurBtnText}>{t('explore.unlock_premium')}</Text>
+                </View>
+              </View>
+            </BlurView>
           )}
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.cardTitle}>{item.name || 'Roommate'}, {item.age || '?'}</Text>
-            <Text style={styles.cardSubtitle}>Tap to view profile</Text>
-          </View>
         </View>
-
-        <View style={styles.metaRow}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{distanceText}</Text>
-          </View>
-          {matchTag ? (
-            <View style={[styles.badge, styles.badgeMatch]}>
-              <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
-            </View>
-          ) : null}
-          {item.hasListing ? (
-            <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
-              <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>🏠 Has Room</Text>
-            </View>
-          ) : null}
-        </View>
-        
-        <Text style={styles.label}>Likes & Hobbies</Text>
-        <Text style={styles.content} numberOfLines={2}>{item.likes || 'Not specified'}</Text>
-
-        <Text style={styles.label}>Preferences</Text>
-        <Text style={styles.content} numberOfLines={2}>{item.preferences || 'Not specified'}</Text>
-        </LinearGradient>
       </Pressable>
     );
-  };
+  }, [isPremium, router, t, translateHobbiesList]);
 
-  const renderListing = ({ item }: { item: any }) => (
+  const renderListing = useCallback(({ item }: { item: any }) => (
     <Pressable 
       style={styles.listingCardContainer}
       onPress={() => router.push(`/listing/${item.id}`)}
@@ -193,25 +239,25 @@ export default function HomeScreen() {
           {/* Floating Price Tag */}
           <View style={styles.priceTag}>
             <Text style={styles.priceText}>${item.price}</Text>
-            <Text style={styles.pricePeriod}>/mo</Text>
+            <Text style={styles.pricePeriod}>/{t('myprofile.month')}</Text>
           </View>
           
           {/* Utilities Badge */}
           {item.utilities_included && (
             <View style={styles.utilitiesBadge}>
               <IconSymbol name="bolt.fill" size={12} color="#000" />
-              <Text style={styles.utilitiesText}>Utilities Inc.</Text>
+              <Text style={styles.utilitiesText}>{t('home.utilities_inc')}</Text>
             </View>
           )}
         </View>
 
         {/* Content details */}
         <View style={styles.listingContent}>
-          <Text style={styles.listingTitle} numberOfLines={1}>{item.title || 'Beautiful Apartment'}</Text>
+          <Text style={styles.listingTitle} numberOfLines={1}>{item.title || t('home.beautiful_apartment')}</Text>
           
           <View style={styles.listingLocationRow}>
             <IconSymbol name="mappin.and.ellipse" size={14} color="#888" />
-            <Text style={styles.listingAddress} numberOfLines={1}>{item.address || 'Location not specified'}</Text>
+            <Text style={styles.listingAddress} numberOfLines={1}>{item.address || t('home.loc_not_specified')}</Text>
           </View>
           
           {item.description && (
@@ -220,13 +266,13 @@ export default function HomeScreen() {
         </View>
       </View>
     </Pressable>
-  );
+  ), [router, t]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>Home feed</Text>
-        <Text style={styles.subTitle}>Discover people or apartments nearby.</Text>
+        <Text style={styles.mainTitle}>{t('explore.title')}</Text>
+        <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
       </View>
 
       <View style={styles.toggleContainer}>
@@ -234,13 +280,13 @@ export default function HomeScreen() {
           style={[styles.toggleBtn, feedMode === 'people' && styles.toggleBtnActive]}
           onPress={() => setFeedMode('people')}
         >
-          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>People</Text>
+          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>{t('explore.people')}</Text>
         </Pressable>
         <Pressable 
           style={[styles.toggleBtn, feedMode === 'apartments' && styles.toggleBtnActive]}
           onPress={() => setFeedMode('apartments')}
         >
-          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>Apartments</Text>
+          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>{t('explore.apartments')}</Text>
         </Pressable>
       </View>
 
@@ -251,27 +297,33 @@ export default function HomeScreen() {
       ) : feedMode === 'people' ? (
         profiles.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>No matches found.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_matches')}</Text>
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={profiles}
             keyExtractor={(item) => item.id}
             renderItem={renderProfile}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchMatches(true)} tintColor="#49C788" />
+            }
           />
         )
       ) : (
         listings.length === 0 ? (
           <View style={styles.center}>
-            <Text style={styles.emptyText}>No apartments found.</Text>
+            <Text style={styles.emptyText}>{t('explore.no_apts')}</Text>
           </View>
         ) : (
-          <FlatList
+          <FlashList
             data={listings}
             keyExtractor={(item) => item.id}
             renderItem={renderListing}
             contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={() => fetchListings(true)} tintColor="#49C788" />
+            }
           />
         )
       )}
@@ -501,5 +553,36 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 14,
     lineHeight: 20,
+  },
+  blurOverlayContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  blurTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  blurDesc: {
+    color: '#ccc',
+    textAlign: 'center',
+    fontSize: 14,
+    marginTop: 8,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  blurBtn: {
+    backgroundColor: '#49C788',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  blurBtnText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   ActivityIndicator, Alert, Linking, Pressable, ScrollView,
-  StyleSheet, Text, View,
+  StyleSheet, Text, View, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -47,9 +47,8 @@ type Contract = {
   updated_at: string;
   pdf_url: string | null;
   initiator_id: string;
-  counterparty_id: string;
   initiator: { name: string } | null;
-  counterparty: { name: string } | null;
+  contract_participants?: { user_id: string; profiles: { name: string } }[];
 };
 
 export default function ContractDetailScreen() {
@@ -68,7 +67,7 @@ export default function ContractDetailScreen() {
 
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), counterparty:counterparty_id(name)')
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))')
       .eq('id', id)
       .single();
 
@@ -118,27 +117,40 @@ export default function ContractDetailScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? 'Parte Iniciadora';
-      const counterpartyName = contract.counterparty?.name ?? 'Contraparte';
+      const participants = contract.contract_participants || [];
+      const counterpartyName = participants.map((p: any) => p.profiles?.name).join(', ') || 'Contraparte';
       const effectiveDate = contract.effective_date ? new Date(contract.effective_date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Por definir';
 
-      // Build rows for the PDF
-      const rows = [
-        { label: 'Renta Mensual', val: c.rent ? `$${c.rent.amount} (Día ${c.rent.due_day})` : 'N/A' },
-        { label: 'Depósito de Seguridad', val: c.security_deposit ? `$${c.security_deposit.amount}` : 'N/A' },
-        { label: 'Mascotas', val: c.pets?.allowed ? 'Permitidas' : 'No permitidas' },
-        { label: 'Fumar', val: c.smoking?.allowed ? 'Permitido' : 'No permitido' },
-        { label: 'Visitas Nocturnas', val: c.visitors?.overnight_allowed ? `Máx. ${c.visitors.max_nights} noches` : 'No permitidas' },
-        { label: 'Horas de Silencio', val: c.noise ? `${c.noise.quiet_hours_start} - ${c.noise.quiet_hours_end}` : 'N/A' },
-        { label: 'Turno de Limpieza', val: c.cleaning?.schedule === 'daily' ? 'Diaria' : c.cleaning?.schedule === 'weekly' ? 'Semanal' : 'Quincenal' },
-        { label: 'Aviso de Mudanza', val: c.move_out ? `${c.move_out.notice_days} días` : '30 días' },
+      // Define structured sections for a premium, extremely detailed document
+      const financialRows = [
+        { label: 'Renta Mensual', val: c.rent ? `$${c.rent.amount} / mes` : '—' },
+        { label: 'Día de Vencimiento', val: c.rent ? `Día ${c.rent.due_day} de cada mes` : '—' },
+        { label: 'Cargo por Pago Tardío', val: c.rent ? `$${c.rent.late_fee}` : '—' },
+        { label: 'Depósito de Seguridad', val: c.security_deposit ? `$${c.security_deposit.amount}` : '—' },
+        { label: 'Plazo para Devolución de Depósito', val: c.security_deposit ? `${c.security_deposit.return_days} días hábiles` : '—' },
+      ];
+
+      const cohabitationRows = [
+        { label: 'Mascotas en la Propiedad', val: c.pets?.allowed ? 'Permitidas' : 'No permitidas' },
+        { label: 'Fumar en Espacios Interiores', val: c.smoking?.allowed ? 'Permitido' : 'No permitido' },
+        { label: 'Visitas y Alojamiento Nocturno', val: c.visitors?.overnight_allowed ? `Permitidas (máx. ${c.visitors.max_nights} noches)` : 'No permitidas' },
+        { label: 'Horario de Silencio Establecido', val: c.noise ? `${c.noise.quiet_hours_start} a ${c.noise.quiet_hours_end}` : '—' },
+        { label: 'Programa de Limpieza Común', val: c.cleaning?.schedule === 'daily' ? 'Diario' : c.cleaning?.schedule === 'weekly' ? 'Semanal' : 'Quincenal' },
+      ];
+
+      const legalRows = [
+        { label: 'Preaviso para Desocupación', val: c.move_out ? `${c.move_out.notice_days} días` : '30 días' },
+        { label: 'Preaviso para Desalojo/Fin de Plazo', val: c.eviction ? `${c.eviction.notice_days} días` : '30 días' },
+        { label: 'Resolución de Disputas', val: c.dispute?.method === 'mediation' ? 'Mediación formal de buena fe' : 'Arbitraje vinculante' },
+        { label: 'Responsabilidad por Daños Locativos', val: c.damage?.tenant_responsible ? 'Cargo directo al inquilino causante' : 'Sujeto a negociación directa' },
+        { label: 'Desgaste Natural por Uso Razonable', val: c.damage?.normal_wear_exempt ? 'Exento de cargos (uso cotidiano normal)' : 'Sujeto a evaluación' },
+        { label: 'Inspección Obligatoria de Entrada', val: c.move_in?.inspection_required ? 'Requerida con reporte firmado' : 'Opcional' },
+        { label: 'Inspección Obligatoria de Salida', val: c.move_out?.inspection_required ? 'Requerida con reporte firmado' : 'Opcional' },
+        { label: 'Privacidad (Grabaciones)', val: c.privacy?.no_recording ? 'Prohibidas las grabaciones de voz/video sin consentimiento' : 'Sin restricciones específicas' },
       ];
 
       const customRows = (contract.selected_custom_clauses || []).map((key: string) => `
-        <tr>
-          <td style="padding:12px; border-bottom:1px solid #eaeaea; color:#333;" colspan="2">
-            &bull; ${OPTIONAL_CLAUSE_LABELS[key] || key}
-          </td>
-        </tr>
+        <div class="custom-clause-item">&bull; ${OPTIONAL_CLAUSE_LABELS[key] || key}</div>
       `).join('');
 
       const html = `
@@ -148,85 +160,264 @@ export default function ContractDetailScreen() {
         <meta charset="utf-8">
         <title>Contrato ${contract.id}</title>
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #222; margin: 0; padding: 40px; background: #fff; }
-          .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #49C788; padding-bottom: 20px; }
-          .header h1 { margin: 0; color: #1a1a2e; font-size: 28px; letter-spacing: -0.5px; }
-          .header p { color: #666; font-size: 14px; margin-top: 8px; }
-          .badge { display: inline-block; background: #e0f2e9; color: #1e8751; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 12px; margin-top: 10px; }
-          .parties { display: flex; justify-content: space-between; margin-bottom: 40px; }
-          .party-box { width: 45%; padding: 20px; background: #fafafa; border-radius: 8px; border-left: 4px solid #49C788; }
-          .party-box p { margin: 0; font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-          .party-box h3 { margin: 8px 0 0; font-size: 20px; color: #1a1a2e; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-          th { text-align: left; background: #1a1a2e; color: #fff; padding: 12px; font-size: 14px; }
-          td { padding: 12px; border-bottom: 1px solid #eaeaea; font-size: 14px; color: #444; }
-          td:first-child { font-weight: bold; color: #1a1a2e; width: 40%; }
-          .disclaimer { font-size: 12px; color: #666; padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; margin-top: 40px; line-height: 1.5; }
-          .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
-          .sig-line { width: 45%; border-top: 1px solid #333; padding-top: 10px; }
-          .sig-line p { margin: 0; font-size: 14px; font-weight: bold; color: #1a1a2e; }
-          .sig-line span { font-size: 12px; color: #888; }
-          .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 20px; }
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+          body { 
+            font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; 
+            color: #2c3e50; 
+            margin: 0; 
+            padding: 50px; 
+            background: #fff; 
+            line-height: 1.6;
+          }
+          .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
+            border-bottom: 2px solid #eaeaea; 
+            padding-bottom: 25px; 
+            position: relative;
+          }
+          .header h1 { 
+            margin: 0; 
+            color: #0d1117; 
+            font-size: 26px; 
+            font-weight: 800;
+            letter-spacing: -0.5px; 
+          }
+          .header p { 
+            color: #7f8c8d; 
+            font-size: 13px; 
+            margin-top: 6px; 
+            font-weight: 400;
+          }
+          .badge { 
+            display: inline-block; 
+            background: rgba(73, 199, 136, 0.12); 
+            color: #27ae60; 
+            padding: 6px 16px; 
+            border-radius: 20px; 
+            font-weight: 600; 
+            font-size: 11px; 
+            margin-top: 12px;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(73, 199, 136, 0.25);
+          }
+          .parties { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 35px; 
+            gap: 20px;
+          }
+          .party-box { 
+            width: 48%; 
+            padding: 18px; 
+            background: #f8f9fa; 
+            border-radius: 12px; 
+            border: 1px solid #eee;
+            border-left: 4px solid #49C788; 
+            box-sizing: border-box;
+          }
+          .party-box p { 
+            margin: 0; 
+            font-size: 11px; 
+            color: #95a5a6; 
+            text-transform: uppercase; 
+            letter-spacing: 1.2px; 
+            font-weight: 600; 
+          }
+          .party-box h3 { 
+            margin: 6px 0 0; 
+            font-size: 18px; 
+            color: #2c3e50; 
+            font-weight: 600;
+          }
+          .metadata-box {
+            background: #fdfdfd;
+            border: 1px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin-bottom: 30px;
+            font-size: 13px;
+            color: #4a5568;
+          }
+          .metadata-box strong { color: #0d1117; }
+          .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #0d1117;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 6px;
+            margin-top: 30px;
+            margin-bottom: 12px;
+            font-weight: 800;
+          }
+          table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-bottom: 20px; 
+          }
+          td { 
+            padding: 11px 14px; 
+            border-bottom: 1px solid #f1f5f9; 
+            font-size: 13.5px; 
+            color: #475569; 
+          }
+          td:first-child { 
+            font-weight: 600; 
+            color: #1e293b; 
+            width: 45%; 
+          }
+          .custom-clause-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+          }
+          .custom-clause-item {
+            font-size: 13.5px;
+            color: #475569;
+            padding: 6px 0;
+            border-bottom: 1px dashed #f1f5f9;
+          }
+          .custom-clause-item:last-child {
+            border-bottom: none;
+          }
+          .disclaimer { 
+            font-size: 11.5px; 
+            color: #7f8c8d; 
+            padding: 16px 20px; 
+            background: #fffdf5; 
+            border: 1px solid #fef3c7; 
+            border-radius: 10px; 
+            margin-top: 35px; 
+            line-height: 1.6; 
+          }
+          .disclaimer strong { color: #d97706; }
+          .signatures { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-top: 50px; 
+            gap: 20px;
+          }
+          .sig-line { 
+            width: 48%; 
+            border-top: 1px solid #cbd5e1; 
+            padding-top: 12px; 
+            box-sizing: border-box;
+          }
+          .sig-line p { 
+            margin: 0; 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: #0d1117; 
+          }
+          .sig-line span { 
+            font-size: 11px; 
+            color: #94a3b8; 
+          }
+          .footer { 
+            margin-top: 60px; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #94a3b8; 
+            border-top: 1px solid #f1f5f9; 
+            padding-top: 20px; 
+          }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>${TYPE_LABELS[contract.type] || 'Acuerdo'}</h1>
-          <p>Generado vía RoommateFinder App</p>
+          <h1>${TYPE_LABELS[contract.type] || 'Acuerdo de Convivencia'}</h1>
+          <p>Acuerdo Digital Oficial &bull; Generado mediante RoommateFinder App</p>
           <div class="badge">ESTADO: ${STATUS_CONFIG[contract.status]?.label?.toUpperCase() || 'ACTIVO'}</div>
         </div>
 
         <div class="parties">
           <div class="party-box">
-            <p>Iniciador</p>
+            <p>Iniciador del Acuerdo</p>
             <h3>${initiatorName}</h3>
           </div>
           <div class="party-box">
-            <p>Contraparte</p>
+            <p>Contraparte Aceptante</p>
             <h3>${counterpartyName}</h3>
           </div>
         </div>
 
-        <p style="font-size: 14px; color: #444; margin-bottom: 20px;">
-          <strong>ID del Contrato:</strong> <span style="font-family: monospace;">${contract.id}</span><br>
-          <strong>Fecha Efectiva:</strong> ${effectiveDate}
-        </p>
+        <div class="metadata-box">
+          <strong>Identificador Único:</strong> <span style="font-family: monospace; font-size:12px; color:#64748b;">${contract.id}</span><br>
+          <strong>Fecha de Activación:</strong> ${effectiveDate}
+        </div>
 
+        <div class="section-title">💸 Puntos Financieros</div>
         <table>
-          <tr>
-            <th colspan="2">Términos Acordados</th>
-          </tr>
-          ${rows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-          ${customRows ? `<tr><th colspan="2" style="background:#49C788;">Cláusulas Adicionales</th></tr>${customRows}` : ''}
+          ${financialRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
         </table>
 
+        <div class="section-title">🏠 Convivencia y Reglas del Hogar</div>
+        <table>
+          ${cohabitationRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+        </table>
+
+        <div class="section-title">⚖️ Cláusulas y Términos Legales</div>
+        <table>
+          ${legalRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
+        </table>
+
+        ${customRows ? `
+          <div class="section-title">📋 Cláusulas Adicionales Acordadas</div>
+          <div class="custom-clause-box">
+            ${customRows}
+          </div>
+        ` : ''}
+
         <div class="disclaimer">
-          <strong>Aviso Legal:</strong> Este documento fue generado a través de la plataforma RoommateFinder. RoommateFinder actúa únicamente como herramienta intermediaria y no sustituye el asesoramiento legal profesional. Las firmas electrónicas a continuación representan la aceptación de las partes dentro de la aplicación.
+          <strong>Aviso de Responsabilidad Legal:</strong> Este contrato constituye un acuerdo privado vinculante acordado libremente y firmado digitalmente de buena fe por ambas partes en la plataforma RoommateFinder. RoommateFinder actúa únicamente como un servicio tecnológico intermediario para facilitar la negociación de convivencia y no es responsable del cumplimiento del contrato, no proporciona asesoría legal ni asume ninguna responsabilidad civil o penal derivada de este documento.
         </div>
 
         <div class="signatures">
           <div class="sig-line">
             <p>${initiatorName}</p>
-            <span>Firmado electrónicamente (RoommateFinder)</span>
+            <span>Firmado Electrónicamente (RoommateFinder App)</span>
           </div>
           <div class="sig-line">
             <p>${counterpartyName}</p>
-            <span>Firmado electrónicamente (RoommateFinder)</span>
+            <span>Firmado Electrónicamente (RoommateFinder App)</span>
           </div>
         </div>
 
         <div class="footer">
-          Generado el ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Página 1 de 1
+          Generado automáticamente el ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Copia Digital Válida &bull; Página 1 de 1
         </div>
       </body>
       </html>
       `;
 
-      // Generate PDF
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
-      
-      // Share/Download PDF
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Descargar Contrato' });
+      // Generate and Share/Download PDF depending on platform
+      if (Platform.OS === 'web') {
+        try {
+          const html2pdfModule = await import('html2pdf.js');
+          const html2pdf = html2pdfModule.default || html2pdfModule;
+          
+          const opt = {
+            margin:       0.4,
+            filename:     `contrato_${contract.id}.pdf`,
+            image:        { type: 'jpeg' as const, quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+          };
+          
+          html2pdf().set(opt).from(html).save();
+        } catch (e) {
+          console.error(e);
+          Alert.alert('Error', 'No se pudo generar el PDF.');
+        }
+      } else {
+        // On mobile, generate the file and open the native share/save sheet
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Descargar Contrato' });
+      }
 
     } catch (err) {
       console.error(err);
@@ -246,10 +437,12 @@ export default function ContractDetailScreen() {
 
   const st    = STATUS_CONFIG[contract.status] || STATUS_CONFIG.draft;
   const c     = contract.clauses || {};
-  const isCP  = contract.counterparty_id === userId; // es la otra parte
+  const isCP  = contract.contract_participants?.some((p: any) => p.user_id === userId); // es la otra parte
   const isInit = contract.initiator_id === userId;
   const canAccept = isCP && contract.status === 'pending_authorization';
   const canTerminate = (isInit || isCP) && (contract.status === 'active' || contract.status === 'pending_authorization');
+  
+  const counterpartyNames = (contract.contract_participants || []).map((p: any) => p.profiles?.name).join(', ');
 
   return (
     <SafeAreaView style={s.container}>
@@ -283,9 +476,9 @@ export default function ContractDetailScreen() {
             </View>
             <MaterialCommunityIcons name="arrow-left-right" size={18} color="#333" />
             <View style={s.partyChip}>
-              <MaterialCommunityIcons name="account" size={14} color="#FFB800" />
-              <Text style={s.partyName}>{contract.counterparty?.name}</Text>
-              <Text style={s.partyRole}>Contraparte</Text>
+              <MaterialCommunityIcons name="account-group" size={14} color="#FFB800" />
+              <Text style={s.partyName}>{counterpartyNames || 'Contraparte'}</Text>
+              <Text style={s.partyRole}>{(contract.contract_participants?.length ?? 0) > 1 ? 'Contrapartes' : 'Contraparte'}</Text>
             </View>
           </View>
           {contract.effective_date && (
@@ -345,17 +538,15 @@ export default function ContractDetailScreen() {
           )}
 
           {/* Generate/Download document */}
-          {(contract.status === 'active' || contract.status === 'pending_authorization') && (
-            <Pressable style={s.downloadBtn} onPress={handleGenerateAndDownload} disabled={generating}>
-              {generating
-                ? <ActivityIndicator color="#49C788" />
-                : <>
-                    <MaterialCommunityIcons name="file-pdf-box" size={20} color="#49C788" />
-                    <Text style={s.downloadBtnText}>Descargar PDF</Text>
-                  </>
-              }
-            </Pressable>
-          )}
+          <Pressable style={s.downloadBtn} onPress={handleGenerateAndDownload} disabled={generating}>
+            {generating
+              ? <ActivityIndicator color="#49C788" />
+              : <>
+                  <MaterialCommunityIcons name="file-pdf-box" size={20} color="#49C788" />
+                  <Text style={s.downloadBtnText}>Descargar PDF</Text>
+                </>
+            }
+          </Pressable>
 
           {/* Terminate */}
           {canTerminate && (

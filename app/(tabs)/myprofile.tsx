@@ -8,8 +8,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function MyProfileScreen() {
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -20,6 +22,13 @@ export default function MyProfileScreen() {
   const [listing, setListing] = useState<any>(null);
   const [contractCount, setContractCount] = useState<number>(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const [status, setStatus] = useState<string>('exploring');
+
+  const STATUS_OPTIONS = [
+    { id: 'looking_urgent', label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+    { id: 'exploring', label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+    { id: 'have_room', label: t('explore.have_room'), color: '#0A84FF', icon: 'home-account' }
+  ];
 
   useFocusEffect(
     useCallback(() => {
@@ -39,6 +48,7 @@ export default function MyProfileScreen() {
         setName(data.name || 'You');
         setBio(data.bio || '');
         setAge(data.age ? data.age.toString() : '');
+        setStatus(data.availability_status || 'exploring');
       }
 
       const { data: listingData } = await supabase.from('listings').select('*').eq('user_id', session.user.id).single();
@@ -71,10 +81,20 @@ export default function MyProfileScreen() {
       }
     }
     setEditing(false);
-    Alert.alert('Saved!', 'Your profile has been updated.');
+    Alert.alert(t('general.saved'), t('myprofile.saved_alert'));
   };
 
-  const pickImage = async () => {
+  const updateStatus = async (newStatus: string) => {
+    setStatus(newStatus);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from('profiles').update({ availability_status: newStatus }).eq('id', session.user.id);
+    }
+  };
+
+  const pickImage = async (slotIndex?: number) => {
+    const targetIdx = typeof slotIndex === 'number' ? slotIndex : 0;
+    
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -94,9 +114,9 @@ export default function MyProfileScreen() {
         const response = await fetch(photoUri);
         const blob = await response.blob();
 
-        // Create unique filename based on user ID and timestamp
+        // Create unique filename based on user ID, timestamp, and slot index
         const fileExt = photoUri.split('.').pop() || 'jpeg';
-        const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+        const fileName = `${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
         // Upload to Supabase Storage 'Roommate' bucket
         const { error: uploadError } = await supabase.storage
@@ -114,9 +134,35 @@ export default function MyProfileScreen() {
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
 
+        // Fetch current profile to get latest photos array
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('photos, photoUrl')
+          .eq('id', session.user.id)
+          .single();
+
+        let updatedPhotos = Array.isArray(currentProfile?.photos) ? [...currentProfile.photos] : [];
+        
+        // Pad the array to ensure we can set at the specific index
+        while (updatedPhotos.length < 5) {
+          updatedPhotos.push(updatedPhotos.length === 0 ? (currentProfile?.photoUrl || '') : '');
+        }
+
+        // Update photo at targeted index
+        updatedPhotos[targetIdx] = publicUrl;
+
+        const updatePayload: any = { photos: updatedPhotos };
+        if (targetIdx === 0) {
+          updatePayload.photoUrl = publicUrl;
+        }
+
         // Save URL to profile
-        await supabase.from('profiles').update({ photoUrl: publicUrl }).eq('id', session.user.id);
-        setProfile({ ...profile, photoUrl: publicUrl });
+        await supabase.from('profiles').update(updatePayload).eq('id', session.user.id);
+        
+        setProfile((prev: any) => ({
+          ...prev,
+          ...updatePayload
+        }));
 
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -179,7 +225,7 @@ export default function MyProfileScreen() {
         {/* Header with avatar */}
         <LinearGradient colors={['#1a1a24', '#000']} style={styles.heroSection}>
           <View style={styles.avatarWrapper}>
-            <Pressable onPress={pickImage} disabled={uploading}>
+            <Pressable onPress={() => pickImage(0)} disabled={uploading}>
               {uploading ? (
                 <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
                   <ActivityIndicator color="#49C788" />
@@ -194,13 +240,6 @@ export default function MyProfileScreen() {
               <View style={styles.onlineDot} />
             </Pressable>
 
-            {/* Premium Wheel */}
-            <Pressable 
-              style={styles.premiumWheelBtn} 
-              onPress={() => router.push('/subscriptions')}
-            >
-              <MaterialCommunityIcons name="cog" size={16} color="#49C788" />
-            </Pressable>
           </View>
 
           {editing ? (
@@ -224,48 +263,114 @@ export default function MyProfileScreen() {
                 />
               </View>
               <Pressable onPress={handleSaveProfile} style={styles.saveBtn}>
-                <Text style={styles.saveBtnText}>Save</Text>
+                <Text style={styles.saveBtnText}>{t('general.save')}</Text>
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setEditing(true)} style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
-              <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
-              {profile?.trust_score >= 80 ? (
-                <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
-              ) : profile?.trust_score >= 40 ? (
-                <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
-              ) : null}
-              <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
-            </Pressable>
+            <View style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
+              <Pressable onPress={() => setEditing(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
+                {profile?.trust_score >= 80 ? (
+                  <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
+                ) : profile?.trust_score >= 40 ? (
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
+                ) : null}
+                <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
+              </Pressable>
+              
+              <Pressable 
+                onPress={() => router.push('/settings')}
+                style={{ marginLeft: 6 }}
+              >
+                <MaterialCommunityIcons name="cog" size={24} color="#49C788" />
+              </Pressable>
+            </View>
           )}
 
-          <Text style={styles.profileSub}>Your profile is visible to nearby roommates</Text>
+          <View style={styles.statusChipsContainer}>
+            {STATUS_OPTIONS.map(opt => (
+              <Pressable
+                key={opt.id}
+                onPress={() => updateStatus(opt.id)}
+                style={[styles.statusChip, status === opt.id && { backgroundColor: opt.color + '22', borderColor: opt.color }]}
+              >
+                <MaterialCommunityIcons name={opt.icon as any} size={14} color={status === opt.id ? opt.color : '#666'} />
+                <Text style={[styles.statusChipText, { color: status === opt.id ? opt.color : '#666' }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.profileSub}>{t('myprofile.visible_sub')}</Text>
         </LinearGradient>
 
         {/* Stats strip */}
         <View style={styles.statsRow}>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{likesArr.length}</Text>
-            <Text style={styles.statLabel}>Interests</Text>
+            <Text style={styles.statLabel}>{t('myprofile.interests_stat')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statValue}>{prefsArr.length}</Text>
-            <Text style={styles.statLabel}>Preferences</Text>
+            <Text style={styles.statLabel}>{t('myprofile.prefs_stat')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.stat}>
             <Text style={styles.statValue}>{dealsArr.length}</Text>
-            <Text style={styles.statLabel}>Dealbreakers</Text>
+            <Text style={styles.statLabel}>{t('myprofile.deals_stat')}</Text>
           </View>
         </View>
 
         {/* Divider */}
         <View style={styles.divider} />
 
-        {/* About Me / Bio */}
+        {/* Biografía (Bio & Profile Photos) */}
+        <Text style={styles.sectionTitle}>{t('myprofile.gallery')}</Text>
+        <View style={styles.photosManagerContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScrollContent}>
+            {(() => {
+              const photosList = Array.isArray(profile?.photos) ? [...profile.photos] : [];
+              const slots = Array.from({ length: 5 }, (_, i) => photosList[i] || (i === 0 ? profile?.photoUrl : null));
+              
+              return slots.map((uri, index) => (
+                <Pressable
+                  key={index}
+                  style={[styles.photoSlot, !uri && styles.emptyPhotoSlot]}
+                  onPress={() => pickImage(index)}
+                  disabled={uploading}
+                >
+                  {uri ? (
+                    <>
+                      <Image source={{ uri }} style={styles.slotImage} contentFit="cover" />
+                      <View style={styles.slotBadge}>
+                        <Text style={styles.slotBadgeText}>{index + 1}</Text>
+                      </View>
+                      <View style={styles.editCameraOverlay}>
+                        <MaterialCommunityIcons name="camera" size={14} color="#fff" />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.emptySlotContent}>
+                      <View style={styles.emptySlotPlusCircle}>
+                        <MaterialCommunityIcons name="plus" size={18} color="#49C788" />
+                      </View>
+                      <Text style={styles.emptySlotText}>{t('myprofile.slot')} {index + 1}</Text>
+                    </View>
+                  )}
+                </Pressable>
+              ));
+            })()}
+          </ScrollView>
+        </View>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Sobre Mí / Bio */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>About Me</Text>
+          <Text style={styles.sectionTitle}>{t('myprofile.about_me')}</Text>
           {!editing && (
             <Pressable onPress={() => setEditing(true)}>
               <IconSymbol name="pencil" size={20} color="#888" />
@@ -277,7 +382,7 @@ export default function MyProfileScreen() {
             <TextInput
               style={styles.bioInput}
               multiline
-              placeholder="Write something about yourself..."
+              placeholder={t('myprofile.write_bio')}
               placeholderTextColor="#666"
               value={bio}
               onChangeText={setBio}
@@ -285,7 +390,7 @@ export default function MyProfileScreen() {
           ) : (
             <Pressable onPress={() => setEditing(true)}>
               <Text style={profile.bio ? styles.bioText : styles.emptySection}>
-                {profile.bio || 'Tap to add bio...'}
+                {profile.bio || t('myprofile.tap_bio')}
               </Text>
             </Pressable>
           )}
@@ -295,7 +400,7 @@ export default function MyProfileScreen() {
 
         {/* My Apartment Section */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>My Apartment</Text>
+          <Text style={styles.sectionTitle}>{t('myprofile.my_apartment')}</Text>
           <Pressable onPress={() => router.push('/manage-listing')}>
             <IconSymbol name={listing ? "pencil.circle.fill" : "plus.circle.fill"} size={24} color="#FFB800" />
           </Pressable>
@@ -312,15 +417,15 @@ export default function MyProfileScreen() {
                 </View>
               )}
               <View style={styles.listingDetails}>
-                <Text style={styles.listingTitle} numberOfLines={1}>{listing.title || 'Untitled Room'}</Text>
-                <Text style={styles.listingPrice}>${listing.price}/month</Text>
+                <Text style={styles.listingTitle} numberOfLines={1}>{listing.title || t('myprofile.untitled_room')}</Text>
+                <Text style={styles.listingPrice}>${listing.price}/{t('myprofile.month')}</Text>
                 {listing.address && <Text style={styles.listingAddress} numberOfLines={1}>{listing.address}</Text>}
               </View>
             </Pressable>
           ) : (
             <Pressable onPress={() => router.push('/manage-listing')} style={[styles.addChip, { borderColor: '#FFB800', marginHorizontal: 20 }]}>
               <IconSymbol name="house.fill" size={16} color="#FFB800" />
-              <Text style={[styles.addChipText, { color: '#FFB800' }]}>List your room or apartment</Text>
+              <Text style={[styles.addChipText, { color: '#FFB800' }]}>{t('myprofile.list_room')}</Text>
             </Pressable>
           )}
         </View>
@@ -329,28 +434,28 @@ export default function MyProfileScreen() {
 
         {/* Hobbies */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>My Hobbies & Interests</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Text style={styles.sectionTitle}>{t('myprofile.interests')}</Text>
+          <Pressable onPress={() => router.push('/preferences?focus=hobbies')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
           {likesArr.length > 0 ? likesArr.map((tag: string) => (
             <View key={tag} style={styles.chip}>
-              <Text style={styles.chipText}>{tag}</Text>
+              <Text style={styles.chipText}>{translateHobby(tag)}</Text>
             </View>
           )) : (
-            <Pressable onPress={() => router.push('/preferences')} style={styles.addChip}>
+            <Pressable onPress={() => router.push('/preferences?focus=hobbies')} style={styles.addChip}>
               <IconSymbol name="plus" size={16} color="#49C788" />
-              <Text style={styles.addChipText}>Add Hobbies</Text>
+              <Text style={styles.addChipText}>{t('myprofile.add_hobbies')}</Text>
             </Pressable>
           )}
         </View>
 
         {/* Lifestyle */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
+          <Pressable onPress={() => router.push('/preferences?focus=lifestyle')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#00C9A7" />
           </Pressable>
         </View>
@@ -362,9 +467,9 @@ export default function MyProfileScreen() {
               const meta = LIFESTYLE_LABELS[key] || { label: key, emoji: '📌' };
               return (
                 <View key={key} style={styles.lifestyleCategoryRow}>
-                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {meta.label}</Text>
+                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {translateLifestyleKey(key)}</Text>
                   <View style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{val}</Text>
+                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{translateLifestyleVal(val)}</Text>
                   </View>
                 </View>
               );
@@ -373,7 +478,7 @@ export default function MyProfileScreen() {
             {/* Languages */}
             {languagesArr.length > 0 && (
               <View style={styles.lifestyleCategoryRow}>
-                <Text style={styles.lifestyleCategoryLabel}>🗣️ Languages</Text>
+                <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.languages')}</Text>
                 <View style={styles.chipWrapInline}>
                   {languagesArr.map((lang: string) => (
                     <View key={`lang-${lang}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
@@ -387,7 +492,7 @@ export default function MyProfileScreen() {
             {/* Legacy preferences array (if any) */}
             {prefsArr.length > 0 && (
               <View style={styles.lifestyleCategoryRow}>
-                <Text style={styles.lifestyleCategoryLabel}>📋 Other</Text>
+                <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.other')}</Text>
                 <View style={styles.chipWrapInline}>
                   {prefsArr.map((tag: string) => (
                     <View key={tag} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
@@ -400,29 +505,29 @@ export default function MyProfileScreen() {
           </View>
         ) : (
           <View style={styles.chipWrap}>
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
+            <Pressable onPress={() => router.push('/preferences?focus=lifestyle')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
               <IconSymbol name="plus" size={16} color="#00C9A7" />
-              <Text style={[styles.addChipText, { color: '#00C9A7' }]}>Add Lifestyle Details</Text>
+              <Text style={[styles.addChipText, { color: '#00C9A7' }]}>{t('myprofile.add_lifestyle')}</Text>
             </Pressable>
           </View>
         )}
 
         {/* Dealbreakers */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Pressable onPress={() => router.push('/preferences')}>
+          <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
+          <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')}>
             <IconSymbol name="plus.circle.fill" size={24} color="#FF4B4B" />
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
           {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string) => (
             <View key={tag} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
-              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{tag}</Text>
+              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{translateDealbreaker(tag)}</Text>
             </View>
           ))}</>) : (
-            <Pressable onPress={() => router.push('/preferences')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
+            <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
               <IconSymbol name="plus" size={16} color="#FF4B4B" />
-              <Text style={[styles.addChipText, { color: '#FF4B4B' }]}>Add Dealbreakers</Text>
+              <Text style={[styles.addChipText, { color: '#FF4B4B' }]}>{t('myprofile.add_dealbreakers')}</Text>
             </Pressable>
           )}
         </View>
@@ -432,7 +537,7 @@ export default function MyProfileScreen() {
         {/* Edit Preferences CTA */}
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
           <IconSymbol name="slider.horizontal.3" size={20} color="#000" />
-          <Text style={styles.editBtnText}>Edit My Preferences</Text>
+          <Text style={styles.editBtnText}>{t('myprofile.edit_prefs')}</Text>
         </Pressable>
 
         <View style={{ height: 16 }} />
@@ -440,7 +545,7 @@ export default function MyProfileScreen() {
         {/* ── Trust & Safety ── */}
         <View style={styles.divider} />
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Trust & Safety Center</Text>
+          <Text style={styles.sectionTitle}>{t('myprofile.trust_center')}</Text>
           <MaterialCommunityIcons name="shield-check" size={22} color="#0A84FF" />
         </View>
         <Pressable style={s.trustCard} onPress={() => router.push('/trust')}>
@@ -448,33 +553,32 @@ export default function MyProfileScreen() {
             <MaterialCommunityIcons name="shield-account" size={32} color="#0A84FF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={s.trustTitle}>Centro de Confianza</Text>
-            <Text style={s.trustSub}>Tu Trust Score: <Text style={{fontWeight: '800', color: profile?.trust_score > 75 ? '#34C759' : '#FFD60A'}}>{profile?.trust_score || 20}/100</Text></Text>
-            <Text style={s.trustHint}>Completa tu perfil para destacar más</Text>
+            <Text style={s.trustTitle}>{t('myprofile.trust_center')}</Text>
+            <Text style={s.trustSub}>{t('myprofile.trust_sub')} <Text style={{fontWeight: '800', color: profile?.trust_score > 75 ? '#34C759' : '#FFD60A'}}>{profile?.trust_score || 20}/100</Text></Text>
+            <Text style={s.trustHint}>{t('myprofile.trust_hint')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
         </Pressable>
 
         <View style={{ height: 16 }} />
 
-        {/* ── Legal & Agreements ── */}
+        {/* ── Legal Hub ── */}
         <View style={styles.divider} />
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Legal & Acuerdos</Text>
-          <Pressable onPress={() => router.push('/terms')}>
-            <MaterialCommunityIcons name="shield-outline" size={22} color="#49C788" />
-          </Pressable>
+          <Text style={styles.sectionTitle}>{t('myprofile.legal_hub')}</Text>
+          <MaterialCommunityIcons name="gavel" size={22} color="#49C788" />
         </View>
         <Pressable style={styles.legalCard} onPress={() => router.push('/contracts')}>
+          <LinearGradient colors={['rgba(73,199,136,0.15)', 'transparent']} style={StyleSheet.absoluteFillObject} />
           <View style={styles.legalIconWrap}>
             <MaterialCommunityIcons name="file-sign" size={28} color="#49C788" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.legalTitle}>Mis Contratos</Text>
+            <Text style={styles.legalTitle}>{t('myprofile.contracts_sub')}</Text>
             <Text style={styles.legalSub}>
               {contractCount === 0
-                ? 'Sin contratos aún — crea uno con un match'
-                : `${contractCount} contrato${contractCount !== 1 ? 's' : ''}${pendingCount > 0 ? ` · ${pendingCount} pendiente${pendingCount !== 1 ? 's' : ''}` : ''}`
+                ? t('myprofile.no_contracts')
+                : `${contractCount} ${contractCount !== 1 ? t('myprofile.contracts_count_plural') : t('myprofile.contracts_count')}${pendingCount > 0 ? ` · ${pendingCount} ${t('myprofile.pending_count')}` : ''}`
               }
             </Text>
           </View>
@@ -485,19 +589,13 @@ export default function MyProfileScreen() {
           )}
           <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />
         </Pressable>
-        <Pressable
-          style={[styles.legalSection, { marginTop: 8 }]}
-          onPress={() => router.push('/contracts/new')}
-        >
-          <MaterialCommunityIcons name="plus-circle-outline" size={18} color="#49C788" />
-          <Text style={[styles.addChipText, { color: '#49C788' }]}>Crear nuevo acuerdo</Text>
-        </Pressable>
+
 
         <View style={{ height: 16 }} />
 
         {/* Logout CTA */}
         <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutBtnText}>Log Out</Text>
+          <Text style={styles.logoutBtnText}>{t('myprofile.logout')}</Text>
         </Pressable>
 
         <View style={{ height: 40 }} />
@@ -945,6 +1043,125 @@ const styles = StyleSheet.create({
   listingAddress: {
     color: '#888',
     fontSize: 12,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0d1117',
+    borderWidth: 1,
+    borderColor: '#49C788',
+    borderRadius: 20,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  actionChipText: {
+    color: '#49C788',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  statusChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  photosManagerContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  photosScrollContent: {
+    gap: 12,
+    paddingRight: 20,
+  },
+  photoSlot: {
+    width: 100,
+    height: 130,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#222',
+  },
+  emptyPhotoSlot: {
+    borderStyle: 'dashed',
+    borderColor: '#49C788',
+    backgroundColor: 'rgba(73, 199, 136, 0.05)',
+  },
+  slotImage: {
+    width: '100%',
+    height: '100%',
+  },
+  slotBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  slotBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  editCameraOverlay: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: '#49C788',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
+    zIndex: 10,
+  },
+  emptySlotContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptySlotPlusCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(73, 199, 136, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySlotText: {
+    color: '#49C788',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });
 

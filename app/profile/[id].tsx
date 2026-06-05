@@ -1,20 +1,30 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Image, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import MapComponent from '@/components/ui/MapComponent';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function ProfileDetailScreen() {
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
   const [profile, setProfile] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [listing, setListing] = useState<any>(null);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Fullscreen Lightbox states
+  const [isLightboxVisible, setIsLightboxVisible] = useState(false);
+  const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -49,9 +59,9 @@ export default function ProfileDetailScreen() {
   if (!profile) {
     return (
       <View style={styles.centerBox}>
-        <Text style={styles.errorText}>Profile not found.</Text>
+        <Text style={styles.errorText}>{t('profile.not_found', 'Profile not found.')}</Text>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>Go Back</Text>
+          <Text style={styles.backBtnText}>{t('general.back')}</Text>
         </Pressable>
       </View>
     );
@@ -59,7 +69,7 @@ export default function ProfileDetailScreen() {
 
   // Calculate Match Percentage and Distance
   let matchPercentage = 0;
-  let distanceText = 'Location unknown';
+  let distanceText = t('explore.loc_unknown');
 
   if (currentUser) {
     const simLikes = getSimilarityScore(currentUser.likes, profile.likes);
@@ -73,93 +83,263 @@ export default function ProfileDetailScreen() {
 
     if (currentUser.latOffset != null && currentUser.lngOffset != null && profile.latOffset != null && profile.lngOffset != null) {
       const dist = getDistanceFromLatLonInKm(currentUser.latOffset, currentUser.lngOffset, profile.latOffset, profile.lngOffset);
-      distanceText = `${dist.toFixed(1)} km away`;
+      distanceText = `${dist.toFixed(1)} ${t('explore.away')}`;
     }
   }
+
+  const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
+    looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+    exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+    have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
+  };
+  const statusConfig = profile.availability_status ? STATUS_MAP[profile.availability_status] : null;
+
+  const photosList = profile
+    ? (Array.isArray(profile.photos) && profile.photos.length > 0
+      ? profile.photos
+      : [profile.photoUrl].filter(Boolean))
+    : [];
 
   return (
     <View style={styles.container}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Header Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: profile.photoUrl }} style={styles.headerImage} />
+          <Image source={{ uri: photosList[activePhotoIdx] || profile.photoUrl }} style={styles.headerImage} contentFit="cover" transition={200} />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.5)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)']}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          
+          {/* Instagram-style progress indicators */}
+          {photosList.length > 1 && (
+            <View style={styles.indicatorContainer}>
+              {photosList.map((_: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.indicatorBar,
+                    {
+                      backgroundColor: idx === activePhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.4)',
+                      width: `${100 / photosList.length - 2}%`,
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Left/Right press navigation overlays */}
+          {photosList.length > 1 ? (
+            <View style={styles.tapNavigationOverlay}>
+              <Pressable
+                style={styles.tapSide}
+                onPress={() => setActivePhotoIdx((prev) => Math.max(0, prev - 1))}
+              />
+              <Pressable
+                style={styles.tapMiddle}
+                onPress={() => {
+                  setLightboxPhotoIdx(activePhotoIdx);
+                  setIsLightboxVisible(true);
+                }}
+              />
+              <Pressable
+                style={styles.tapSide}
+                onPress={() => setActivePhotoIdx((prev) => Math.min(photosList.length - 1, prev + 1))}
+              />
+            </View>
+          ) : (
+            <Pressable
+              style={styles.tapNavigationOverlay}
+              onPress={() => {
+                setLightboxPhotoIdx(activePhotoIdx);
+                setIsLightboxVisible(true);
+              }}
+            />
+          )}
+
+          {/* Counter badge (bottom-right) */}
+          {photosList.length > 1 && (
+            <View style={styles.pageBadge}>
+              <Text style={styles.pageBadgeText}>{activePhotoIdx + 1} / {photosList.length}</Text>
+            </View>
+          )}
+
+          {/* Glassmorphic Expand button (bottom-left) */}
+          <Pressable
+            style={styles.expandBadge}
+            onPress={() => {
+              setLightboxPhotoIdx(activePhotoIdx);
+              setIsLightboxVisible(true);
+            }}
+          >
+            <MaterialCommunityIcons name="arrow-expand" size={14} color="#fff" />
+            <Text style={styles.expandBadgeText}>{t('profile.expand', 'Expand')}</Text>
+          </Pressable>
           
           {/* Close button overlay */}
           <Pressable onPress={() => router.back()} style={styles.closeIcon}>
             <IconSymbol name="chevron.down.circle.fill" size={32} color="#fff" />
           </Pressable>
         </View>
-
+ 
         {/* Info Box */}
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <View>
-              <Text style={styles.name}>{profile.name}, {profile.age}</Text>
+              <Text style={styles.name}>{profile.name}{profile.age ? `, ${profile.age}` : ''}</Text>
               <Text style={styles.distanceBadge}>{distanceText}</Text>
+              {statusConfig && (
+                <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '22', borderColor: statusConfig.color }]}>
+                  <MaterialCommunityIcons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
+                  <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+                </View>
+              )}
             </View>
-
+ 
             {/* Match Circle */}
             <View style={styles.matchCircle}>
               <Text style={styles.matchPercent}>{matchPercentage}%</Text>
               <Text style={styles.matchLabel}>Match</Text>
             </View>
           </View>
-
+ 
           <View style={styles.divider} />
-
-          <Text style={styles.sectionTitle}>About Me</Text>
-          <Text style={styles.bioText}>{profile.bio || 'This user has not written a bio yet.'}</Text>
-
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.about_me')}</Text>
+          <Text style={styles.bioText}>{profile.bio || t('profile.empty_bio', 'This user has not written a bio yet.')}</Text>
+ 
           <View style={styles.divider} />
-
-          <Text style={styles.sectionTitle}>Hobbies & Interests</Text>
-          <Text style={styles.tagsText}>{profile.likes}</Text>
-
-          <Text style={styles.sectionTitle}>Lifestyle</Text>
-          <Text style={styles.tagsText}>{profile.preferences}</Text>
-
-          <Text style={styles.sectionTitle}>Dealbreakers</Text>
-          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{profile.dealbreakers}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.interests')}</Text>
+          <Text style={styles.tagsText}>{translateHobbiesList(profile.likes) || t('explore.no_pref')}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
+          <Text style={styles.tagsText}>{translateHobbiesList(profile.preferences) || t('explore.no_pref')}</Text>
+ 
+          <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
+          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{translateDealbreakersList(profile.dealbreakers) || t('explore.no_pref')}</Text>
           
           {profile.latOffset && profile.lngOffset && (
             <>
-              <Text style={styles.sectionTitle}>Approximate Location</Text>
+              <Text style={styles.sectionTitle}>{t('profile.approx_loc', 'Approximate Location')}</Text>
               <MapComponent lat={profile.latOffset} lng={profile.lngOffset} />
             </>
           )}
-
+ 
           {listing && (
             <View style={styles.apartmentSection}>
-              <Text style={styles.sectionTitle}>Room / Apartment Available</Text>
+              <Text style={styles.sectionTitle}>{t('profile.room_available', 'Room / Apartment Available')}</Text>
               <View style={styles.listingCard}>
                 {listing.images && listing.images.length > 0 && (
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageCarousel}>
                     {listing.images.map((url: string, idx: number) => (
-                      <Image key={idx} source={{ uri: url }} style={styles.carouselImage} />
+                      <Image key={idx} source={{ uri: url }} style={styles.carouselImage} contentFit="cover" transition={200} />
                     ))}
                   </ScrollView>
                 )}
                 <View style={styles.listingDetails}>
-                  <Text style={styles.listingTitle}>{listing.title || 'Untitled Room'}</Text>
-                  <Text style={styles.listingPrice}>${listing.price}/month {listing.utilities_included && '(Utilities Included)'}</Text>
+                  <Text style={styles.listingTitle}>{listing.title || t('myprofile.untitled_room')}</Text>
+                  <Text style={styles.listingPrice}>${listing.price}/{t('myprofile.month')} {listing.utilities_included && t('profile.utilities_included', '(Utilities Included)')}</Text>
                   {listing.description && <Text style={styles.listingDesc}>{listing.description}</Text>}
                   {listing.address && <Text style={styles.listingAddress}>📍 {listing.address}</Text>}
                 </View>
               </View>
             </View>
           )}
-
+ 
           <View style={{ height: 100 }} />
         </View>
       </ScrollView>
-
+ 
       {/* Floating Action Button for Chat */}
       <View style={styles.bottomBar}>
         <Pressable style={styles.primaryButton} onPress={() => router.push(`/chat/${profile.id}`)}>
           <IconSymbol name="paperplane.fill" size={20} color="#000" />
-          <Text style={styles.primaryButtonText}>Message {profile.name}</Text>
+          <Text style={styles.primaryButtonText}>{t('profile.message_user', 'Message') + ' ' + (profile.name || '')}</Text>
         </Pressable>
       </View>
+
+      {/* Fullscreen Lightbox Modal */}
+      <Modal
+        visible={isLightboxVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => {
+          setActivePhotoIdx(lightboxPhotoIdx);
+          setIsLightboxVisible(false);
+        }}
+      >
+        <View style={styles.lightboxContainer}>
+          {/* Top Story indicators */}
+          {photosList.length > 1 && (
+            <View style={styles.lightboxIndicatorContainer}>
+              {photosList.map((_: any, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.lightboxIndicatorBar,
+                    {
+                      backgroundColor: idx === lightboxPhotoIdx ? '#49C788' : 'rgba(255, 255, 255, 0.3)',
+                      width: `${100 / photosList.length - 2}%`,
+                    }
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Close button (top right) */}
+          <Pressable
+            style={styles.lightboxCloseBtn}
+            onPress={() => {
+              setActivePhotoIdx(lightboxPhotoIdx);
+              setIsLightboxVisible(false);
+            }}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="#fff" />
+          </Pressable>
+
+          {/* Zoomable Image Container */}
+          <ScrollView
+            maximumZoomScale={3}
+            minimumZoomScale={1}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.lightboxImageWrapper}
+          >
+            <Image
+              source={{ uri: photosList[lightboxPhotoIdx] }}
+              style={styles.lightboxImage}
+              contentFit="contain"
+              transition={200}
+            />
+          </ScrollView>
+
+          {/* Left/Right press navigation overlays inside lightbox */}
+          {photosList.length > 1 && (
+            <View style={styles.lightboxTapOverlay}>
+              <Pressable
+                style={styles.lightboxTapSide}
+                onPress={() => setLightboxPhotoIdx((prev) => Math.max(0, prev - 1))}
+              />
+              <View style={{ flex: 1 }} pointerEvents="none" />
+              <Pressable
+                style={styles.lightboxTapSide}
+                onPress={() => setLightboxPhotoIdx((prev) => Math.min(photosList.length - 1, prev + 1))}
+              />
+            </View>
+          )}
+
+          {/* Bottom Counter badge */}
+          <View style={styles.lightboxPageBadge}>
+            <Text style={styles.lightboxPageBadgeText}>
+              {lightboxPhotoIdx + 1} / {photosList.length}
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -200,12 +380,60 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  indicatorContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  indicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  tapNavigationOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  tapSide: {
+    width: '30%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  tapMiddle: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  pageBadge: {
+    position: 'absolute',
+    top: 70,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  pageBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   closeIcon: {
     position: 'absolute',
-    top: 50,
+    top: 70,
     left: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 20,
+    zIndex: 15,
   },
   content: {
     padding: 24,
@@ -229,6 +457,21 @@ const styles = StyleSheet.create({
     color: '#aaa',
     marginTop: 4,
     fontWeight: '500',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   matchCircle: {
     width: 60,
@@ -338,5 +581,96 @@ const styles = StyleSheet.create({
   listingAddress: {
     color: '#888',
     fontSize: 14,
+  },
+  expandBadge: {
+    position: 'absolute',
+    bottom: 45,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  expandBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  lightboxContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  lightboxIndicatorContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  lightboxIndicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  lightboxCloseBtn: {
+    position: 'absolute',
+    top: 65,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  lightboxImageWrapper: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxImage: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+  },
+  lightboxTapOverlay: {
+    position: 'absolute',
+    top: 120,
+    bottom: 120,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  lightboxTapSide: {
+    width: '40%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  lightboxPageBadge: {
+    position: 'absolute',
+    bottom: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 10,
+  },
+  lightboxPageBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

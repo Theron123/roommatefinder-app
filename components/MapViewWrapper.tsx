@@ -9,12 +9,13 @@ export const PROVIDER_GOOGLE = 'google';
 export function Marker(_props: any) { return null; }
 export function Callout(_props: any) { return null; }
 
-export default function MapView({ style, children }: { style?: any; children?: any }) {
+export default function MapView(props: any) {
+  const { style, children } = props;
   return (
     <View style={[styles.container, style]}>
       <MaterialCommunityIcons name="map-outline" size={64} color="#333" />
-      <Text style={styles.title}>Vista de Mapa</Text>
-      <Text style={styles.sub}>El mapa interactivo solo está disponible{'\n'}en la app nativa (iOS / Android).</Text>
+      <Text style={styles.title}>Map View</Text>
+      <Text style={styles.sub}>The interactive map is only available{'\n'}on native devices (iOS / Android).</Text>
     </View>
   );
 }

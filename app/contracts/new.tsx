@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView,
-  StyleSheet, Switch, Text, TextInput, View,
+  StyleSheet, Switch, Text, TextInput, View, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,23 +14,20 @@ type Match = { user_id: string; name: string };
 
 // ── Cláusulas predefinidas opcionales ────────────────────────────────────────
 const OPTIONAL_CLAUSES = [
-  { key: 'no_subletting',       label: 'Sin subarrendamiento',          desc: 'Queda prohibido subarrendar la habitación sin consentimiento escrito.' },
-  { key: 'guest_policy',        label: 'Política de invitados',         desc: 'Los invitados no pueden quedarse más de 7 noches consecutivas.' },
-  { key: 'cleaning_rota',       label: 'Turno de limpieza',             desc: 'Las áreas comunes se limpiarán en rotación semanal acordada.' },
-  { key: 'no_parties',          label: 'Sin fiestas sin aviso',         desc: 'Reuniones de más de 5 personas requieren aviso previo de 24 h.' },
-  { key: 'parking_included',    label: 'Estacionamiento incluido',      desc: 'Se incluye un lugar de estacionamiento sin costo adicional.' },
-  { key: 'internet_split',      label: 'Internet dividido',             desc: 'El costo de internet se dividirá entre todos los ocupantes.' },
-  { key: 'early_termination',   label: 'Terminación anticipada',        desc: 'Se requiere aviso de 30 días y penalización de 1 mes de renta.' },
-  { key: 'renters_insurance',   label: 'Seguro de inquilino requerido', desc: 'Cada ocupante debe contar con seguro de inquilino vigente.' },
-  { key: 'temperature_control', label: 'Control de temperatura',        desc: 'El termostato se mantendrá entre 68–78 °F por consenso.' },
+  { key: 'no_subletting',       label: 'No subletting',          desc: 'Subletting without consent is prohibited.' },
+  { key: 'guest_policy',        label: 'Guest policy',         desc: 'Maximum 7 consecutive nights for guests.' },
+  { key: 'cleaning_rota',       label: 'Cleaning rotation',             desc: 'Weekly rotation in common areas.' },
+  { key: 'no_parties',          label: 'No surprise parties',          desc: 'Large gatherings require 24h advance notice.' },
+  { key: 'parking_included',    label: 'Parking',               desc: 'Includes 1 parking spot at no extra cost.' },
+  { key: 'internet_split',      label: 'Shared Internet',           desc: 'The payment is split equally.' },
 ];
 
 const STEPS = [
-  'Tipo de contrato',
-  'Seleccionar parte',
-  'Términos principales',
-  'Reglas de convivencia',
-  'Cláusulas adicionales',
+  { title: 'Type', icon: 'file-document-edit-outline' },
+  { title: 'Roommate', icon: 'account-search-outline' },
+  { title: 'Finance', icon: 'cash-multiple' },
+  { title: 'Rules', icon: 'home-heart' },
+  { title: 'Add-ons', icon: 'view-grid-plus-outline' },
 ];
 
 export default function NewContractScreen() {
@@ -42,27 +39,49 @@ export default function NewContractScreen() {
   // Step 1
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
   // Step 2
-  const [selectedUser, setSelectedUser] = useState<Match | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleToggleUser = (user: Match) => {
+    setSelectedUsers(prev => {
+      if (prev.some(u => u.user_id === user.user_id)) {
+        return prev.filter(u => u.user_id !== user.user_id);
+      } else {
+        return [...prev, user];
+      }
+    });
+  };
   // Step 3
   const [rent, setRent]                 = useState('');
   const [dueDay, setDueDay]             = useState('1');
-  const [lateFee, setLateFee]           = useState('50');
   const [deposit, setDeposit]           = useState('');
-  const [returnDays, setReturnDays]     = useState('30');
   const [effectiveDate, setEffectiveDate] = useState('');
+
+  const handleDateChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    let formatted = '';
+    
+    if (cleaned.length <= 2) {
+      formatted = cleaned;
+    } else if (cleaned.length <= 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    } else {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4, 8)}`;
+    }
+    
+    setEffectiveDate(formatted);
+  };
   // Step 4
   const [petsAllowed, setPetsAllowed]   = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
-  const [quietStart, setQuietStart]     = useState('22:00');
-  const [quietEnd, setQuietEnd]         = useState('08:00');
   const [visitorsAllowed, setVisitorsAllowed] = useState(true);
-  const [maxNights, setMaxNights]       = useState('7');
   const [cleaningSchedule, setCleaningSchedule] = useState<'daily' | 'weekly' | 'biweekly'>('weekly');
   // Step 5
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    if (step === 1) loadMatches();
+    if (step === 1 && matches.length === 0) loadMatches();
   }, [step]);
 
   const loadMatches = async () => {
@@ -74,8 +93,7 @@ export default function NewContractScreen() {
     const { data } = await supabase
       .from('matches')
       .select('user1, user2')
-      .or(`user1.eq.${uid},user2.eq.${uid}`)
-      .eq('status', 'matched');
+      .or(`user1.eq.${uid},user2.eq.${uid}`);
 
     if (data && data.length > 0) {
       const otherIds = data.map((m: any) => m.user1 === uid ? m.user2 : m.user1);
@@ -94,277 +112,390 @@ export default function NewContractScreen() {
     );
   };
 
+  const handleAIGenerate = () => {
+    setAiLoading(true);
+    setTimeout(() => {
+      setSelectedOptional(['guest_policy', 'cleaning_rota', 'no_parties']);
+      setAiLoading(false);
+      Alert.alert('AI Add-ons Applied', 'We have automatically selected the recommended clauses based on the users\' profiles and lifestyle.');
+    }, 1200);
+  };
+
   const handleSubmit = async () => {
-    if (!selectedUser) return;
+    if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
-      Alert.alert('Campos incompletos', 'Por favor llena todos los campos requeridos.');
+      Alert.alert('Missing fields', 'Please enter the financial amounts and effective date.');
       return;
     }
+
+    // Convertir DD/MM/AAAA a AAAA-MM-DD para Supabase
+    const dateParts = effectiveDate.split('/');
+    if (dateParts.length !== 3 || dateParts[0].length !== 2 || dateParts[1].length !== 2 || dateParts[2].length !== 4) {
+      Alert.alert('Invalid date', 'The date must be in DD/MM/YYYY format.');
+      return;
+    }
+
+    const day = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]);
+    const year = parseInt(dateParts[2]);
+
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+      Alert.alert('Invalid date', 'Please enter a valid date.');
+      return;
+    }
+
+    const formattedIsoDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
 
     const clauses = {
-      rent:             { amount: parseFloat(rent), due_day: parseInt(dueDay), late_fee: parseFloat(lateFee) },
-      security_deposit: { amount: parseFloat(deposit), return_days: parseInt(returnDays) },
-      pets:             { allowed: petsAllowed, deposit: 0 },
+      rent:             { amount: parseFloat(rent), due_day: parseInt(dueDay) },
+      security_deposit: { amount: parseFloat(deposit) },
+      pets:             { allowed: petsAllowed },
       smoking:          { allowed: smokingAllowed },
-      noise:            { quiet_hours_start: quietStart, quiet_hours_end: quietEnd },
-      visitors:         { overnight_allowed: visitorsAllowed, max_nights: parseInt(maxNights) },
-      cleaning:         { schedule: cleaningSchedule, shared_areas: true },
-      damage:           { tenant_responsible: true, normal_wear_exempt: true },
-      dispute:          { method: 'mediation', jurisdiction: 'local' },
-      eviction:         { notice_days: 30, cause_required: true },
-      privacy:          { common_areas_only: true, no_recording: true },
-      move_in:          { date: effectiveDate, inspection_required: true },
-      move_out:         { notice_days: 30, inspection_required: true },
+      visitors:         { overnight_allowed: visitorsAllowed },
+      cleaning:         { schedule: cleaningSchedule },
     };
 
     const { data: newContract, error } = await supabase.from('contracts').insert({
       initiator_id:           session.user.id,
-      counterparty_id:        selectedUser.user_id,
       type:                   contractType,
       status:                 'draft',
-      template_version:       'v1.0',
+      template_version:       'v2.0',
       clauses,
       selected_custom_clauses: selectedOptional,
-      effective_date:         effectiveDate,
+      effective_date:         formattedIsoDate,
     }).select().single();
 
-    setLoading(false);
     if (error || !newContract) {
-      Alert.alert('Error', 'No se pudo crear el contrato. Intenta de nuevo.');
+      setLoading(false);
+      Alert.alert('Error', 'Could not create the draft.');
       return;
     }
-    router.replace(`/contracts/review?id=${newContract.id}`);
+
+    // Guardar los participantes seleccionados en contract_participants
+    const participantInserts = selectedUsers.map(u => ({
+      contract_id: newContract.id,
+      user_id: u.user_id
+    }));
+
+    const { error: partError } = await supabase
+      .from('contract_participants')
+      .insert(participantInserts);
+
+    setLoading(false);
+    if (partError) {
+      Alert.alert('Error', 'Could not register the participants.');
+      return;
+    }
+
+    router.replace(`/contracts/${newContract.id}`);
   };
 
   const canNext = () => {
     if (step === 0) return !!contractType;
-    if (step === 1) return !!selectedUser;
-    if (step === 2) return !!rent && !!deposit && !!effectiveDate;
+    if (step === 1) return selectedUsers.length > 0;
+    if (step === 2) return !!rent && !!deposit && effectiveDate.length === 10;
     return true;
   };
 
   return (
     <SafeAreaView style={s.container}>
-      {/* Header */}
-      <LinearGradient colors={['#0d1117', '#000']} style={s.header}>
-        <Pressable onPress={() => step === 0 ? router.back() : setStep(step - 1)} style={s.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
-        </Pressable>
-        <Text style={s.headerTitle}>Nuevo Acuerdo</Text>
-        <View style={{ width: 36 }} />
-      </LinearGradient>
+      <KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        
+        {/* Premium Header */}
+        <View style={s.header}>
+          <Pressable onPress={() => step === 0 ? router.back() : setStep(step - 1)} style={s.backBtn}>
+            <MaterialCommunityIcons name={step === 0 ? "close" : "arrow-left"} size={24} color="#fff" />
+          </Pressable>
+          <Text style={s.headerTitle}>Create Agreement</Text>
+          <Text style={s.stepCounter}>{step + 1} / {STEPS.length}</Text>
+        </View>
 
-      {/* Progress */}
-      <View style={s.progressWrap}>
-        {STEPS.map((label, i) => (
-          <View key={i} style={{ flex: 1, alignItems: 'center' }}>
-            <View style={[s.progressDot, i <= step && s.progressDotActive, i < step && s.progressDotDone]}>
-              {i < step
-                ? <MaterialCommunityIcons name="check" size={14} color="#000" />
-                : <Text style={[s.progressNum, i <= step && { color: '#000' }]}>{i + 1}</Text>
-              }
+        {/* Dynamic Progress Bar */}
+        <View style={s.progressBarWrap}>
+          <View style={[s.progressBar, { width: `${((step + 1) / STEPS.length) * 100}%` }]} />
+        </View>
+
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+          
+          <View style={s.stepHeader}>
+            <View style={s.stepIconWrap}>
+              <MaterialCommunityIcons name={STEPS[step].icon as any} size={28} color="#49C788" />
             </View>
-            {i < STEPS.length - 1 && (
-              <View style={[s.progressLine, i < step && s.progressLineDone]} />
-            )}
+            <Text style={s.stepTitle}>{STEPS[step].title}</Text>
           </View>
-        ))}
-      </View>
-      <Text style={s.stepLabel}>{STEPS[step]}</Text>
 
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-
-        {/* ── STEP 0: Tipo ── */}
-        {step === 0 && (
-          <View style={s.stepContent}>
-            {(['roommate_agreement', 'rental_agreement'] as const).map(type => (
-              <Pressable
-                key={type}
-                style={[s.typeCard, contractType === type && s.typeCardActive]}
-                onPress={() => setContractType(type)}
-              >
-                <MaterialCommunityIcons
-                  name={type === 'roommate_agreement' ? 'account-group' : 'home-city-outline'}
-                  size={36}
-                  color={contractType === type ? '#49C788' : '#444'}
-                />
-                <Text style={[s.typeTitle, contractType === type && { color: '#49C788' }]}>
-                  {type === 'roommate_agreement' ? 'Acuerdo de Roommate' : 'Contrato de Renta'}
-                </Text>
-                <Text style={s.typeDesc}>
-                  {type === 'roommate_agreement'
-                    ? 'Entre compañeros de habitación para regular convivencia y gastos compartidos.'
-                    : 'Entre arrendador e inquilino para formalizar condiciones de renta.'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {/* ── STEP 1: Parte ── */}
-        {step === 1 && (
-          <View style={s.stepContent}>
-            <Text style={s.sectionHint}>Selecciona con quién deseas crear este acuerdo:</Text>
-            {loadingMatches ? (
-              <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
-            ) : matches.length === 0 ? (
-              <View style={s.emptyState}>
-                <MaterialCommunityIcons name="account-question-outline" size={48} color="#222" />
-                <Text style={s.emptyStateText}>No tienes matches aún.{'\n'}Necesitas un match para crear un acuerdo.</Text>
-              </View>
-            ) : (
-              matches.map(m => (
+          {/* ── STEP 0: Tipo ── */}
+          {step === 0 && (
+            <View style={s.stepContent}>
+              <Text style={s.sectionHint}>Select your agreement format</Text>
+              {(['roommate_agreement', 'rental_agreement'] as const).map(type => (
                 <Pressable
-                  key={m.user_id}
-                  style={[s.matchCard, selectedUser?.user_id === m.user_id && s.matchCardActive]}
-                  onPress={() => setSelectedUser(m)}
+                  key={type}
+                  style={[s.typeCard, contractType === type && s.typeCardActive]}
+                  onPress={() => setContractType(type)}
                 >
-                  <View style={s.matchAvatar}>
-                    <Text style={s.matchInitial}>{m.name[0]?.toUpperCase()}</Text>
+                  <LinearGradient 
+                    colors={contractType === type ? ['rgba(73,199,136,0.15)', 'transparent'] : ['transparent', 'transparent']} 
+                    style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]} 
+                  />
+                  <MaterialCommunityIcons
+                    name={type === 'roommate_agreement' ? 'account-group' : 'home-city-outline'}
+                    size={32}
+                    color={contractType === type ? '#49C788' : '#666'}
+                  />
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={[s.typeTitle, contractType === type && { color: '#49C788' }]}>
+                      {type === 'roommate_agreement' ? 'Roommate Agreement' : 'Rental Agreement'}
+                    </Text>
+                    <Text style={s.typeDesc}>
+                      {type === 'roommate_agreement'
+                        ? 'Co-living house rules and split expenses.'
+                        : 'Formalize rent, deposit, and property usage.'}
+                    </Text>
                   </View>
-                  <Text style={s.matchName}>{m.name}</Text>
-                  {selectedUser?.user_id === m.user_id && (
-                    <MaterialCommunityIcons name="check-circle" size={22} color="#49C788" />
-                  )}
-                </Pressable>
-              ))
-            )}
-          </View>
-        )}
-
-        {/* ── STEP 2: Términos principales ── */}
-        {step === 2 && (
-          <View style={s.stepContent}>
-            <Text style={s.fieldLabel}>Renta mensual ($) *</Text>
-            <TextInput style={s.input} value={rent} onChangeText={setRent} keyboardType="numeric" placeholder="Ej: 1200" placeholderTextColor="#444" />
-
-            <View style={s.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Día de pago</Text>
-                <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder="1" placeholderTextColor="#444" />
-              </View>
-              <View style={{ width: 12 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={s.fieldLabel}>Cargo tardío ($)</Text>
-                <TextInput style={s.input} value={lateFee} onChangeText={setLateFee} keyboardType="numeric" placeholder="50" placeholderTextColor="#444" />
-              </View>
-            </View>
-
-            <Text style={s.fieldLabel}>Depósito de seguridad ($) *</Text>
-            <TextInput style={s.input} value={deposit} onChangeText={setDeposit} keyboardType="numeric" placeholder="Ej: 2400" placeholderTextColor="#444" />
-
-            <Text style={s.fieldLabel}>Días para devolución del depósito</Text>
-            <TextInput style={s.input} value={returnDays} onChangeText={setReturnDays} keyboardType="numeric" placeholder="30" placeholderTextColor="#444" />
-
-            <Text style={s.fieldLabel}>Fecha de inicio (AAAA-MM-DD) *</Text>
-            <TextInput style={s.input} value={effectiveDate} onChangeText={setEffectiveDate} placeholder="2026-06-01" placeholderTextColor="#444" />
-          </View>
-        )}
-
-        {/* ── STEP 3: Reglas ── */}
-        {step === 3 && (
-          <View style={s.stepContent}>
-            <ToggleRow label="Mascotas permitidas" emoji="🐾" value={petsAllowed} onToggle={setPetsAllowed} />
-            <ToggleRow label="Fumar permitido" emoji="🚬" value={smokingAllowed} onToggle={setSmokingAllowed} />
-            <ToggleRow label="Visitas nocturnas" emoji="🌙" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
-
-            {visitorsAllowed && (
-              <>
-                <Text style={s.fieldLabel}>Máximo de noches seguidas</Text>
-                <TextInput style={s.input} value={maxNights} onChangeText={setMaxNights} keyboardType="numeric" placeholder="7" placeholderTextColor="#444" />
-              </>
-            )}
-
-            <Text style={s.fieldLabel}>Silencio desde (HH:MM)</Text>
-            <TextInput style={s.input} value={quietStart} onChangeText={setQuietStart} placeholder="22:00" placeholderTextColor="#444" />
-
-            <Text style={s.fieldLabel}>Silencio hasta (HH:MM)</Text>
-            <TextInput style={s.input} value={quietEnd} onChangeText={setQuietEnd} placeholder="08:00" placeholderTextColor="#444" />
-
-            <Text style={s.fieldLabel}>Turno de limpieza</Text>
-            <View style={s.segmented}>
-              {(['daily', 'weekly', 'biweekly'] as const).map(opt => (
-                <Pressable
-                  key={opt}
-                  style={[s.segment, cleaningSchedule === opt && s.segmentActive]}
-                  onPress={() => setCleaningSchedule(opt)}
-                >
-                  <Text style={[s.segmentText, cleaningSchedule === opt && { color: '#000' }]}>
-                    {opt === 'daily' ? 'Diario' : opt === 'weekly' ? 'Semanal' : 'Quincenal'}
-                  </Text>
+                  <MaterialCommunityIcons
+                    name={contractType === type ? 'check-circle' : 'circle-outline'}
+                    size={24}
+                    color={contractType === type ? '#49C788' : '#333'}
+                  />
                 </Pressable>
               ))}
             </View>
-          </View>
-        )}
+          )}
 
-        {/* ── STEP 4: Cláusulas opcionales ── */}
-        {step === 4 && (
-          <View style={s.stepContent}>
-            <Text style={s.sectionHint}>Selecciona las cláusulas adicionales que aplican:</Text>
-            {OPTIONAL_CLAUSES.map(c => {
-              const selected = selectedOptional.includes(c.key);
-              return (
-                <Pressable
-                  key={c.key}
-                  style={[s.clauseCard, selected && s.clauseCardActive]}
-                  onPress={() => toggleOptional(c.key)}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.clauseLabel, selected && { color: '#49C788' }]}>{c.label}</Text>
-                    <Text style={s.clauseDesc}>{c.desc}</Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name={selected ? 'check-circle' : 'circle-outline'}
-                    size={22}
-                    color={selected ? '#49C788' : '#333'}
+          {/* ── STEP 1: Parte ── */}
+          {step === 1 && (
+            <View style={s.stepContent}>
+              <Text style={s.sectionHint}>Who are you signing this agreement with?</Text>
+
+              {/* Buscador de Matches */}
+              {matches.length > 0 && (
+                <View style={s.searchContainer}>
+                  <MaterialCommunityIcons name="magnify" size={20} color="#666" style={s.searchIcon} />
+                  <TextInput
+                    style={s.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search roommates..."
+                    placeholderTextColor="#666"
                   />
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+                  {searchQuery.length > 0 && (
+                    <Pressable onPress={() => setSearchQuery('')}>
+                      <MaterialCommunityIcons name="close" size={18} color="#666" />
+                    </Pressable>
+                  )}
+                </View>
+              )}
 
-        <View style={{ height: 120 }} />
-      </ScrollView>
+              {/* Píldoras de seleccionados */}
+              {selectedUsers.length > 0 && (
+                <View style={s.selectedPillsContainer}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.selectedPillsScroll}>
+                    {selectedUsers.map(user => (
+                      <Pressable key={user.user_id} style={s.selectedPill} onPress={() => handleToggleUser(user)}>
+                        <Text style={s.selectedPillText}>{user.name}</Text>
+                        <MaterialCommunityIcons name="close-circle" size={16} color="#fff" style={{ marginLeft: 6 }} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
-      {/* Bottom CTA */}
-      <View style={s.footer}>
-        {step < STEPS.length - 1 ? (
-          <Pressable
-            style={[s.nextBtn, !canNext() && s.nextBtnDisabled]}
-            onPress={() => canNext() && setStep(step + 1)}
-          >
-            <Text style={s.nextBtnText}>Siguiente</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
-          </Pressable>
-        ) : (
-          <Pressable style={s.nextBtn} onPress={handleSubmit} disabled={loading}>
-            {loading
-              ? <ActivityIndicator color="#000" />
-              : <><Text style={s.nextBtnText}>Revisar y Enviar</Text><MaterialCommunityIcons name="send" size={20} color="#000" /></>
-            }
-          </Pressable>
-        )}
-      </View>
+              {loadingMatches ? (
+                <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
+              ) : matches.length === 0 ? (
+                <View style={s.emptyState}>
+                  <View style={s.emptyIconWrap}>
+                    <MaterialCommunityIcons name="account-question-outline" size={40} color="#666" />
+                  </View>
+                  <Text style={s.emptyStateText}>You need an approved match to create a formal agreement.</Text>
+                </View>
+              ) : (
+                (() => {
+                  const filtered = matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                  if (filtered.length === 0) {
+                    return (
+                      <View style={s.emptyState}>
+                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>No roommates found with that name.</Text>
+                      </View>
+                    );
+                  }
+                  return filtered.map(m => {
+                    const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
+                    return (
+                      <Pressable
+                        key={m.user_id}
+                        style={[s.matchCard, isSelected && s.matchCardActive]}
+                        onPress={() => handleToggleUser(m)}
+                      >
+                        <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
+                          <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
+                        </View>
+                        <Text style={s.matchName}>{m.name}</Text>
+                        <MaterialCommunityIcons 
+                          name={isSelected ? "check-circle" : "circle-outline"} 
+                          size={24} 
+                          color={isSelected ? "#49C788" : "#333"} 
+                        />
+                      </Pressable>
+                    );
+                  });
+                })()
+              )}
+            </View>
+          )}
+
+          {/* ── STEP 2: Finanzas ── */}
+          {step === 2 && (
+            <View style={s.stepContent}>
+              <Text style={s.sectionHint}>Set the base amounts. These can be adjusted later in the clauses.</Text>
+              
+              <View style={s.inputGroup}>
+                <Text style={s.fieldLabel}>Total Monthly Rent ($) *</Text>
+                <View style={s.inputWrapper}>
+                  <MaterialCommunityIcons name="currency-usd" size={20} color="#888" style={s.inputIcon} />
+                  <TextInput style={s.inputWithIcon} value={rent} onChangeText={setRent} keyboardType="numeric" placeholder="1200" placeholderTextColor="#444" />
+                </View>
+              </View>
+
+              <View style={s.inputGroup}>
+                <Text style={s.fieldLabel}>Security Deposit ($) *</Text>
+                <View style={s.inputWrapper}>
+                  <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#888" style={s.inputIcon} />
+                  <TextInput style={s.inputWithIcon} value={deposit} onChangeText={setDeposit} keyboardType="numeric" placeholder="2400" placeholderTextColor="#444" />
+                </View>
+              </View>
+
+              <View style={s.row}>
+                <View style={[s.inputGroup, { flex: 1 }]}>
+                  <Text style={s.fieldLabel}>Due day</Text>
+                  <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder="e.g. 1" placeholderTextColor="#444" />
+                </View>
+                <View style={{ width: 16 }} />
+                <View style={[s.inputGroup, { flex: 1.5 }]}>
+                  <Text style={s.fieldLabel}>Start date *</Text>
+                  <TextInput
+                    style={s.input}
+                    value={effectiveDate}
+                    onChangeText={handleDateChange}
+                    placeholder="DD/MM/YYYY"
+                    placeholderTextColor="#444"
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* ── STEP 3: Reglas ── */}
+          {step === 3 && (
+            <View style={s.stepContent}>
+              <Text style={s.sectionHint}>Configure the basic housing policies.</Text>
+              <ToggleRow label="Pets allowed" icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
+              <ToggleRow label="Smoking allowed" icon="smoking" value={smokingAllowed} onToggle={setSmokingAllowed} />
+              <ToggleRow label="Overnight guests" icon="weather-night" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
+
+              <View style={[s.inputGroup, { marginTop: 16 }]}>
+                <Text style={s.fieldLabel}>Cleaning schedule</Text>
+                <View style={s.segmented}>
+                  {(['daily', 'weekly', 'biweekly'] as const).map(opt => (
+                    <Pressable
+                      key={opt}
+                      style={[s.segment, cleaningSchedule === opt && s.segmentActive]}
+                      onPress={() => setCleaningSchedule(opt)}
+                    >
+                      <Text style={[s.segmentText, cleaningSchedule === opt && { color: '#000' }]}>
+                        {opt === 'daily' ? 'Daily' : opt === 'weekly' ? 'Weekly' : 'Biweekly'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* ── STEP 4: Módulos ── */}
+          {step === 4 && (
+            <View style={s.stepContent}>
+              <Pressable style={s.aiBanner} onPress={handleAIGenerate} disabled={aiLoading}>
+                {aiLoading ? <ActivityIndicator size="small" color="#0A84FF" /> : <MaterialCommunityIcons name="auto-fix" size={20} color="#0A84FF" />}
+                <Text style={s.aiText}>{aiLoading ? 'Analyzing profiles...' : 'Suggest clauses with Artificial Intelligence'}</Text>
+              </Pressable>
+
+              {OPTIONAL_CLAUSES.map(c => {
+                const selected = selectedOptional.includes(c.key);
+                return (
+                  <Pressable
+                    key={c.key}
+                    style={[s.clauseCard, selected && s.clauseCardActive]}
+                    onPress={() => toggleOptional(c.key)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.clauseLabel, selected && { color: '#fff' }]}>{c.label}</Text>
+                      <Text style={s.clauseDesc}>{c.desc}</Text>
+                    </View>
+                    <Switch
+                      value={selected}
+                      onValueChange={() => toggleOptional(c.key)}
+                      trackColor={{ false: '#222', true: '#49C788' }}
+                      thumbColor="#fff"
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        {/* Bottom CTA */}
+        <View style={s.footer}>
+          {step < STEPS.length - 1 ? (
+            <Pressable
+              style={[s.nextBtn, !canNext() && s.nextBtnDisabled]}
+              onPress={() => canNext() && setStep(step + 1)}
+            >
+              <Text style={s.nextBtnText}>Next Step</Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
+            </Pressable>
+          ) : (
+            <Pressable style={s.nextBtn} onPress={handleSubmit} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="file-document-check" size={20} color="#000" />
+                  <Text style={s.nextBtnText}>Save and Send to Review</Text>
+                </>
+              )}
+            </Pressable>
+          )}
+        </View>
+
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 // ── Helper component ─────────────────────────────────────────────────────────
-function ToggleRow({ label, emoji, value, onToggle }: { label: string; emoji: string; value: boolean; onToggle: (v: boolean) => void }) {
+function ToggleRow({ label, icon, value, onToggle }: { label: string; icon: string; value: boolean; onToggle: (v: boolean) => void }) {
   return (
     <View style={s.toggleRow}>
-      <Text style={s.toggleEmoji}>{emoji}</Text>
+      <View style={[s.toggleIconWrap, value && { backgroundColor: 'rgba(73,199,136,0.1)' }]}>
+        <MaterialCommunityIcons name={icon as any} size={20} color={value ? '#49C788' : '#888'} />
+      </View>
       <Text style={s.toggleLabel}>{label}</Text>
       <Switch
         value={value}
         onValueChange={onToggle}
-        trackColor={{ false: '#1a1a2e', true: 'rgba(73,199,136,0.4)' }}
-        thumbColor={value ? '#49C788' : '#333'}
+        trackColor={{ false: '#222', true: '#49C788' }}
+        thumbColor="#fff"
       />
     </View>
   );
@@ -372,47 +503,73 @@ function ToggleRow({ label, emoji, value, onToggle }: { label: string; emoji: st
 
 const s = StyleSheet.create({
   container:        { flex: 1, backgroundColor: '#000' },
-  header:           { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingTop: 8 },
-  backBtn:          { width: 36, height: 36, borderRadius: 18, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
-  headerTitle:      { flex: 1, color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
-  progressWrap:     { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 16, alignItems: 'flex-start', position: 'relative' },
-  progressDot:      { width: 28, height: 28, borderRadius: 14, backgroundColor: '#111', borderWidth: 2, borderColor: '#222', justifyContent: 'center', alignItems: 'center' },
-  progressDotActive:{ backgroundColor: '#49C788', borderColor: '#49C788' },
-  progressDotDone:  { backgroundColor: '#49C788', borderColor: '#49C788' },
-  progressNum:      { color: '#555', fontSize: 12, fontWeight: '700' },
-  progressLine:     { position: 'absolute', top: 30, left: '60%', right: '-40%', height: 2, backgroundColor: '#1a1a2e' },
-  progressLineDone: { backgroundColor: '#49C788' },
-  stepLabel:        { color: '#49C788', fontSize: 13, fontWeight: '700', textAlign: 'center', marginBottom: 8, letterSpacing: 0.5 },
-  scroll:           { paddingHorizontal: 20 },
-  stepContent:      { gap: 12 },
-  sectionHint:      { color: '#888', fontSize: 14, marginBottom: 4 },
-  typeCard:         { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 16, padding: 20, alignItems: 'center', gap: 10 },
-  typeCardActive:   { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.07)' },
-  typeTitle:        { color: '#fff', fontSize: 17, fontWeight: '700' },
-  typeDesc:         { color: '#666', fontSize: 13, textAlign: 'center', lineHeight: 20 },
-  matchCard:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 14, padding: 14, gap: 12 },
-  matchCardActive:  { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.07)' },
-  matchAvatar:      { width: 42, height: 42, borderRadius: 21, backgroundColor: '#49C788', justifyContent: 'center', alignItems: 'center' },
-  matchInitial:     { color: '#000', fontWeight: '800', fontSize: 18 },
+  header:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
+  backBtn:          { width: 40, height: 40, borderRadius: 20, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  headerTitle:      { color: '#fff', fontSize: 18, fontWeight: '700' },
+  stepCounter:      { color: '#49C788', fontSize: 14, fontWeight: '800' },
+  
+  progressBarWrap:  { height: 4, backgroundColor: '#111', width: '100%' },
+  progressBar:      { height: '100%', backgroundColor: '#49C788' },
+
+  scroll:           { paddingHorizontal: 20, paddingTop: 24 },
+  
+  stepHeader:       { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+  stepIconWrap:     { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(73,199,136,0.1)', justifyContent: 'center', alignItems: 'center' },
+  stepTitle:        { color: '#fff', fontSize: 24, fontWeight: '800' },
+
+  stepContent:      { gap: 16 },
+  sectionHint:      { color: '#888', fontSize: 14, marginBottom: 8, lineHeight: 20 },
+
+  typeCard:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 20, position: 'relative' },
+  typeCardActive:   { borderColor: '#49C788' },
+  typeTitle:        { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  typeDesc:         { color: '#888', fontSize: 13, lineHeight: 18 },
+
+  matchCard:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 16, gap: 12 },
+  matchCardActive:  { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.05)' },
+  matchAvatar:      { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
+  matchInitial:     { color: '#fff', fontWeight: '800', fontSize: 18 },
   matchName:        { color: '#fff', fontSize: 16, fontWeight: '600', flex: 1 },
-  emptyState:       { alignItems: 'center', paddingTop: 40, gap: 12 },
-  emptyStateText:   { color: '#555', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  fieldLabel:       { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 4, marginTop: 8 },
-  input:            { backgroundColor: '#0d1117', color: '#fff', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#1a1a2e', fontSize: 15 },
+
+  emptyState:       { alignItems: 'center', paddingTop: 30, gap: 16 },
+  emptyIconWrap:    { width: 80, height: 80, borderRadius: 40, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  emptyStateText:   { color: '#666', fontSize: 14, textAlign: 'center', lineHeight: 22 },
+
+  inputGroup:       { marginBottom: 8 },
+  fieldLabel:       { color: '#888', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  input:            { backgroundColor: '#0d1117', color: '#fff', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', fontSize: 16 },
+  inputWrapper:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e' },
+  inputIcon:        { paddingLeft: 16 },
+  inputWithIcon:    { flex: 1, color: '#fff', padding: 16, fontSize: 16 },
   row:              { flexDirection: 'row' },
-  toggleRow:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#1a1a2e', gap: 10 },
-  toggleEmoji:      { fontSize: 20 },
-  toggleLabel:      { color: '#fff', fontSize: 15, flex: 1 },
-  segmented:        { flexDirection: 'row', backgroundColor: '#0d1117', borderRadius: 12, borderWidth: 1, borderColor: '#1a1a2e', overflow: 'hidden' },
-  segment:          { flex: 1, paddingVertical: 12, alignItems: 'center' },
+
+  toggleRow:        { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#1a1a2e', gap: 12 },
+  toggleIconWrap:   { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a2e', justifyContent: 'center', alignItems: 'center' },
+  toggleLabel:      { color: '#fff', fontSize: 15, fontWeight: '600', flex: 1 },
+
+  segmented:        { flexDirection: 'row', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e', overflow: 'hidden' },
+  segment:          { flex: 1, paddingVertical: 14, alignItems: 'center' },
   segmentActive:    { backgroundColor: '#49C788' },
-  segmentText:      { color: '#888', fontWeight: '600', fontSize: 13 },
-  clauseCard:       { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  segmentText:      { color: '#888', fontWeight: '700', fontSize: 13 },
+
+  aiBanner:         { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(10, 132, 255, 0.1)', padding: 16, borderRadius: 30, gap: 10, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(10, 132, 255, 0.2)' },
+  aiText:           { color: '#0A84FF', fontSize: 13, fontWeight: '600', flex: 1 },
+
+  clauseCard:       { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1a1a2e', borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   clauseCardActive: { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.05)' },
-  clauseLabel:      { color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  clauseDesc:       { color: '#555', fontSize: 12, lineHeight: 18 },
+  clauseLabel:      { color: '#aaa', fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  clauseDesc:       { color: '#666', fontSize: 13, lineHeight: 18 },
+
   footer:           { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: 'rgba(0,0,0,0.95)' },
   nextBtn:          { backgroundColor: '#49C788', borderRadius: 30, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, shadowColor: '#49C788', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6 },
   nextBtnDisabled:  { backgroundColor: '#1a2a22', shadowOpacity: 0 },
   nextBtnText:      { color: '#000', fontWeight: '800', fontSize: 16 },
+
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0d1117', borderRadius: 20, borderWidth: 1, borderColor: '#1a1a2e', paddingHorizontal: 16, height: 50, marginBottom: 8 },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15 },
+  selectedPillsContainer: { height: 40, marginBottom: 8 },
+  selectedPillsScroll: { gap: 8, alignItems: 'center' },
+  selectedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#49C788', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  selectedPillText: { color: '#000', fontWeight: '700', fontSize: 13 },
 });

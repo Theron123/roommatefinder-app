@@ -3,11 +3,15 @@ import { Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInp
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from '../../context/LanguageContext';
 
 export default function InboxScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,35 @@ export default function InboxScreen() {
     }, [])
   );
 
+  useEffect(() => {
+    let inboxChannel: any = null;
+
+    const setupInboxSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const myId = session.user.id;
+
+      inboxChannel = supabase
+        .channel('public:messages_inbox')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+          const newMsg = payload.new;
+          if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
+            // Trigger an immediate non-blocking refresh of conversation list
+            fetchConversations();
+          }
+        })
+        .subscribe();
+    };
+
+    setupInboxSubscription();
+
+    return () => {
+      if (inboxChannel) {
+        supabase.removeChannel(inboxChannel);
+      }
+    };
+  }, []);
+
   const fetchMatches = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -48,7 +81,7 @@ export default function InboxScreen() {
     const myId = session.user.id;
     const { data: matchData } = await supabase
       .from('matches')
-      .select('*')
+      .select('user1, user2')
       .or(`user1.eq.${myId},user2.eq.${myId}`);
 
     if (matchData && matchData.length > 0) {
@@ -59,14 +92,6 @@ export default function InboxScreen() {
         .in('id', matchIds);
 
       if (profiles) setMatches(profiles);
-    } else {
-      // Mock data just for UI preview if no matches exist yet
-      const { data: mockProfiles } = await supabase
-        .from('profiles')
-        .select('id, name, photoUrl')
-        .neq('id', myId)
-        .limit(4);
-      if (mockProfiles) setMatches(mockProfiles);
     }
   };
 
@@ -79,21 +104,33 @@ export default function InboxScreen() {
       const myId = session.user.id;
 
       // 1. Fetch messages
-      const { data: msgs } = await supabase
+      const { data: msgs, error: msgsError } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
         .order('created_at', { ascending: false });
 
+      if (msgsError) {
+        console.error("Error fetching messages for inbox:", msgsError);
+      }
+
+      const deletedRaw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
+      const deletedMsgs = deletedRaw ? JSON.parse(deletedRaw) : [];
+
       if (msgs && msgs.length > 0) {
+        const validMsgs = msgs.filter(m => !deletedMsgs.includes(m.id));
         const uniqueUserIds = new Set<string>();
         const lastMsgs = new Map<string, any>();
+        const unreadCounts = new Map<string, number>();
 
-        msgs.forEach(msg => {
+        validMsgs.forEach(msg => {
           const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
           if (!uniqueUserIds.has(otherId)) {
             uniqueUserIds.add(otherId);
             lastMsgs.set(otherId, msg);
+          }
+          if (msg.receiver_id === myId && !msg.is_read) {
+            unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
           }
         });
 
@@ -114,9 +151,9 @@ export default function InboxScreen() {
               name: p.name || 'Roommate',
               age: p.age,
               photoUrl: p.photoUrl,
-              lastMessage: lastMsg.content,
+              lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
-              unread: false,
+              unreadCount: unreadCounts.get(p.id) || 0,
             };
           });
 
@@ -136,12 +173,12 @@ export default function InboxScreen() {
     setLoading(false);
   };
 
-  const renderConversation = ({ item }: { item: any }) => (
+  const renderConversation = useCallback(({ item }: { item: any }) => (
     <Pressable
       onPress={() => router.push(`/chat/${item.id}`)}
       style={styles.row}
     >
-      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
+      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       
       {item.unread && <View style={styles.unreadDot} />}
 
@@ -158,26 +195,46 @@ export default function InboxScreen() {
         </Text>
       </View>
     </Pressable>
-  );
+  ), [router]);
+
+  const renderSearchItem = useCallback(({ item }: { item: any }) => (
+    <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
+      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+      <View style={styles.content}>
+         <Text style={styles.name}>{item.name}, {item.age}</Text>
+         <Text style={styles.lastMessage}>{t('explore.tap_view')}</Text>
+      </View>
+    </Pressable>
+  ), [router]);
+
+  const renderMatchItem = useCallback(({ item }: { item: any }) => (
+    <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
+      <View style={styles.matchAvatarContainer}>
+        <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" cachePolicy="memory-disk" />
+      </View>
+      <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
+    </Pressable>
+  ), [router]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient colors={['#1a1a24', '#000']} style={styles.header}>
         <View style={styles.headerTopRow}>
           <View>
-            <Text style={styles.title}>Messages</Text>
-            <Text style={styles.subtitle}>{conversations.filter(c => c.unread).length} unread conversations</Text>
+            <Text style={styles.title}>{t('inbox.messages_title')}</Text>
+            <Text style={styles.subtitle}>
+              {conversations.filter(c => c.unread).length} {conversations.filter(c => c.unread).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
+            </Text>
           </View>
-          <Pressable onPress={() => router.push('/followers')} style={styles.followersIcon}>
-             <MaterialCommunityIcons name="heart-multiple" size={26} color="#49C788" />
-             <View style={styles.badge}><Text style={styles.badgeText}>3</Text></View>
+          <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
+             <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
           </Pressable>
         </View>
         
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchText}
-            placeholder="Search users by name..."
+            placeholder={t('inbox.search_placeholder')}
             placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -187,19 +244,11 @@ export default function InboxScreen() {
       </LinearGradient>
 
       {searchQuery.trim().length > 1 ? (
-        <FlatList
+        <FlashList
           data={searchResults}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
-              <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-              <View style={styles.content}>
-                 <Text style={styles.name}>{item.name}, {item.age}</Text>
-                 <Text style={styles.lastMessage}>Tap to view profile</Text>
-              </View>
-            </Pressable>
-          )}
-          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No users found</Text>}
+          renderItem={renderSearchItem}
+          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>{t('inbox.no_users')}</Text>}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
@@ -210,40 +259,35 @@ export default function InboxScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           {matches.length > 0 && (
-            <View style={styles.matchesContainer}>
-              <Text style={styles.matchesTitle}>New Matches</Text>
-              <FlatList
+            <View style={styles.matchesSection}>
+              <Text style={styles.matchesTitle}>{t('explore.new_matches')}</Text>
+              <FlashList
                 data={matches}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.matchesScroll}
-                renderItem={({ item }) => (
-                  <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
-                    <View style={styles.matchAvatarContainer}>
-                      <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" />
-                    </View>
-                    <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
-                  </Pressable>
-                )}
+                renderItem={renderMatchItem}
               />
             </View>
           )}
           
-          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>Messages</Text>
+          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>{t('inbox.messages_title')}</Text>
           {conversations.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-              <Text style={{ color: '#888', fontSize: 16 }}>No messages yet.</Text>
-              <Text style={{ color: '#555', fontSize: 14, marginTop: 8 }}>Start chatting with your matches!</Text>
+              <MaterialCommunityIcons name="message-text-outline" size={60} color="#333" />
+              <Text style={styles.emptyText}>{t('inbox.no_chats')}</Text>
             </View>
           ) : (
-            <FlatList
-              data={conversations}
-              keyExtractor={(item) => item.id}
-              renderItem={renderConversation}
-              contentContainerStyle={styles.list}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
-            />
+            <View style={{ flex: 1 }}>
+              <FlashList
+                data={conversations}
+                keyExtractor={(item) => item.id}
+                renderItem={renderConversation}
+                contentContainerStyle={styles.list}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            </View>
           )}
         </View>
       )}
@@ -286,6 +330,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginTop: 4,
+  },
+  matchesSection: {
+    paddingVertical: 10,
+  },
+  emptyText: {
+    color: '#888',
+    fontSize: 16,
+    marginTop: 15,
   },
   list: {
     paddingVertical: 8,
@@ -351,7 +403,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  followersIcon: {
+  activityIcon: {
     position: 'relative',
     padding: 8,
     backgroundColor: 'rgba(73, 199, 136, 0.12)',
