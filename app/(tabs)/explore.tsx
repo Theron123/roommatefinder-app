@@ -923,7 +923,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -1000,6 +1003,9 @@ const styles = StyleSheet.create({
   },
   swiperContainer: {
     flex: 1,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
   swiper: {
     backgroundColor: 'transparent',

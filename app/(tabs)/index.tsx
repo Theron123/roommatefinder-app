@@ -345,89 +345,91 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
+      <View style={styles.responsiveContent}>
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Pressable 
+                onLongPress={() => {
+                  DeviceEventEmitter.emit('show_tutorial');
+                }}
+                delayLongPress={800}
+              >
+                <Text style={styles.mainTitle}>
+                  Roommate<Text style={{ color: '#49C788' }}>Finder</Text>
+                </Text>
+              </Pressable>
+              <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
+            </View>
             <Pressable 
-              onLongPress={() => {
-                DeviceEventEmitter.emit('show_tutorial');
-              }}
-              delayLongPress={800}
+              onPress={() => router.push('/settings')} 
+              style={styles.headerAvatarContainer}
             >
-              <Text style={styles.mainTitle}>
-                Roommate<Text style={{ color: '#49C788' }}>Finder</Text>
-              </Text>
+              {currentUserPhoto ? (
+                <Image source={{ uri: currentUserPhoto }} style={styles.headerAvatar} contentFit="cover" />
+              ) : (
+                <View style={styles.headerIconWrapper}>
+                  <IconSymbol size={22} name="person.crop.circle.fill" color="#888" />
+                </View>
+              )}
+              <View style={styles.activeDot} />
             </Pressable>
-            <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
           </View>
+        </View>
+
+        <View style={styles.toggleContainer}>
           <Pressable 
-            onPress={() => router.push('/settings')} 
-            style={styles.headerAvatarContainer}
+            style={[styles.toggleBtn, feedMode === 'people' && styles.toggleBtnActive]}
+            onPress={() => setFeedMode('people')}
           >
-            {currentUserPhoto ? (
-              <Image source={{ uri: currentUserPhoto }} style={styles.headerAvatar} contentFit="cover" />
-            ) : (
-              <View style={styles.headerIconWrapper}>
-                <IconSymbol size={22} name="person.crop.circle.fill" color="#888" />
-              </View>
-            )}
-            <View style={styles.activeDot} />
+            <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>{t('explore.people')}</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.toggleBtn, feedMode === 'apartments' && styles.toggleBtnActive]}
+            onPress={() => setFeedMode('apartments')}
+          >
+            <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>{t('explore.apartments')}</Text>
           </Pressable>
         </View>
-      </View>
 
-      <View style={styles.toggleContainer}>
-        <Pressable 
-          style={[styles.toggleBtn, feedMode === 'people' && styles.toggleBtnActive]}
-          onPress={() => setFeedMode('people')}
-        >
-          <Text style={[styles.toggleText, feedMode === 'people' && styles.toggleTextActive]}>{t('explore.people')}</Text>
-        </Pressable>
-        <Pressable 
-          style={[styles.toggleBtn, feedMode === 'apartments' && styles.toggleBtnActive]}
-          onPress={() => setFeedMode('apartments')}
-        >
-          <Text style={[styles.toggleText, feedMode === 'apartments' && styles.toggleTextActive]}>{t('explore.apartments')}</Text>
-        </Pressable>
+        {loading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color="#49C788" size="large" />
+          </View>
+        ) : feedMode === 'people' ? (
+          profiles.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>{t('explore.no_matches')}</Text>
+            </View>
+          ) : (
+            <FlashList
+              data={profiles}
+              keyExtractor={(item) => item.id}
+              renderItem={renderProfile}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={() => fetchMatches(true)} tintColor="#49C788" />
+              }
+            />
+          )
+        ) : (
+          listings.length === 0 ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>{t('explore.no_apts')}</Text>
+            </View>
+          ) : (
+            <FlashList
+              data={listings}
+              keyExtractor={(item) => item.id}
+              renderItem={renderListing}
+              contentContainerStyle={styles.listContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={() => fetchListings(true)} tintColor="#49C788" />
+              }
+            />
+          )
+        )}
       </View>
-
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color="#49C788" size="large" />
-        </View>
-      ) : feedMode === 'people' ? (
-        profiles.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>{t('explore.no_matches')}</Text>
-          </View>
-        ) : (
-          <FlashList
-            data={profiles}
-            keyExtractor={(item) => item.id}
-            renderItem={renderProfile}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={() => fetchMatches(true)} tintColor="#49C788" />
-            }
-          />
-        )
-      ) : (
-        listings.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.emptyText}>{t('explore.no_apts')}</Text>
-          </View>
-        ) : (
-          <FlashList
-            data={listings}
-            keyExtractor={(item) => item.id}
-            renderItem={renderListing}
-            contentContainerStyle={styles.listContent}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={() => fetchListings(true)} tintColor="#49C788" />
-            }
-          />
-        )
-      )}
     </SafeAreaView>
   );
 }
@@ -774,5 +776,11 @@ const styles = StyleSheet.create({
     color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  responsiveContent: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
 });

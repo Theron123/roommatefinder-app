@@ -245,81 +245,83 @@ export default function InboxScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={['rgba(25, 25, 36, 0.5)', '#000']} style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.title}>{t('inbox.messages_title')}</Text>
-            <Text style={styles.subtitle}>
-              {conversations.filter(c => c.unreadCount > 0).length} {conversations.filter(c => c.unreadCount > 0).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
-            </Text>
+      <View style={styles.responsiveContent}>
+        <LinearGradient colors={['rgba(25, 25, 36, 0.5)', '#000']} style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <View>
+              <Text style={styles.title}>{t('inbox.messages_title')}</Text>
+              <Text style={styles.subtitle}>
+                {conversations.filter(c => c.unreadCount > 0).length} {conversations.filter(c => c.unreadCount > 0).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
+              </Text>
+            </View>
+            <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
+               <MaterialCommunityIcons name="bell-outline" size={24} color="#49C788" />
+               {matches.length > 0 && <View style={styles.activityDot} />}
+            </Pressable>
           </View>
-          <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
-             <MaterialCommunityIcons name="bell-outline" size={24} color="#49C788" />
-             {matches.length > 0 && <View style={styles.activityDot} />}
-          </Pressable>
-        </View>
-        
-        <View style={styles.searchBar}>
-          <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchText}
-            placeholder={t('inbox.search_placeholder')}
-            placeholderTextColor="#666"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-        </View>
-      </LinearGradient>
-
-      {searchQuery.trim().length > 1 ? (
-        <FlashList
-          data={searchResults}
-          keyExtractor={(item) => item.id}
-          renderItem={renderSearchItem}
-          ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>{t('inbox.no_users')}</Text>}
-          contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-        />
-      ) : loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color="#49C788" size="large" />
-        </View>
-      ) : (
-        <View style={{ flex: 1 }}>
-          {matches.length > 0 && (
-            <View style={styles.matchesSection}>
-              <Text style={styles.matchesTitle}>{t('explore.new_matches')}</Text>
-              <FlashList
-                data={matches}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.matchesScroll}
-                renderItem={renderMatchItem}
-              />
-            </View>
-          )}
           
-          <Text style={[styles.matchesTitle, { marginTop: 16 }]}>{t('inbox.messages_title')}</Text>
-          {conversations.length === 0 ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-              <MaterialCommunityIcons name="message-text-outline" size={60} color="#333" />
-              <Text style={styles.emptyText}>{t('inbox.no_chats')}</Text>
-            </View>
-          ) : (
-            <View style={{ flex: 1 }}>
-              <FlashList
-                data={conversations}
-                keyExtractor={(item) => item.id}
-                renderItem={renderConversation}
-                contentContainerStyle={styles.list}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-              />
-            </View>
-          )}
-        </View>
-      )}
+          <View style={styles.searchBar}>
+            <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchText}
+              placeholder={t('inbox.search_placeholder')}
+              placeholderTextColor="#666"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+            />
+          </View>
+        </LinearGradient>
+
+        {searchQuery.trim().length > 1 ? (
+          <FlashList
+            data={searchResults}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSearchItem}
+            ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>{t('inbox.no_users')}</Text>}
+            contentContainerStyle={styles.list}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+        ) : loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator color="#49C788" size="large" />
+          </View>
+        ) : (
+          <View style={{ flex: 1 }}>
+            {matches.length > 0 && (
+              <View style={styles.matchesSection}>
+                <Text style={styles.matchesTitle}>{t('explore.new_matches')}</Text>
+                <FlashList
+                  data={matches}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  keyExtractor={(item) => item.id}
+                  contentContainerStyle={styles.matchesScroll}
+                  renderItem={renderMatchItem}
+                />
+              </View>
+            )}
+            
+            <Text style={[styles.matchesTitle, { marginTop: 16 }]}>{t('inbox.messages_title')}</Text>
+            {conversations.length === 0 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
+                <MaterialCommunityIcons name="message-text-outline" size={60} color="#333" />
+                <Text style={styles.emptyText}>{t('inbox.no_chats')}</Text>
+              </View>
+            ) : (
+              <View style={{ flex: 1 }}>
+                <FlashList
+                  data={conversations}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderConversation}
+                  contentContainerStyle={styles.list}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                />
+              </View>
+            )}
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -328,6 +330,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  responsiveContent: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: 20,
