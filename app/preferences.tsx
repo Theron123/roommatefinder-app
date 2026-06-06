@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'TU_CLAVE_AQUI';
 
@@ -52,6 +55,9 @@ export default function PreferencesScreen() {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationName, setLocationName] = useState('');
 
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
   const { focus, firstTime } = useLocalSearchParams<{ focus?: string; firstTime?: string }>();
 
   useEffect(() => {
@@ -65,11 +71,14 @@ export default function PreferencesScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('likes, dealbreakers, latOffset, lngOffset, lifestyle')
+        .select('likes, dealbreakers, latOffset, lngOffset, lifestyle, photos')
         .eq('id', session.user.id)
         .single();
 
       if (data) {
+        if (data.photos) {
+          setPhotos(Array.isArray(data.photos) ? data.photos : []);
+        }
         if (data.likes) {
           const likesArr = data.likes.split(',').map((s: string) => s.trim()).filter(Boolean);
           const known = likesArr.filter((l: string) => HOBBIES.includes(l));
@@ -122,6 +131,87 @@ export default function PreferencesScreen() {
       console.log('Error loading preferences', err);
     } finally {
       setInitialLoad(false);
+    }
+  };
+
+  const pickImage = async (slotIndex: number) => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      try {
+        setUploading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const photoUri = result.assets[0].uri;
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+
+        const fileExt = photoUri.split('.').pop() || 'jpeg';
+        const fileName = `${session.user.id}-${Date.now()}-${slotIndex}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('Roommate')
+          .upload(fileName, blob, {
+            contentType: `image/${fileExt}`,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
+        const publicUrl = data.publicUrl;
+
+        // Fetch current profile to get latest photos array
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('photos')
+          .eq('id', session.user.id)
+          .single();
+
+        let updatedPhotos = Array.isArray(currentProfile?.photos) ? [...currentProfile.photos] : [...photos];
+        while (updatedPhotos.length < 5) {
+          updatedPhotos.push('');
+        }
+        updatedPhotos[slotIndex] = publicUrl;
+
+        const updatePayload: any = { photos: updatedPhotos };
+        if (slotIndex === 0) {
+          updatePayload.photoUrl = publicUrl;
+        }
+
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
+
+        if (existingProfile) {
+          await supabase.from('profiles').update(updatePayload).eq('id', session.user.id);
+        } else {
+          const nameFromMeta = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+          await supabase.from('profiles').insert({
+            id: session.user.id,
+            name: nameFromMeta,
+            age: 20,
+            ...updatePayload
+          });
+        }
+
+        setPhotos(updatedPhotos);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        Alert.alert('Upload Failed', 'There was an error uploading your profile picture.');
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -186,6 +276,12 @@ export default function PreferencesScreen() {
       return;
     }
 
+    if (!focus && (!photos || photos.filter(Boolean).length === 0)) {
+      Alert.alert('Photo Required', 'Please upload at least one profile photo to identify yourself.');
+      setLoading(false);
+      return;
+    }
+
     const likes = [Array.from(selectedLikes).join(', '), otherLikes.trim()].filter(Boolean).join(', ');
     const dealbreakers = [Array.from(selectedDeals).join(', '), otherDeals.trim()].filter(Boolean).join(', ');
 
@@ -214,11 +310,23 @@ export default function PreferencesScreen() {
     }
 
     const { data: existing } = await supabase.from('profiles').select('name, age').eq('id', session.user.id).single();
-    if (existing && !existing.age) {
-      updates.age = 20;
+    
+    let error;
+    if (existing) {
+      if (!existing.age) {
+        updates.age = 20;
+      }
+      const res = await supabase.from('profiles').update(updates).eq('id', session.user.id);
+      error = res.error;
+    } else {
+      const nameFromMeta = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+      const res = await supabase.from('profiles').insert({
+        ...updates,
+        name: nameFromMeta,
+        age: 20,
+      });
+      error = res.error;
     }
-
-    const { error } = await supabase.from('profiles').update(updates).eq('id', session.user.id);
 
     setLoading(false);
 
@@ -272,6 +380,55 @@ export default function PreferencesScreen() {
                   style={{ marginBottom: 16 }}
                 />
               </View>
+            </>
+          )}
+
+          {(!focus) && (
+            <>
+              <Text style={styles.sectionTitle}>Profile Photos *</Text>
+              <Text style={{ color: '#888', fontSize: 13, marginBottom: 16, marginTop: -8 }}>
+                Upload at least 1 photo to verify your identity. 3:4 portrait works best.
+              </Text>
+              <View style={styles.photosManagerContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScrollContent}>
+                  {(() => {
+                    const slots = Array.from({ length: 5 }, (_, i) => photos[i] || null);
+                    return slots.map((uri, index) => (
+                      <Pressable
+                        key={index}
+                        style={[styles.photoSlot, !uri && styles.emptyPhotoSlot]}
+                        onPress={() => pickImage(index)}
+                        disabled={uploading}
+                      >
+                        {uri ? (
+                          <>
+                            <Image source={{ uri }} style={styles.slotImage} />
+                            <View style={styles.slotBadge}>
+                              <Text style={styles.slotBadgeText}>{index + 1}</Text>
+                            </View>
+                            <View style={styles.editCameraOverlay}>
+                              <MaterialCommunityIcons name="camera" size={12} color="#fff" />
+                            </View>
+                          </>
+                        ) : (
+                          <View style={styles.emptySlotContent}>
+                            <View style={styles.emptySlotPlusCircle}>
+                              <MaterialCommunityIcons name="plus" size={16} color="#49C788" />
+                            </View>
+                            <Text style={styles.emptySlotText}>Slot {index + 1}</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ));
+                  })()}
+                </ScrollView>
+              </View>
+              {uploading && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 4 }}>
+                  <ActivityIndicator color="#49C788" size="small" />
+                  <Text style={{ color: '#49C788', fontSize: 13, fontWeight: '600' }}>Uploading photo...</Text>
+                </View>
+              )}
             </>
           )}
 
@@ -396,4 +553,73 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#000', fontSize: 16, fontWeight: 'bold' },
   locationSavedText: { color: '#49C788', marginBottom: 8, fontWeight: '600' },
+  photosManagerContainer: {
+    marginBottom: 20,
+  },
+  photosScrollContent: {
+    gap: 12,
+  },
+  photoSlot: {
+    width: 100,
+    height: 133,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  emptyPhotoSlot: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#333',
+    backgroundColor: '#0a0a0a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slotImage: {
+    width: '100%',
+    height: '100%',
+  },
+  slotBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slotBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  editCameraOverlay: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    backgroundColor: 'rgba(73,199,136,0.9)',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySlotContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emptySlotPlusCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(73,199,136,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySlotText: {
+    color: '#666',
+    fontSize: 11,
+  },
 });

@@ -11,6 +11,7 @@ import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpe
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from '../../context/LanguageContext';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Profile = {
   id: string;
@@ -32,14 +33,32 @@ type Profile = {
 };
 
 export default function HomeScreen() {
-  const { t, translateHobbiesList } = useTranslation();
+  const { t, translateHobby } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [feedMode, setFeedMode] = useState<'people' | 'apartments'>('people');
   const [isPremium, setIsPremium] = useState(false);
+  const [currentUserPhoto, setCurrentUserPhoto] = useState<string | null>(null);
   const router = useRouter();
+
+  const fetchCurrentUserPhoto = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('photoUrl')
+        .eq('id', session.user.id)
+        .single();
+      if (data?.photoUrl) {
+        setCurrentUserPhoto(data.photoUrl);
+      }
+    } catch (e) {
+      console.log('Error fetching user photo:', e);
+    }
+  };
 
   const fetchMatches = async (isRefresh = false) => {
     if (profiles.length === 0 && !isRefresh) {
@@ -50,7 +69,7 @@ export default function HomeScreen() {
     try {
       const stored = await AsyncStorage.getItem('mock_premium');
       setIsPremium(stored === 'true');
-    } catch (e) {
+    } catch {
       // error reading value
     }
 
@@ -60,12 +79,20 @@ export default function HomeScreen() {
       return;
     }
 
-    const { data: currentUserProfile } = await supabase.from('profiles').select('id, latOffset, lngOffset, likes, preferences').eq('id', session.user.id).single();
+    const { data: currentUserProfile } = await supabase
+      .from('profiles')
+      .select('id, latOffset, lngOffset, likes, preferences, photoUrl')
+      .eq('id', session.user.id)
+      .single();
     
     if (!currentUserProfile) {
       setLoading(false);
       setRefreshing(false);
       return;
+    }
+
+    if (currentUserProfile.photoUrl) {
+      setCurrentUserPhoto(currentUserProfile.photoUrl);
     }
 
     // Fetch profiles without the listings join since the foreign key is missing
@@ -96,21 +123,17 @@ export default function HomeScreen() {
         return { ...p, distance, similarityScore, hasListing };
       });
 
-      // 3. Sort: First by distance (low to high), then by similarity (high to low)
+      // Sort: First by distance (low to high), then by similarity (high to low)
       scoredProfiles.sort((a, b) => {
-        // If both have distance, prioritize closer distance
         if (a.distance != null && b.distance != null) {
-           // Only sort by distance if the difference is more than 1km
            if (Math.abs(a.distance - b.distance) > 1) {
              return a.distance - b.distance;
            }
         }
         
-        // If one has distance and the other doesn't, prioritize the one with distance
         if (a.distance != null && b.distance == null) return -1;
         if (b.distance != null && a.distance == null) return 1;
 
-        // Fallback to similarity
         return (b.similarityScore || 0) - (a.similarityScore || 0);
       });
 
@@ -125,7 +148,10 @@ export default function HomeScreen() {
     if (listings.length === 0 && !isRefresh) setLoading(true);
     if (isRefresh) setRefreshing(true);
     
-    const { data } = await supabase.from('listings').select('id, images, price, utilities_included, title, address, description').limit(50);
+    const { data } = await supabase
+      .from('listings')
+      .select('id, images, price, utilities_included, title, address, description')
+      .limit(50);
     if (data) setListings(data);
     
     setLoading(false);
@@ -134,11 +160,13 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      fetchCurrentUserPhoto();
       if (feedMode === 'people') {
         fetchMatches();
       } else {
         fetchListings();
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [feedMode])
   );
 
@@ -146,6 +174,13 @@ export default function HomeScreen() {
     const isBlurred = index >= 5 && !isPremium;
     const distanceText = item.distance != null ? `${item.distance.toFixed(1)} ${t('explore.away')}` : t('explore.loc_unknown');
     const matchTag = (item.similarityScore && item.similarityScore > 0) ? `${item.similarityScore} ${t('explore.matching')}` : '';
+
+    const isHighMatch = item.similarityScore && item.similarityScore >= 6;
+    const isMediumMatch = item.similarityScore && item.similarityScore >= 3 && item.similarityScore < 6;
+    const avatarBorderColor = isHighMatch ? '#49C788' : (isMediumMatch ? '#0A84FF' : 'rgba(255, 255, 255, 0.15)');
+
+    const likesArray = item.likes ? item.likes.split(',').map(h => translateHobby(h.trim())).filter(Boolean) : [];
+    const prefsArray = item.preferences ? item.preferences.split(',').map(h => translateHobby(h.trim())).filter(Boolean) : [];
 
     return (
       <Pressable 
@@ -160,43 +195,83 @@ export default function HomeScreen() {
       >
         <View style={{ borderRadius: 20, overflow: 'hidden', backgroundColor: '#0a0a0f' }}>
           <LinearGradient
-            colors={['#1a1a24', '#0a0a0f']}
+            colors={['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.005)']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.card}
           >
             <View style={styles.cardHeader}>
-            {item.photoUrl ? (
-              <Image source={{ uri: item.photoUrl }} style={styles.cardAvatar} contentFit="cover" transition={200} />
+              {item.photoUrl ? (
+                <Image 
+                  source={{ uri: item.photoUrl }} 
+                  style={[styles.cardAvatar, { borderColor: avatarBorderColor }]} 
+                  contentFit="cover" 
+                  transition={200} 
+                />
+              ) : (
+                <View style={[styles.avatarFallback, { borderColor: avatarBorderColor }]}>
+                  <IconSymbol size={32} name="person.crop.circle.fill" color="#888" />
+                </View>
+              )}
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.name || 'Roommate'}{item.age ? `, ${item.age}` : ''}</Text>
+                <Text style={styles.cardSubtitle}>{t('explore.tap_view')}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metaRow}>
+              <View style={[styles.badge, { backgroundColor: 'rgba(10,132,255,0.06)', borderColor: 'rgba(10,132,255,0.15)', borderWidth: 1 }]}>
+                <MaterialCommunityIcons name="map-marker-outline" size={12} color="#0A84FF" style={{ marginRight: 4 }} />
+                <Text style={[styles.badgeText, { color: '#0A84FF' }]}>{distanceText}</Text>
+              </View>
+              {matchTag ? (
+                <View style={[styles.badge, { backgroundColor: 'rgba(73,199,136,0.08)', borderColor: 'rgba(73,199,136,0.2)', borderWidth: 1 }]}>
+                  <MaterialCommunityIcons name="fire" size={12} color="#49C788" style={{ marginRight: 4 }} />
+                  <Text style={[styles.badgeText, { color: '#49C788' }]}>{matchTag}</Text>
+                </View>
+              ) : null}
+              {item.hasListing ? (
+                <View style={[styles.badge, { backgroundColor: 'rgba(255,159,10,0.06)', borderColor: 'rgba(255,159,10,0.15)', borderWidth: 1 }]}>
+                  <MaterialCommunityIcons name="home-outline" size={12} color="#FF9F0A" style={{ marginRight: 4 }} />
+                  <Text style={[styles.badgeText, { color: '#FF9F0A', fontWeight: 'bold' }]}>{t('explore.has_room')}</Text>
+                </View>
+              ) : null}
+            </View>
+            
+            <Text style={styles.label}>{t('explore.likes_hobbies')}</Text>
+            {likesArray.length > 0 ? (
+              <View style={styles.tagContainer}>
+                {likesArray.slice(0, 3).map((tag, idx) => (
+                  <View key={idx} style={styles.hobbyTag}>
+                    <Text style={styles.hobbyTagText}>{tag}</Text>
+                  </View>
+                ))}
+                {likesArray.length > 3 && (
+                  <View style={styles.hobbyTagMore}>
+                    <Text style={styles.hobbyTagMoreText}>+{likesArray.length - 3}</Text>
+                  </View>
+                )}
+              </View>
             ) : (
-              <IconSymbol size={40} name="person.circle.fill" color="#fff" />
+              <Text style={styles.content}>{t('explore.no_pref')}</Text>
             )}
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.cardTitle}>{item.name || 'Roommate'}{item.age ? `, ${item.age}` : ''}</Text>
-              <Text style={styles.cardSubtitle}>{t('explore.tap_view')}</Text>
-            </View>
-          </View>
 
-          <View style={styles.metaRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{distanceText}</Text>
-            </View>
-            {matchTag ? (
-              <View style={[styles.badge, styles.badgeMatch]}>
-                <Text style={[styles.badgeText, {color: '#daf5e8'}]}>{matchTag}</Text>
+            <Text style={styles.label}>{t('explore.preferences')}</Text>
+            {prefsArray.length > 0 ? (
+              <View style={styles.tagContainer}>
+                {prefsArray.slice(0, 3).map((tag, idx) => (
+                  <View key={idx} style={styles.hobbyTag}>
+                    <Text style={styles.hobbyTagText}>{tag}</Text>
+                  </View>
+                ))}
+                {prefsArray.length > 3 && (
+                  <View style={styles.hobbyTagMore}>
+                    <Text style={styles.hobbyTagMoreText}>+{prefsArray.length - 3}</Text>
+                  </View>
+                )}
               </View>
-            ) : null}
-            {item.hasListing ? (
-              <View style={[styles.badge, { backgroundColor: '#ff9f1c', borderColor: '#49C788', borderWidth: 1 }]}>
-                <Text style={[styles.badgeText, {color: '#000', fontWeight: 'bold'}]}>{t('explore.has_room')}</Text>
-              </View>
-            ) : null}
-          </View>
-          
-          <Text style={styles.label}>{t('explore.likes_hobbies')}</Text>
-          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.likes) || t('explore.no_pref')}</Text>
-
-          <Text style={styles.label}>{t('explore.preferences')}</Text>
-          <Text style={styles.content} numberOfLines={2}>{translateHobbiesList(item.preferences) || t('explore.no_pref')}</Text>
+            ) : (
+              <Text style={styles.content}>{t('explore.no_pref')}</Text>
+            )}
           </LinearGradient>
           
           {isBlurred && (
@@ -214,7 +289,7 @@ export default function HomeScreen() {
         </View>
       </Pressable>
     );
-  }, [isPremium, router, t, translateHobbiesList]);
+  }, [isPremium, router, t, translateHobby]);
 
   const renderListing = useCallback(({ item }: { item: any }) => (
     <Pressable 
@@ -232,7 +307,7 @@ export default function HomeScreen() {
             </View>
           )}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            colors={['transparent', 'rgba(0,0,0,0.85)']}
             style={styles.listingGradient}
           />
           
@@ -245,7 +320,7 @@ export default function HomeScreen() {
           {/* Utilities Badge */}
           {item.utilities_included && (
             <View style={styles.utilitiesBadge}>
-              <IconSymbol name="bolt.fill" size={12} color="#000" />
+              <MaterialCommunityIcons name="flash" size={12} color="#000" />
               <Text style={styles.utilitiesText}>{t('home.utilities_inc')}</Text>
             </View>
           )}
@@ -256,7 +331,7 @@ export default function HomeScreen() {
           <Text style={styles.listingTitle} numberOfLines={1}>{item.title || t('home.beautiful_apartment')}</Text>
           
           <View style={styles.listingLocationRow}>
-            <IconSymbol name="mappin.and.ellipse" size={14} color="#888" />
+            <MaterialCommunityIcons name="map-marker-outline" size={16} color="#888" />
             <Text style={styles.listingAddress} numberOfLines={1}>{item.address || t('home.loc_not_specified')}</Text>
           </View>
           
@@ -271,8 +346,27 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.mainTitle}>{t('explore.title')}</Text>
-        <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.mainTitle}>
+              Roommate<Text style={{ color: '#49C788' }}>Finder</Text>
+            </Text>
+            <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
+          </View>
+          <Pressable 
+            onPress={() => router.push('/settings')} 
+            style={styles.headerAvatarContainer}
+          >
+            {currentUserPhoto ? (
+              <Image source={{ uri: currentUserPhoto }} style={styles.headerAvatar} contentFit="cover" />
+            ) : (
+              <View style={styles.headerIconWrapper}>
+                <IconSymbol size={22} name="person.crop.circle.fill" color="#888" />
+              </View>
+            )}
+            <View style={styles.activeDot} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.toggleContainer}>
@@ -346,6 +440,42 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerAvatarContainer: {
+    position: 'relative',
+  },
+  headerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#49C788',
+  },
+  headerIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#222',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#49C788',
+    borderWidth: 2,
+    borderColor: '#000',
+  },
   mainTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -358,27 +488,36 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a24',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     marginHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 24,
     padding: 4,
-    marginBottom: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 20,
   },
   toggleBtnActive: {
     backgroundColor: '#49C788',
+    shadowColor: '#49C788',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   toggleText: {
-    color: '#888',
-    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '700',
+    fontSize: 14,
   },
   toggleTextActive: {
-    color: '#fff',
+    color: '#000',
+    fontWeight: '800',
   },
   listContent: {
     padding: 20,
@@ -396,7 +535,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#2a2a35',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -408,8 +547,16 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: '#333',
-    borderWidth: 2,
-    borderColor: '#49C788',
+    borderWidth: 2.5,
+  },
+  avatarFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#111',
+    borderWidth: 2.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardTitle: {
     fontSize: 20,
@@ -428,15 +575,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   badge: {
-    backgroundColor: '#333',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 16,
-  },
-  badgeMatch: {
-    backgroundColor: '#1a3a28',
-    borderColor: '#49C788',
-    borderWidth: 1,
   },
   badgeText: {
     color: '#ccc',
@@ -446,18 +589,47 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#888',
+    color: '#666',
     textTransform: 'uppercase',
     marginTop: 12,
     marginBottom: 4,
+    letterSpacing: 1,
   },
   content: {
     fontSize: 15,
     color: '#ddd',
   },
-  contentDealbreaker: {
-    fontSize: 15,
-    color: '#FF4B4B',
+  tagContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  hobbyTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  hobbyTagText: {
+    color: '#e0e0e0',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  hobbyTagMore: {
+    backgroundColor: 'rgba(73, 199, 136, 0.08)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(73, 199, 136, 0.15)',
+  },
+  hobbyTagMoreText: {
+    color: '#49C788',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   emptyText: {
     color: '#888',
@@ -466,17 +638,17 @@ const styles = StyleSheet.create({
   listingCardContainer: {
     marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
     elevation: 8,
   },
   listingCard: {
-    backgroundColor: '#111',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   listingImageWrapper: {
     position: 'relative',
@@ -496,33 +668,44 @@ const styles = StyleSheet.create({
   },
   priceTag: {
     position: 'absolute',
-    bottom: 16,
+    top: 16,
     left: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
   priceText: {
     color: '#fff',
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '900',
   },
   pricePeriod: {
-    color: '#ccc',
-    fontSize: 16,
+    color: '#ddd',
+    fontSize: 13,
     fontWeight: '600',
     marginLeft: 2,
   },
   utilitiesBadge: {
     position: 'absolute',
-    bottom: 16,
+    top: 16,
     right: 16,
     backgroundColor: '#49C788',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 16,
     gap: 4,
+    shadowColor: '#49C788',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   utilitiesText: {
     color: '#000',

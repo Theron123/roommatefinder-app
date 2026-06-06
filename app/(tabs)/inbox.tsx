@@ -1,9 +1,9 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Pressable, StyleSheet, Text, View, FlatList, ActivityIndicator, TextInput } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ActivityIndicator, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ export default function InboxScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchQuery.trim().length > 1) {
@@ -52,13 +53,13 @@ export default function InboxScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const myId = session.user.id;
+      setCurrentUserId(myId);
 
       inboxChannel = supabase
         .channel('public:messages_inbox')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const newMsg = payload.new;
           if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
-            // Trigger an immediate non-blocking refresh of conversation list
             fetchConversations();
           }
         })
@@ -79,6 +80,8 @@ export default function InboxScreen() {
     if (!session) return;
     
     const myId = session.user.id;
+    setCurrentUserId(myId);
+    
     const { data: matchData } = await supabase
       .from('matches')
       .select('user1, user2')
@@ -102,6 +105,7 @@ export default function InboxScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const myId = session.user.id;
+      setCurrentUserId(myId);
 
       // 1. Fetch messages
       const { data: msgs, error: msgsError } = await supabase
@@ -154,6 +158,8 @@ export default function InboxScreen() {
               lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
               time: timeStr,
               unreadCount: unreadCounts.get(p.id) || 0,
+              lastMsgSenderId: lastMsg.sender_id,
+              lastMsgIsRead: lastMsg.is_read,
             };
           });
 
@@ -173,39 +179,60 @@ export default function InboxScreen() {
     setLoading(false);
   };
 
-  const renderConversation = useCallback(({ item }: { item: any }) => (
-    <Pressable
-      onPress={() => router.push(`/chat/${item.id}`)}
-      style={styles.row}
-    >
-      <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
-      
-      {item.unread && <View style={styles.unreadDot} />}
+  const renderConversation = useCallback(({ item }: { item: any }) => {
+    const isUnread = item.unreadCount > 0;
+    const sentByMe = item.lastMsgSenderId === currentUserId;
 
-      <View style={styles.content}>
-        <View style={styles.topRow}>
-          <Text style={styles.name}>{item.name}, {item.age}</Text>
-          <Text style={styles.time}>{item.time}</Text>
+    return (
+      <Pressable
+        onPress={() => router.push(`/chat/${item.id}`)}
+        style={[styles.row, isUnread && styles.rowUnread]}
+      >
+        <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
+        
+        {isUnread && <View style={styles.unreadDot} />}
+
+        <View style={styles.content}>
+          <View style={styles.topRow}>
+            <Text style={[styles.name, isUnread && styles.nameUnread]}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
+            <Text style={[styles.time, isUnread && styles.timeUnread]}>{item.time}</Text>
+          </View>
+          <View style={styles.messageRow}>
+            {sentByMe && (
+              <MaterialCommunityIcons 
+                name={item.lastMsgIsRead ? "check-all" : "check"} 
+                size={16} 
+                color={item.lastMsgIsRead ? "#49C788" : "#888"} 
+                style={{ marginRight: 4 }} 
+              />
+            )}
+            <Text
+              numberOfLines={1}
+              style={[styles.lastMessage, isUnread && styles.lastMessageUnread]}
+            >
+              {item.lastMessage}
+            </Text>
+          </View>
         </View>
-        <Text
-          numberOfLines={1}
-          style={[styles.lastMessage, item.unread && styles.lastMessageUnread]}
-        >
-          {item.lastMessage}
-        </Text>
-      </View>
-    </Pressable>
-  ), [router]);
+
+        {isUnread && (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
+          </View>
+        )}
+      </Pressable>
+    );
+  }, [router, currentUserId]);
 
   const renderSearchItem = useCallback(({ item }: { item: any }) => (
     <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       <View style={styles.content}>
-         <Text style={styles.name}>{item.name}, {item.age}</Text>
+         <Text style={styles.name}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
          <Text style={styles.lastMessage}>{t('explore.tap_view')}</Text>
       </View>
     </Pressable>
-  ), [router]);
+  ), [router, t]);
 
   const renderMatchItem = useCallback(({ item }: { item: any }) => (
     <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
@@ -218,20 +245,22 @@ export default function InboxScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <LinearGradient colors={['#1a1a24', '#000']} style={styles.header}>
+      <LinearGradient colors={['rgba(25, 25, 36, 0.5)', '#000']} style={styles.header}>
         <View style={styles.headerTopRow}>
           <View>
             <Text style={styles.title}>{t('inbox.messages_title')}</Text>
             <Text style={styles.subtitle}>
-              {conversations.filter(c => c.unread).length} {conversations.filter(c => c.unread).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
+              {conversations.filter(c => c.unreadCount > 0).length} {conversations.filter(c => c.unreadCount > 0).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
             </Text>
           </View>
           <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
-             <MaterialCommunityIcons name="bell-outline" size={26} color="#49C788" />
+             <MaterialCommunityIcons name="bell-outline" size={24} color="#49C788" />
+             {matches.length > 0 && <View style={styles.activityDot} />}
           </Pressable>
         </View>
         
         <View style={styles.searchBar}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchText}
             placeholder={t('inbox.search_placeholder')}
@@ -254,7 +283,7 @@ export default function InboxScreen() {
         />
       ) : loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator color="#fff" size="large" />
+          <ActivityIndicator color="#49C788" size="large" />
         </View>
       ) : (
         <View style={{ flex: 1 }}>
@@ -303,21 +332,28 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a24',
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   searchBar: {
-    backgroundColor: '#0a0a0f',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#2a2a35',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchText: {
+    flex: 1,
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     padding: 0,
     margin: 0,
   },
@@ -346,8 +382,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.02)',
+  },
+  rowUnread: {
+    backgroundColor: 'rgba(73, 199, 136, 0.02)',
   },
   avatar: {
     width: 60,
@@ -358,13 +399,14 @@ const styles = StyleSheet.create({
   unreadDot: {
     position: 'absolute',
     left: 62,
-    top: 14,
+    top: 16,
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: '#49C788',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#000',
+    zIndex: 10,
   },
   content: {
     flex: 1,
@@ -376,27 +418,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   name: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#ccc',
+  },
+  nameUnread: {
     color: '#fff',
+    fontWeight: '800',
   },
   time: {
     fontSize: 12,
     color: '#666',
   },
+  timeUnread: {
+    color: '#49C788',
+    fontWeight: '600',
+  },
   lastMessage: {
+    flex: 1,
     fontSize: 14,
     color: '#666',
   },
   lastMessageUnread: {
-    color: '#bbb',
+    color: '#e0e0e0',
     fontWeight: '600',
   },
+  unreadBadge: {
+    backgroundColor: '#49C788',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 8,
+  },
+  unreadBadgeText: {
+    color: '#000',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   separator: {
-    height: 1,
-    backgroundColor: '#111',
-    marginLeft: 90,
+    height: 0,
+    backgroundColor: 'transparent',
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -409,29 +478,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(73, 199, 136, 0.12)',
     borderRadius: 20,
   },
-  badge: {
+  activityDot: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#1a1a24',
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#49C788',
-  },
-  matchesContainer: {
-    paddingTop: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a24',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#49C788',
+    borderWidth: 1.5,
+    borderColor: '#000',
   },
   matchesTitle: {
     fontSize: 16,
@@ -449,20 +505,21 @@ const styles = StyleSheet.create({
     width: 70,
   },
   matchAvatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     borderWidth: 2,
     borderColor: '#49C788',
-    padding: 2,
+    padding: 3,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
+    backgroundColor: 'rgba(73, 199, 136, 0.05)',
   },
   matchAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
   },
   matchName: {
     color: '#fff',

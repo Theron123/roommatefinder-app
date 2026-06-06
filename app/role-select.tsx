@@ -66,15 +66,61 @@ export default function RoleSelectScreen() {
         return;
       }
 
-      const { error } = await supabase
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .update({ role })
-        .eq('id', session.user.id);
+        .select('id')
+        .eq('id', session.user.id)
+        .single();
+
+      let error;
+      if (existingProfile) {
+        const res = await supabase
+          .from('profiles')
+          .update({ role })
+          .eq('id', session.user.id);
+        error = res.error;
+      } else {
+        const nameFromMeta = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
+        const res = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            name: nameFromMeta,
+            age: 20,
+            role,
+          });
+        error = res.error;
+      }
 
       if (error) {
         Alert.alert('Error', error.message);
         setSaving(false);
         return;
+      }
+
+      // Also verify if a verification record exists, otherwise create it from metadata
+      const { data: existingVerification } = await supabase
+        .from('verifications')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('type', 'identity')
+        .single();
+
+      if (!existingVerification) {
+        const countryCodeMeta = session.user.user_metadata?.country_code;
+        const nationalIdMeta = session.user.user_metadata?.national_id;
+        if (countryCodeMeta && nationalIdMeta) {
+          await supabase.from('verifications').insert({
+            user_id: session.user.id,
+            type: 'identity',
+            status: 'pending',
+            metadata: {
+              country_code: countryCodeMeta,
+              national_id: nationalIdMeta,
+            }
+          });
+        }
       }
 
       router.replace('/preferences?firstTime=true');
