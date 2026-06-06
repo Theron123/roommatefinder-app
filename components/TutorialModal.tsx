@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, Dimensions, DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from './ui/icon-symbol';
@@ -46,6 +46,31 @@ export default function TutorialModal() {
 
   useEffect(() => {
     checkTutorial();
+
+    // Event listener for custom trigger
+    const sub = DeviceEventEmitter.addListener('show_tutorial', () => {
+      setVisible(true);
+      setCurrentIndex(0);
+    });
+
+    // Keyboard trigger (plus key) for developer testing
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '+' || e.key === 'Add' || e.code === 'NumpadAdd') {
+        setVisible(true);
+        setCurrentIndex(0);
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      sub.remove();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', handleKeyDown);
+      }
+    };
   }, []);
 
   const getStorageKey = async () => {

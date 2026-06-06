@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl, DeviceEventEmitter } from 'react-native';
 import { Image } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -348,9 +348,16 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.mainTitle}>
-              Roommate<Text style={{ color: '#49C788' }}>Finder</Text>
-            </Text>
+            <Pressable 
+              onLongPress={() => {
+                DeviceEventEmitter.emit('show_tutorial');
+              }}
+              delayLongPress={800}
+            >
+              <Text style={styles.mainTitle}>
+                Roommate<Text style={{ color: '#49C788' }}>Finder</Text>
+              </Text>
+            </Pressable>
             <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
           </View>
           <Pressable 
