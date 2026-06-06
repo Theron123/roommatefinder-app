@@ -27,15 +27,15 @@ export default function TutorialModal() {
       descKey: 'tour.step1_desc',
       route: '/(tabs)',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 70;
-        const h = 54;
+        const w = 66;
+        const h = 50;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 0 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 4,
+          y: wHeight - h - bottomInset - 1,
           w,
           h,
-          borderRadius: 16,
+          borderRadius: 10,
         };
       },
       tooltipPosition: 'above' as const,
@@ -46,15 +46,15 @@ export default function TutorialModal() {
       descKey: 'tour.step2_desc',
       route: '/explore',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 70;
-        const h = 54;
+        const w = 66;
+        const h = 50;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 1 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 4,
+          y: wHeight - h - bottomInset - 1,
           w,
           h,
-          borderRadius: 16,
+          borderRadius: 10,
         };
       },
       tooltipPosition: 'above' as const,
@@ -65,15 +65,15 @@ export default function TutorialModal() {
       descKey: 'tour.step3_desc',
       route: '/inbox',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 70;
-        const h = 54;
+        const w = 66;
+        const h = 50;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 2 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 4,
+          y: wHeight - h - bottomInset - 1,
           w,
           h,
-          borderRadius: 16,
+          borderRadius: 10,
         };
       },
       tooltipPosition: 'above' as const,
@@ -84,15 +84,15 @@ export default function TutorialModal() {
       descKey: 'tour.step4_desc',
       route: '/myprofile',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 70;
-        const h = 54;
+        const w = 66;
+        const h = 50;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 3 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 4,
+          y: wHeight - h - bottomInset - 1,
           w,
           h,
-          borderRadius: 16,
+          borderRadius: 10,
         };
       },
       tooltipPosition: 'above' as const,
@@ -103,14 +103,14 @@ export default function TutorialModal() {
       descKey: 'tour.step5_desc',
       route: '/(tabs)',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 54;
-        const h = 54;
+        const w = 50;
+        const h = 50;
         return {
-          x: wWidth - w - 16,
-          y: topInset + 15,
+          x: wWidth - w - 17,
+          y: topInset + 17,
           w,
           h,
-          borderRadius: 27,
+          borderRadius: 25,
         };
       },
       tooltipPosition: 'below' as const,
@@ -238,6 +238,17 @@ export default function TutorialModal() {
     outputRange: [0.6, 0],
   });
 
+  // Calculate dynamic centered tooltip card position
+  const CARD_WIDTH = Math.min(width - 40, 320);
+  const margin = 20;
+  const targetCenterX = coords.x + coords.w / 2;
+  const idealLeft = targetCenterX - CARD_WIDTH / 2;
+  const maxLeft = width - CARD_WIDTH - margin;
+  const cardLeft = Math.max(margin, Math.min(maxLeft, idealLeft));
+  
+  // Calculate arrow left position relative to the tooltip card
+  const arrowLeftOffset = targetCenterX - cardLeft - 8; // 8 is half of the arrow width (16)
+
   return (
     <Modal visible={visible} animationType="none" transparent={true}>
       <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
@@ -270,19 +281,22 @@ export default function TutorialModal() {
           ]} 
         />
 
-        {/* Tooltip Card */}
+        {/* Tooltip Card Container */}
         <View 
           style={[
             styles.tooltipContainer,
+            { left: cardLeft, width: CARD_WIDTH },
             currentStep.tooltipPosition === 'above' 
-              ? { bottom: height - coords.y + 16 } 
-              : { top: coords.y + coords.h + 16 }
+              ? { bottom: height - coords.y + 12 } 
+              : { top: coords.y + coords.h + 12 }
           ]}
         >
-          {currentStep.tooltipPosition === 'below' && <View style={styles.arrowUp} />}
+          {currentStep.tooltipPosition === 'below' && (
+            <View style={[styles.arrowUp, { left: arrowLeftOffset }]} />
+          )}
 
           <LinearGradient
-            colors={['rgba(20, 20, 25, 0.96)', 'rgba(10, 10, 12, 0.98)']}
+            colors={['rgba(20, 20, 25, 0.98)', 'rgba(10, 10, 12, 0.99)']}
             style={styles.tooltipCard}
           >
             <Text style={styles.progressText}>
@@ -311,7 +325,9 @@ export default function TutorialModal() {
             </View>
           </LinearGradient>
 
-          {currentStep.tooltipPosition === 'above' && <View style={styles.arrowDown} />}
+          {currentStep.tooltipPosition === 'above' && (
+            <View style={[styles.arrowDown, { left: arrowLeftOffset }]} />
+          )}
         </View>
       </Animated.View>
     </Modal>
@@ -329,63 +345,61 @@ const styles = StyleSheet.create({
   },
   spotlight: {
     position: 'absolute',
-    borderWidth: 2.5,
-    borderColor: '#49C788',
-    backgroundColor: 'transparent',
-    shadowColor: '#49C788',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  pulseRing: {
-    position: 'absolute',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#49C788',
     backgroundColor: 'transparent',
     shadowColor: '#49C788',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 10,
+    elevation: 8,
+  },
+  pulseRing: {
+    position: 'absolute',
+    borderWidth: 1.5,
+    borderColor: '#49C788',
+    backgroundColor: 'transparent',
+    shadowColor: '#49C788',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
   },
   tooltipContainer: {
     position: 'absolute',
-    left: 20,
-    right: 20,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   tooltipCard: {
     width: '100%',
-    borderRadius: 24,
-    padding: 22,
-    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1.2,
     borderColor: 'rgba(255,255,255,0.08)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
   },
   progressText: {
     color: '#49C788',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   tooltipTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tooltipDesc: {
     color: '#bbb',
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 20,
     fontWeight: '500',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -393,60 +407,62 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   skipButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   skipText: {
-    color: '#777',
-    fontSize: 14,
+    color: '#666',
+    fontSize: 13,
     fontWeight: '700',
   },
   nextButton: {
-    borderRadius: 14,
+    borderRadius: 8,
     overflow: 'hidden',
     shadowColor: '#49C788',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
   },
   nextButtonGradient: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   nextText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
   },
   arrowUp: {
+    position: 'absolute',
+    top: -7.5,
     width: 0,
     height: 0,
     backgroundColor: 'transparent',
     borderStyle: 'solid',
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderBottomWidth: 10,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: 'rgba(20, 20, 25, 0.96)',
-    transform: [{ translateY: 1 }],
+    borderBottomColor: 'rgba(20, 20, 25, 0.98)',
     zIndex: 2,
   },
   arrowDown: {
+    position: 'absolute',
+    bottom: -7.5,
     width: 0,
     height: 0,
     backgroundColor: 'transparent',
     borderStyle: 'solid',
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderTopWidth: 10,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: 'rgba(20, 20, 25, 0.96)',
-    transform: [{ translateY: -1 }],
+    borderTopColor: 'rgba(20, 20, 25, 0.98)',
     zIndex: 2,
   },
 });
