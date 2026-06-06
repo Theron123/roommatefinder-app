@@ -930,7 +930,7 @@ export default function ChatScreen() {
         <Pressable style={styles.actionMenuOverlay} onPress={() => setShowActionMenu(false)}>
           <View style={styles.actionMenu}>
             <Text style={styles.actionMenuTitle} numberOfLines={1}>
-              "{activeMessage?.content || 'Message'}"
+              &quot;{activeMessage?.content || 'Message'}&quot;
             </Text>
 
             {showDeleteOptions ? (

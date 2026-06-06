@@ -52,7 +52,7 @@ export default function PreferencesScreen() {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationName, setLocationName] = useState('');
 
-  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const { focus, firstTime } = useLocalSearchParams<{ focus?: string; firstTime?: string }>();
 
   useEffect(() => {
     loadExistingPreferences();
@@ -225,7 +225,9 @@ export default function PreferencesScreen() {
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      if (router.canGoBack()) {
+      if (firstTime === 'true') {
+        router.replace('/(tabs)');
+      } else if (router.canGoBack()) {
         router.back();
       } else {
         router.replace('/(tabs)');

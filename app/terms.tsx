@@ -81,7 +81,7 @@ export default function TermsScreen() {
           </View>
           <Text style={s.heroTitle}>Usage Agreement</Text>
           <Text style={s.heroSub}>
-            By using RoommateFinder's legal features, you agree to the following terms.
+            By using RoommateFinder&apos;s legal features, you agree to the following terms.
             Last updated: May 2026
           </Text>
         </View>

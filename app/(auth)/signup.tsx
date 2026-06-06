@@ -90,13 +90,27 @@ export default function SignUpScreen() {
     }
 
     if (data.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         name: name.trim(),
         age: 20,
-        country_code: countryCode.trim().toUpperCase(),
-        national_id: nationalId.trim(),
       });
+      if (profileError) {
+        console.error('Error al crear perfil en la base de datos:', profileError.message);
+      }
+
+      const { error: verificationError } = await supabase.from('verifications').insert({
+        user_id: data.user.id,
+        type: 'identity',
+        status: 'pending',
+        metadata: {
+          country_code: countryCode.trim().toUpperCase(),
+          national_id: nationalId.trim(),
+        }
+      });
+      if (verificationError) {
+        console.error('Error al guardar datos de verificación:', verificationError.message);
+      }
     }
 
     setMessage({ text: 'Account created successfully! Redirecting...', type: 'success' });

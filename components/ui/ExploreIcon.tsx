@@ -35,30 +35,83 @@ export function ExploreIcon({ name, size, color }: ExploreIconProps) {
     }
 
     case 'skip-next': {
-      const arrowLength = size * 0.52;
-      const stroke = 3;
-      const headSize = size * 0.22;
+      const w = size * 0.5;
+      const h = size * 0.08;
+      const br = size * 0.04;
+      const diagW = size * 0.065;
+      const diagH = size * 0.52;
       return (
         <View style={[styles.centerContainer, { width: size, height: size }]}>
-          {/* Arrow Shaft (horizontal line representing Next/Skip) */}
+          {/* Top Plate */}
           <View style={{
-            width: arrowLength,
-            height: stroke,
-            borderRadius: stroke / 2,
+            width: w,
+            height: h,
+            borderRadius: br,
             backgroundColor: color,
-            position: 'absolute'
-          }} />
-          {/* Arrow Head (chevron rotated 45deg) */}
-          <View style={{
-            width: headSize,
-            height: headSize,
-            borderTopWidth: stroke,
-            borderRightWidth: stroke,
-            borderColor: color,
-            borderRadius: stroke / 2,
-            transform: [{ rotate: '45deg' }],
             position: 'absolute',
-            right: size * 0.2
+            top: size * 0.22
+          }} />
+          
+          {/* Bottom Plate */}
+          <View style={{
+            width: w,
+            height: h,
+            borderRadius: br,
+            backgroundColor: color,
+            position: 'absolute',
+            bottom: size * 0.22
+          }} />
+
+          {/* Diagonals forming the glass bulbs */}
+          <View style={{
+            width: diagW,
+            height: diagH,
+            borderRadius: diagW / 2,
+            backgroundColor: color,
+            position: 'absolute',
+            transform: [{ rotate: '30deg' }]
+          }} />
+          
+          <View style={{
+            width: diagW,
+            height: diagH,
+            borderRadius: diagW / 2,
+            backgroundColor: color,
+            position: 'absolute',
+            transform: [{ rotate: '-30deg' }]
+          }} />
+
+          {/* Sand elements inside the bulbs */}
+          {/* Dwindling sand at the top */}
+          <View style={{
+            width: size * 0.22,
+            height: size * 0.06,
+            borderRadius: size * 0.03,
+            backgroundColor: color,
+            position: 'absolute',
+            top: size * 0.3,
+            opacity: 0.8
+          }} />
+
+          {/* Falling sand stream in the center */}
+          <View style={{
+            width: size * 0.04,
+            height: size * 0.16,
+            backgroundColor: color,
+            position: 'absolute',
+            top: size * 0.42,
+            opacity: 0.6
+          }} />
+
+          {/* Accumulating sand pile at the bottom */}
+          <View style={{
+            width: size * 0.3,
+            height: size * 0.07,
+            borderRadius: size * 0.035,
+            backgroundColor: color,
+            position: 'absolute',
+            bottom: size * 0.3,
+            opacity: 0.95
           }} />
         </View>
       );

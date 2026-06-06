@@ -77,7 +77,7 @@ export default function RoleSelectScreen() {
         return;
       }
 
-      router.replace('/preferences');
+      router.replace('/preferences?firstTime=true');
     } catch (e) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
       setSaving(false);
@@ -200,7 +200,7 @@ export default function RoleSelectScreen() {
                     <Text style={styles.emoji}>🔍</Text>
                   </View>
                   <View style={styles.cardTextBlock}>
-                    <Text style={styles.cardTitle}>No, I'm looking for one</Text>
+                    <Text style={styles.cardTitle}>No, I&apos;m looking for one</Text>
                     <Text style={styles.cardDescription}>
                       I need a place to live or someone to find a new place with.
                     </Text>
@@ -225,7 +225,7 @@ export default function RoleSelectScreen() {
                   <View style={styles.cardTextBlock}>
                     <Text style={styles.cardTitle}>Find tenants</Text>
                     <Text style={styles.cardDescription}>
-                      I own the property but I won't live there. I just want to find tenants.
+                      I own the property but I won&apos;t live there. I just want to find tenants.
                     </Text>
                   </View>
                   <View style={styles.arrowCircle}>
@@ -246,7 +246,7 @@ export default function RoleSelectScreen() {
                   <View style={styles.cardTextBlock}>
                     <Text style={styles.cardTitle}>Find a roommate</Text>
                     <Text style={styles.cardDescription}>
-                      I live there and I'm looking for someone to share the space with me.
+                      I live there and I&apos;m looking for someone to share the space with me.
                     </Text>
                   </View>
                   <View style={styles.arrowCircle}>

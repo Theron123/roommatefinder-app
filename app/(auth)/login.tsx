@@ -110,7 +110,7 @@ export default function LoginScreen() {
         disabled={loading}
       >
         <Text style={styles.toggleButtonText}>
-          Don't have an account? <Text style={styles.blueText}>Sign up here</Text>
+          Don&apos;t have an account? <Text style={styles.blueText}>Sign up here</Text>
         </Text>
       </Pressable>
     </View>

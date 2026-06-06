@@ -797,22 +797,34 @@ export default function ExploreScreen() {
             />
             
             <View style={styles.floatingActionButtons} pointerEvents="box-none">
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonSkip]} 
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionButtonBig, 
+                  styles.buttonSkip,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] }
+                ]} 
                 onPress={() => swiperRef.current?.swipeBottom()}
               >
-                <ExploreIcon name="skip-next" size={24} color="#ff9800" />
-              </TouchableOpacity>
+                <ExploreIcon name="skip-next" size={32} color="#ff9800" />
+              </Pressable>
 
-              <TouchableOpacity 
-                style={[styles.actionButtonBig, styles.buttonNope]} 
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionButtonBig, 
+                  styles.buttonNope,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] }
+                ]} 
                 onPress={() => swiperRef.current?.swipeLeft()}
               >
                 <ExploreIcon name="close" size={36} color="#FF4B4B" />
-              </TouchableOpacity>
+              </Pressable>
 
-              <TouchableOpacity 
-                style={[styles.actionButtonBig, styles.buttonLike]} 
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionButtonBig, 
+                  styles.buttonLike,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] }
+                ]} 
                 onPress={async () => {
                   const idx = currentIndex;
                   await onSwipedRight(idx);
@@ -820,17 +832,21 @@ export default function ExploreScreen() {
                 }}
               >
                 <ExploreIcon name="heart" size={34} color="#4caf50" />
-              </TouchableOpacity>
+              </Pressable>
 
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.buttonMessage]} 
+              <Pressable 
+                style={({ pressed }) => [
+                  styles.actionButtonBig, 
+                  styles.buttonMessage,
+                  { transform: [{ scale: pressed ? 0.92 : 1 }] }
+                ]} 
                 onPress={() => {
                   const card = profiles[currentIndex];
                   if (card) router.push(`/chat/${card.id}`);
                 }}
               >
-                <ExploreIcon name="message-text" size={24} color="#49C788" />
-              </TouchableOpacity>
+                <ExploreIcon name="message-text" size={32} color="#49C788" />
+              </Pressable>
             </View>
           </>
         )}
@@ -1152,25 +1168,21 @@ const styles = StyleSheet.create({
   floatingActionButtons: {
     position: 'absolute',
     bottom: 30,
-    width: '100%',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20,
-    paddingHorizontal: 20,
+    gap: 40,
     zIndex: 100,
   },
   actionButton: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#111',
+    backgroundColor: 'rgba(18, 18, 18, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
     elevation: 6,
     borderWidth: 1.5,
   },
@@ -1178,27 +1190,39 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#111',
+    backgroundColor: 'rgba(18, 18, 18, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
     elevation: 8,
     borderWidth: 2,
   },
   buttonNope: {
     borderColor: '#FF4B4B',
+    shadowColor: '#FF4B4B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   buttonMessage: {
     borderColor: '#49C788',
+    shadowColor: '#49C788',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   buttonSkip: {
     borderColor: '#ff9800',
+    shadowColor: '#ff9800',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   buttonLike: {
     borderColor: '#4caf50',
+    shadowColor: '#4caf50',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   unreadBadge: {
     position: 'absolute',
