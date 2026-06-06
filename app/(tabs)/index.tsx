@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl, DeviceEventEmitter } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl, DeviceEventEmitter, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -34,6 +34,8 @@ type Profile = {
 
 export default function HomeScreen() {
   const { t, translateHobby } = useTranslation();
+  const { width } = useWindowDimensions();
+  const numColumns = width > 1000 ? 3 : (width > 680 ? 2 : 1);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -403,7 +405,9 @@ export default function HomeScreen() {
             </View>
           ) : (
             <FlashList
+              key={`profiles-grid-${numColumns}`}
               data={profiles}
+              numColumns={numColumns}
               keyExtractor={(item) => item.id}
               renderItem={renderProfile}
               contentContainerStyle={styles.listContent}
@@ -419,7 +423,9 @@ export default function HomeScreen() {
             </View>
           ) : (
             <FlashList
+              key={`listings-grid-${numColumns}`}
               data={listings}
+              numColumns={numColumns}
               keyExtractor={(item) => item.id}
               renderItem={renderListing}
               contentContainerStyle={styles.listContent}
@@ -529,10 +535,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   listContent: {
-    padding: 20,
+    padding: 12,
     paddingBottom: 40,
   },
   cardContainer: {
+    flex: 1,
+    margin: 8,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -645,6 +653,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   listingCardContainer: {
+    flex: 1,
+    margin: 8,
     marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -780,7 +790,7 @@ const styles = StyleSheet.create({
   responsiveContent: {
     flex: 1,
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 1200,
     alignSelf: 'center',
   },
 });
