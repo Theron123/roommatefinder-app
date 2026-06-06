@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, Pressable, RefreshControl, DeviceEventEmitter, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
@@ -44,6 +44,32 @@ export default function HomeScreen() {
   const [isPremium, setIsPremium] = useState(false);
   const [currentUserPhoto, setCurrentUserPhoto] = useState<string | null>(null);
   const router = useRouter();
+
+  const avatarRef = useRef<any>(null);
+
+  const measureAvatar = () => {
+    if (avatarRef.current) {
+      avatarRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        if (width > 0 && height > 0) {
+          DeviceEventEmitter.emit('register_tutorial_coords', {
+            key: 'profile_avatar',
+            coords: { x, y, w: width, h: height, borderRadius: width / 2 }
+          });
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(measureAvatar, 200);
+    const sub = DeviceEventEmitter.addListener('request_tutorial_measure', () => {
+      measureAvatar();
+    });
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
+  }, []);
 
   const fetchCurrentUserPhoto = async () => {
     try {
@@ -364,8 +390,13 @@ export default function HomeScreen() {
               <Text style={styles.subTitle}>{t('explore.subtitle')}</Text>
             </View>
             <Pressable 
+              ref={avatarRef}
               onPress={() => router.push('/settings')} 
               style={styles.headerAvatarContainer}
+              onLayout={() => {
+                measureAvatar();
+                setTimeout(measureAvatar, 50);
+              }}
             >
               {currentUserPhoto ? (
                 <Image source={{ uri: currentUserPhoto }} style={styles.headerAvatar} contentFit="cover" />

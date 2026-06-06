@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, Dimensions, DeviceEventEmitter, Animated } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, DeviceEventEmitter, Animated, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
@@ -7,13 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTranslation } from '../context/LanguageContext';
 
-const { width, height } = Dimensions.get('window');
-
 const TUTORIAL_VERSION = 'v1.0.0';
 
 export default function TutorialModal() {
+  const { width, height } = useWindowDimensions();
   const [visible, setVisible] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [registeredCoords, setRegisteredCoords] = useState<Record<string, { x: number; y: number; w: number; h: number; borderRadius?: number }>>({});
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
@@ -126,6 +126,10 @@ export default function TutorialModal() {
       router.push('/(tabs)');
     });
 
+    const coordsSub = DeviceEventEmitter.addListener('register_tutorial_coords', ({ key, coords }) => {
+      setRegisteredCoords(prev => ({ ...prev, [key]: coords }));
+    });
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '+' || e.key === 'Add' || e.code === 'NumpadAdd') {
         setVisible(true);
@@ -140,6 +144,7 @@ export default function TutorialModal() {
 
     return () => {
       sub.remove();
+      coordsSub.remove();
       if (typeof window !== 'undefined') {
         window.removeEventListener('keydown', handleKeyDown);
       }
@@ -162,6 +167,13 @@ export default function TutorialModal() {
           useNativeDriver: true,
         })
       ).start();
+
+      // Emit measure request immediately and after a short delay
+      DeviceEventEmitter.emit('request_tutorial_measure');
+      const timer = setTimeout(() => {
+        DeviceEventEmitter.emit('request_tutorial_measure');
+      }, 100);
+      return () => clearTimeout(timer);
     } else {
       fadeAnim.setValue(0);
     }
@@ -206,6 +218,10 @@ export default function TutorialModal() {
           duration: 250,
           useNativeDriver: true,
         }).start();
+        // Request measurement after route transition has finished
+        setTimeout(() => {
+          DeviceEventEmitter.emit('request_tutorial_measure');
+        }, 150);
       });
     } else {
       handleFinish();
@@ -226,7 +242,9 @@ export default function TutorialModal() {
   if (!visible) return null;
 
   const currentStep = steps[currentIndex];
-  const coords = currentStep.getCoords(width, height, insets.top, insets.bottom);
+  const targetKey = currentStep.id === 'step5' ? 'profile_avatar' : `tab_${currentIndex}`;
+  const registered = registeredCoords[targetKey];
+  const coords = registered || currentStep.getCoords(width, height, insets.top, insets.bottom);
 
   const scale = pulseAnim.interpolate({
     inputRange: [0, 1],
@@ -263,7 +281,7 @@ export default function TutorialModal() {
         <View style={[styles.maskSegment, { top: coords.y, left: coords.x + coords.w, width: width - (coords.x + coords.w), height: coords.h }]} />
 
         {/* Spotlight Highlight Box */}
-        <View style={[styles.spotlight, { top: coords.y, left: coords.x, width: coords.w, height: coords.h, borderRadius: coords.borderRadius }]} />
+        <View style={[styles.spotlight, { top: coords.y, left: coords.x, width: coords.w, height: coords.h, borderRadius: coords.borderRadius ?? 10 }]} />
 
         {/* Pulsing Glow Ring */}
         <Animated.View 
@@ -274,7 +292,7 @@ export default function TutorialModal() {
               left: coords.x - 4, 
               width: coords.w + 8, 
               height: coords.h + 8, 
-              borderRadius: coords.borderRadius + 4,
+              borderRadius: (coords.borderRadius ?? 10) + 4,
               transform: [{ scale }],
               opacity,
             }
