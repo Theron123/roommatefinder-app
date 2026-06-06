@@ -27,12 +27,12 @@ export default function TutorialModal() {
       descKey: 'tour.step1_desc',
       route: '/(tabs)',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 66;
-        const h = 50;
+        const w = 72;
+        const h = 52;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 0 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 1,
+          y: wHeight - h - bottomInset - 2,
           w,
           h,
           borderRadius: 10,
@@ -46,12 +46,12 @@ export default function TutorialModal() {
       descKey: 'tour.step2_desc',
       route: '/explore',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 66;
-        const h = 50;
+        const w = 72;
+        const h = 52;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 1 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 1,
+          y: wHeight - h - bottomInset - 2,
           w,
           h,
           borderRadius: 10,
@@ -65,12 +65,12 @@ export default function TutorialModal() {
       descKey: 'tour.step3_desc',
       route: '/inbox',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 66;
-        const h = 50;
+        const w = 72;
+        const h = 52;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 2 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 1,
+          y: wHeight - h - bottomInset - 2,
           w,
           h,
           borderRadius: 10,
@@ -84,12 +84,12 @@ export default function TutorialModal() {
       descKey: 'tour.step4_desc',
       route: '/myprofile',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 66;
-        const h = 50;
+        const w = 72;
+        const h = 52;
         const tabWidth = wWidth / 4;
         return {
           x: tabWidth * 3 + (tabWidth - w) / 2,
-          y: wHeight - h - bottomInset - 1,
+          y: wHeight - h - bottomInset - 2,
           w,
           h,
           borderRadius: 10,
@@ -103,14 +103,14 @@ export default function TutorialModal() {
       descKey: 'tour.step5_desc',
       route: '/(tabs)',
       getCoords: (wWidth: number, wHeight: number, topInset: number, bottomInset: number) => {
-        const w = 50;
-        const h = 50;
+        const w = 52;
+        const h = 52;
         return {
-          x: wWidth - w - 17,
-          y: topInset + 17,
+          x: wWidth - w - 16,
+          y: topInset + 20,
           w,
           h,
-          borderRadius: 25,
+          borderRadius: 26,
         };
       },
       tooltipPosition: 'below' as const,
