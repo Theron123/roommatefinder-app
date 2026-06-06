@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet, Pressable, Dimensions } from 'react-nati
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from './ui/icon-symbol';
+import { supabase } from '@/lib/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -47,9 +48,20 @@ export default function TutorialModal() {
     checkTutorial();
   }, []);
 
+  const getStorageKey = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      return userId ? `@tutorial_version:${userId}` : '@tutorial_version';
+    } catch {
+      return '@tutorial_version';
+    }
+  };
+
   const checkTutorial = async () => {
     try {
-      const savedVersion = await AsyncStorage.getItem('@tutorial_version');
+      const storageKey = await getStorageKey();
+      const savedVersion = await AsyncStorage.getItem(storageKey);
       if (savedVersion !== TUTORIAL_VERSION) {
         setVisible(true);
       }
@@ -60,7 +72,8 @@ export default function TutorialModal() {
 
   const handleFinish = async () => {
     try {
-      await AsyncStorage.setItem('@tutorial_version', TUTORIAL_VERSION);
+      const storageKey = await getStorageKey();
+      await AsyncStorage.setItem(storageKey, TUTORIAL_VERSION);
       setVisible(false);
     } catch (e) {
       // Error saving

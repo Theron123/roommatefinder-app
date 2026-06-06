@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import {
   Dimensions,
@@ -56,9 +56,11 @@ const SLIDES = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { force } = useLocalSearchParams<{ force?: string }>();
 
   useEffect(() => {
     const checkActiveSessionOnMount = async () => {
+      if (force === 'true') return;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
@@ -77,9 +79,17 @@ export default function OnboardingScreen() {
       }
     };
     checkActiveSessionOnMount();
-  }, []);
+  }, [force]);
 
   const navigateNextOrHome = async () => {
+    if (force === 'true') {
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/(tabs)');
+      }
+      return;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {

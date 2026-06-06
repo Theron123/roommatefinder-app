@@ -163,6 +163,14 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>{t('settings.support_about')}</Text>
           <View style={styles.glassCard}>
             <SettingsItem 
+              icon="presentation-play" 
+              title={t('settings.view_onboarding')} 
+              bgColor="rgba(73,199,136,0.1)" 
+              iconColor="#49C788" 
+              onPress={() => router.push('/onboarding?force=true')} 
+            />
+            <View style={styles.cardDivider} />
+            <SettingsItem 
               icon="help-circle-outline" 
               title={t('settings.help_support')} 
               bgColor="rgba(0,199,190,0.1)" 

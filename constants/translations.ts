@@ -169,6 +169,7 @@ export const translations: Record<string, any> = {
       login_section: "Login",
       logout: "Log Out",
       version: "Version",
+      view_onboarding: "View Onboarding Tutorial",
     },
     trust: {
       title: "Trust & Safety",
@@ -615,6 +616,7 @@ export const translations: Record<string, any> = {
       login_section: "Inicio de sesión",
       logout: "Cerrar Sesión",
       version: "Versión",
+      view_onboarding: "Ver Tutorial de Onboarding",
     },
     trust: {
       title: "Confianza y Seguridad",
