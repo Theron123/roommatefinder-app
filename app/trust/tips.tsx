@@ -3,57 +3,72 @@ import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
+import * as Haptics from 'expo-haptics';
+import { BlurView } from 'expo-blur';
 
 export default function SecurityTipsScreen() {
+  const { t } = useTranslation();
+
   return (
     <SafeAreaView style={s.container}>
       {/* Header */}
-      <LinearGradient colors={['#0d1117', '#000']} style={s.header}>
-        <Pressable onPress={() => router.back()} style={s.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
+      <LinearGradient colors={['#131824', '#000']} style={s.header}>
+        <Pressable 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/trust');
+            }
+          }}
+          style={({ pressed }) => [s.backBtn, pressed && s.backBtnPressed]}
+        >
+          <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Security Tips</Text>
+        <Text style={s.headerTitle}>{t('trust.security_tips')}</Text>
         <View style={{ width: 36 }} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={s.scroll}>
+      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.hero}>
-          <MaterialCommunityIcons name="shield-star" size={50} color="#49C788" />
-          <Text style={s.heroTitle}>Your safety comes first</Text>
-          <Text style={s.heroDesc}>
-            At RoommateFinder we work to maintain a safe community, but prevention starts with you. Follow these key tips.
-          </Text>
+          <View style={s.shieldHeroCircle}>
+            <MaterialCommunityIcons name="shield-star" size={44} color="#34C759" />
+          </View>
+          <Text style={s.heroTitle}>{t('trust.tips_hero_title')}</Text>
+          <Text style={s.heroDesc}>{t('trust.tips_hero_desc')}</Text>
         </View>
 
         <TipCard 
           icon="currency-usd-off"
-          title="Never pay outside the app"
-          desc="Keep all booking and deposit transactions within our platform or in person after signing. Never make international bank transfers or use postal money orders."
+          title={t('trust.tip1_title')}
+          desc={t('trust.tip1_desc')}
         />
         <TipCard 
           icon="account-search"
-          title="Meet face-to-face"
-          desc="Before signing a contract, schedule a video call or an in-person meeting in a safe public place to verify they are a real person."
+          title={t('trust.tip2_title')}
+          desc={t('trust.tip2_desc')}
         />
         <TipCard 
           icon="shield-check"
-          title="Filter by verified profiles"
-          desc="Priorize users who have official ID, university, social media, or work verification badges. They have a much higher Trust Score."
+          title={t('trust.tip3_title')}
+          desc={t('trust.tip3_desc')}
         />
         <TipCard 
           icon="alert-octagon"
-          title="Beware of 'incredible offers'"
-          desc="If the price of a room is unbelievably low for the area and the photos look like they are from a magazine, it could be a scam. Trust your gut."
+          title={t('trust.tip4_title')}
+          desc={t('trust.tip4_desc')}
         />
         <TipCard 
           icon="file-sign"
-          title="Formalize agreements in the Legal Hub"
-          desc="Don't rely solely on word of mouth. Use our Smart Contracts tool to get payment, guest, and cleaning policies in writing."
+          title={t('trust.tip5_title')}
+          desc={t('trust.tip5_desc')}
         />
         <TipCard 
           icon="map-marker-radius"
-          title="Don't share the exact address immediately"
-          desc="If you are listing a room, share only the general area initially. Give the exact address only after you have verified the interested person's profile and they are about to make a visit."
+          title={t('trust.tip6_title')}
+          desc={t('trust.tip6_desc')}
         />
 
         <View style={{ height: 40 }} />
@@ -63,29 +78,55 @@ export default function SecurityTipsScreen() {
 }
 
 const TipCard = ({ icon, title, desc }: any) => (
-  <View style={s.card}>
+  <BlurView intensity={10} tint="dark" style={s.card}>
     <View style={s.iconWrap}>
-      <MaterialCommunityIcons name={icon} size={24} color="#49C788" />
+      <MaterialCommunityIcons name={icon} size={22} color="#34C759" />
     </View>
     <View style={s.cardContent}>
       <Text style={s.cardTitle}>{title}</Text>
       <Text style={s.cardDesc}>{desc}</Text>
     </View>
-  </View>
+  </BlurView>
 );
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingTop: 8 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, paddingTop: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  backBtnPressed: {
+    opacity: 0.7,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  headerTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center', marginRight: 8, letterSpacing: -0.5 },
   scroll: { paddingHorizontal: 20, paddingTop: 10 },
-  hero: { alignItems: 'center', marginBottom: 30, marginTop: 10 },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginTop: 16, marginBottom: 8 },
-  heroDesc: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  card: { backgroundColor: '#0d1117', borderRadius: 16, padding: 18, marginBottom: 14, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, borderColor: '#1a1a2e' },
-  iconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(73,199,136,0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  
+  hero: { alignItems: 'center', marginBottom: 32, marginTop: 16 },
+  shieldHeroCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(52, 199, 89, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 199, 89, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 10, textAlign: 'center', letterSpacing: -0.5 },
+  heroDesc: { color: '#888', fontSize: 13, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
+  
+  card: { backgroundColor: 'rgba(255,255,255,0.01)', borderRadius: 20, padding: 18, marginBottom: 14, flexDirection: 'row', alignItems: 'flex-start', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', overflow: 'hidden' },
+  iconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(52,199,89,0.08)', borderWidth: 1, borderColor: 'rgba(52,199,89,0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
   cardContent: { flex: 1 },
-  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  cardDesc: { color: '#888', fontSize: 13, lineHeight: 20 }
+  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
+  cardDesc: { color: '#888', fontSize: 12, lineHeight: 18 }
 });
