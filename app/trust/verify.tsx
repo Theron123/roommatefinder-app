@@ -2,42 +2,26 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View, Pressable, TextInput, ActivityIndicator, Image, Platform, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from '../../context/LanguageContext';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 
-// Top Universities in the Americas
-const UNIVERSITIES = [
-  // Canada
-  { name: "University of Toronto", domain: "utoronto.ca", country: "Canada" },
-  { name: "University of British Columbia", domain: "ubc.ca", country: "Canada" },
-  { name: "McGill University", domain: "mcgill.ca", country: "Canada" },
-  { name: "University of Waterloo", domain: "uwaterloo.ca", country: "Canada" },
-  { name: "University of Alberta", domain: "ualberta.ca", country: "Canada" },
-  { name: "McMaster University", domain: "mcmaster.ca", country: "Canada" },
-  { name: "Université de Montréal", domain: "umontreal.ca", country: "Canada" },
-  { name: "Western University", domain: "uwo.ca", country: "Canada" },
-  { name: "Queen's University", domain: "queensu.ca", country: "Canada" },
-  { name: "York University", domain: "yorku.ca", country: "Canada" },
-  
-  // United States
-  { name: "Harvard University", domain: "harvard.edu", country: "USA" },
-  { name: "Stanford University", domain: "stanford.edu", country: "USA" },
-  { name: "Massachusetts Institute of Technology", domain: "mit.edu", country: "USA" },
-  { name: "UC Berkeley", domain: "berkeley.edu", country: "USA" },
-  { name: "Columbia University", domain: "columbia.edu", country: "USA" },
-  { name: "New York University", domain: "nyu.edu", country: "USA" },
-  
-  // Latin America
-  { name: "Universidad Nacional Autónoma de México", domain: "unam.mx", country: "Mexico" },
-  { name: "Universidade de São Paulo", domain: "usp.br", country: "Brazil" },
-  { name: "Universidad de Buenos Aires", domain: "uba.ar", country: "Argentina" },
-  { name: "Universidad de los Andes", domain: "uniandes.edu.co", country: "Colombia" },
-  { name: "Universidad de Costa Rica", domain: "ucr.ac.cr", country: "Costa Rica" }
-];
+// Custom string tag helper components to render raw HTML elements on Web
+// without causing compilation or runtime crashes on native (iOS/Android)
+const WebVideo = (props: any) => {
+  if (Platform.OS !== 'web') return null;
+  const VideoTag = 'video' as any;
+  return <VideoTag {...props} />;
+};
+
+const WebCanvas = (props: any) => {
+  if (Platform.OS !== 'web') return null;
+  const CanvasTag = 'canvas' as any;
+  return <CanvasTag {...props} />;
+};
 
 export default function VerificationWizard() {
   const { t, locale } = useTranslation();
@@ -47,10 +31,8 @@ export default function VerificationWizard() {
   const [inputValue, setInputValue] = useState('');
   const [imageUri, setImageUri] = useState<string | null>(null);
 
-  // University States
-  const [selectedUniversity, setSelectedUniversity] = useState<typeof UNIVERSITIES[0] | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+  // Background Check States
+  const [bgIdNumber, setBgIdNumber] = useState('');
 
   // Instagram Mock OAuth States
   const [instagramModalVisible, setInstagramModalVisible] = useState(false);
@@ -62,17 +44,73 @@ export default function VerificationWizard() {
   const [smsSent, setSmsSent] = useState(false);
   const [smsCode, setSmsCode] = useState('');
 
+  // Web/PC Live Camera States
+  const [streamActive, setStreamActive] = useState(false);
+  const videoRef = useRef<any>(null);
+  const canvasRef = useRef<any>(null);
+
   // Custom Alert Modal States
   const [customAlertVisible, setCustomAlertVisible] = useState(false);
   const [customAlertTitle, setCustomAlertTitle] = useState('');
   const [customAlertMessage, setCustomAlertMessage] = useState('');
   const [customAlertButtons, setCustomAlertButtons] = useState<any[]>([]);
 
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      stopWebcam();
+    };
+  }, []);
+
   const triggerAlert = (title: string, message: string, buttons?: { text: string; onPress?: () => void; style?: string }[]) => {
     setCustomAlertTitle(title);
     setCustomAlertMessage(message);
     setCustomAlertButtons(buttons || [{ text: 'OK', onPress: () => {} }]);
     setCustomAlertVisible(true);
+  };
+
+  const startWebcam = async () => {
+    if (Platform.OS !== 'web') return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setStreamActive(true);
+      }
+    } catch (err) {
+      console.log("Error starting webcam:", err);
+      triggerAlert(
+        locale === 'es' ? 'Error de Cámara' : 'Camera Error',
+        locale === 'es' 
+          ? 'No se pudo acceder a la cámara web. Revisa los permisos de tu navegador.'
+          : 'Could not access the webcam. Please review your browser permissions.'
+      );
+    }
+  };
+
+  const stopWebcam = () => {
+    if (Platform.OS !== 'web' || !videoRef.current) return;
+    const stream = videoRef.current.srcObject as MediaStream;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+      setStreamActive(false);
+    }
+  };
+
+  const captureWebcam = () => {
+    if (Platform.OS !== 'web' || !videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    if (context) {
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      setImageUri(dataUrl);
+      stopWebcam();
+    }
   };
 
   const getVerifyConfig = (vType: string) => {
@@ -85,22 +123,15 @@ export default function VerificationWizard() {
           btnLabel: t('trust.verify_btn_id'),
           color: '#0A84FF'
         };
-      case 'university':
+      case 'background':
         return {
-          title: t('trust.verify_title_edu'),
-          icon: 'school',
-          desc: t('trust.verify_desc_edu'),
-          btnLabel: t('trust.verify_btn_edu'),
+          title: t('trust.verify_title_bg'),
+          icon: 'shield-account',
+          desc: t('trust.verify_desc_bg'),
+          btnLabel: t('trust.verify_btn_bg'),
           color: '#34C759'
         };
-      case 'workplace':
-        return {
-          title: t('trust.verify_title_work'),
-          icon: 'briefcase',
-          desc: t('trust.verify_desc_work'),
-          btnLabel: t('trust.verify_btn_work'),
-          color: '#5E5CE6'
-        };
+
       case 'social':
         return {
           title: t('trust.verify_title_soc'),
@@ -145,36 +176,46 @@ export default function VerificationWizard() {
     
     if (type === 'identity') {
       if (!imageUri) {
-        let result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          allowsEditing: true,
-          quality: 0.8,
-        });
+        if (Platform.OS === 'web') {
+          // Trigger browser image library upload if not streaming
+          let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+          });
 
-        if (!result.canceled) {
-          setImageUri(result.assets[0].uri);
+          if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+          }
+        } else {
+          // Native mobile photo capture
+          let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+          });
+
+          if (!result.canceled) {
+            setImageUri(result.assets[0].uri);
+          }
         }
       } else {
         submitVerification(imageUri);
       }
-    } else if (type === 'university') {
-      if (!selectedUniversity) {
+    } else if (type === 'background') {
+      if (!inputValue.trim() || !bgIdNumber.trim()) {
         triggerAlert(
           t('general.error') || 'Error',
-          locale === 'es' ? 'Por favor busca y selecciona una universidad.' : 'Please search and select a university.'
+          locale === 'es' ? 'Por favor completa todos los campos del formulario.' : 'Please complete all form fields.'
         );
-        return;
-      }
-      if (!inputValue.trim() || !inputValue.includes('@') || !inputValue.includes('.')) {
-        triggerAlert(t('general.error') || 'Error', t('trust.email_err'));
         return;
       }
       setLoading(true);
       setTimeout(() => {
         submitVerification();
       }, 1500);
+
     } else if (type === 'social') {
-      // Instagram OAuth simulation modal
       setInstagramUsername('');
       setInstagramPassword('');
       setInstagramStage('login');
@@ -212,16 +253,6 @@ export default function VerificationWizard() {
           submitVerification();
         }, 1500);
       }
-    } else {
-      // Workplace Email
-      if (!inputValue.trim() || !inputValue.includes('@') || !inputValue.includes('.')) {
-        triggerAlert(t('general.error') || 'Error', t('trust.email_err'));
-        return;
-      }
-      setLoading(true);
-      setTimeout(() => {
-        submitVerification();
-      }, 1500);
     }
   };
 
@@ -233,23 +264,23 @@ export default function VerificationWizard() {
 
       const finalInput = customInput || inputValue;
 
+      let meta: any = { input: finalInput, mock_image: imgUri || imageUri ? true : false };
+      if (type === 'background') {
+        meta = { name: inputValue, idNumber: bgIdNumber };
+      }
+
       // Create verification request record
       await supabase.from('verifications').insert({
         user_id: session.user.id,
         type: type,
         status: 'pending',
-        metadata: { 
-          input: finalInput, 
-          mock_image: imgUri || imageUri ? true : false,
-          university: type === 'university' && selectedUniversity ? selectedUniversity.name : undefined
-        }
+        metadata: meta
       });
 
       // Simulate auto-approval for demo purposes
       const updateData: any = {};
       if (type === 'identity') updateData.is_identity_verified = true;
-      if (type === 'university') updateData.is_university_verified = true;
-      if (type === 'workplace') updateData.is_workplace_verified = true;
+      if (type === 'background') updateData.is_background_verified = true;
       if (type === 'social') updateData.is_social_verified = true;
       if (type === 'phone') updateData.is_phone_verified = true;
 
@@ -257,11 +288,10 @@ export default function VerificationWizard() {
       const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       let count = 0;
       if (type === 'identity' || currentProfile?.is_identity_verified) count++;
-      if (type === 'university' || currentProfile?.is_university_verified) count++;
-      if (type === 'workplace' || currentProfile?.is_workplace_verified) count++;
+      if (type === 'background' || currentProfile?.is_background_verified) count++;
       if (type === 'social' || currentProfile?.is_social_verified) count++;
       if (type === 'phone' || currentProfile?.is_phone_verified) count++;
-      const newScore = 20 + count * 16;
+      const newScore = 20 + count * 20;
       updateData.trust_score = newScore;
 
       await supabase.from('profiles').update(updateData).eq('id', session.user.id);
@@ -288,20 +318,6 @@ export default function VerificationWizard() {
     }
   };
 
-  const filteredUniversities = searchQuery.trim()
-    ? UNIVERSITIES.filter(u => 
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        u.country.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : UNIVERSITIES;
-
-  const handleSelectUniversity = (uni: typeof UNIVERSITIES[0]) => {
-    setSelectedUniversity(uni);
-    setSearchQuery('');
-    setShowUniversityDropdown(false);
-    setInputValue(`student@${uni.domain}`);
-  };
-
   return (
     <SafeAreaView style={s.container}>
       {/* Header */}
@@ -309,6 +325,7 @@ export default function VerificationWizard() {
         <Pressable 
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            stopWebcam();
             if (router.canGoBack()) {
               router.back();
             } else {
@@ -322,188 +339,186 @@ export default function VerificationWizard() {
       </View>
 
       {/* Main Content */}
-      <View style={s.content}>
-        <View style={[s.iconBox, { backgroundColor: config.color + '1a', borderColor: config.color + '33', borderWidth: 1 }]}>
-          <MaterialCommunityIcons name={config.icon} size={44} color={config.color} />
-        </View>
-        <Text style={s.title}>{config.title}</Text>
-        <Text style={s.desc}>{config.desc}</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
+        <View style={s.content}>
+          <View style={[s.iconBox, { backgroundColor: config.color + '1a', borderColor: config.color + '33', borderWidth: 1 }]}>
+            <MaterialCommunityIcons name={config.icon} size={44} color={config.color} />
+          </View>
+          <Text style={s.title}>{config.title}</Text>
+          <Text style={s.desc}>{config.desc}</Text>
 
-        <View style={s.secureBadge}>
-          <MaterialCommunityIcons name="lock" size={16} color="#34C759" />
-          <Text style={s.secureText}>{t('trust.encryption_note')}</Text>
-        </View>
+          <View style={s.secureBadge}>
+            <MaterialCommunityIcons name="lock" size={16} color="#34C759" />
+            <Text style={s.secureText}>{t('trust.encryption_note')}</Text>
+          </View>
 
-        {/* 1. University Search and Email Section */}
-        {type === 'university' && (
-          <View style={s.inputWrapper}>
-            <Text style={s.inputLabel}>
-              {locale === 'es' ? 'Buscar Universidad' : 'Search University'}
-            </Text>
-            
-            {!selectedUniversity ? (
-              <View style={{ position: 'relative', zIndex: 50, width: '100%' }}>
-                <View style={s.searchBarContainer}>
-                  <MaterialCommunityIcons name="magnify" size={20} color="#888" style={s.searchIcon} />
+          {/* 1. Background Check Section */}
+          {type === 'background' && (
+            <View style={s.inputWrapper}>
+              <Text style={s.inputLabel}>{locale === 'es' ? 'Nombre completo legal' : 'Legal Full Name'}</Text>
+              <TextInput
+                style={s.input}
+                placeholder={locale === 'es' ? "John Doe" : "John Doe"}
+                placeholderTextColor="#555"
+                value={inputValue}
+                onChangeText={setInputValue}
+              />
+              
+              <View style={{ height: 16 }} />
+              
+              <Text style={s.inputLabel}>{locale === 'es' ? 'Número de Identificación o SSN' : 'ID or SSN Number'}</Text>
+              <TextInput
+                style={s.input}
+                placeholder="XXX-XX-XXXX"
+                placeholderTextColor="#555"
+                value={bgIdNumber}
+                onChangeText={setBgIdNumber}
+                secureTextEntry
+              />
+            </View>
+          )}
+
+
+
+          {/* 3. Instagram Connection Section */}
+          {type === 'social' && (
+            <View style={s.socialContainer}>
+              <Text style={s.socialHelpText}>
+                {locale === 'es' 
+                  ? 'Vincula tu cuenta para verificar tu perfil de forma segura y subir tu nivel de confianza.'
+                  : 'Link your account to securely verify your profile and increase your trust level.'}
+              </Text>
+              
+              <Pressable 
+                style={({ pressed }) => [
+                  s.socialLinkBtn, 
+                  pressed && { opacity: 0.9 }
+                ]} 
+                onPress={handleAction}
+              >
+                <MaterialCommunityIcons name="instagram" size={24} color="#fff" style={{ marginRight: 10 }} />
+                <Text style={s.socialLinkBtnText}>{t('trust.verify_btn_soc')}</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* 4. Phone Verification Section */}
+          {type === 'phone' && (
+            <View style={s.inputWrapper}>
+              {!smsSent ? (
+                <>
+                  <Text style={s.inputLabel}>{t('trust.phone_label')}</Text>
                   <TextInput
-                    style={s.searchInput}
-                    placeholder={locale === 'es' ? "Escribe el nombre de tu universidad..." : "Type your university name..."}
+                    style={s.input}
+                    placeholder={t('trust.phone_placeholder')}
                     placeholderTextColor="#555"
-                    value={searchQuery}
-                    onChangeText={(txt) => {
-                      setSearchQuery(txt);
-                      setShowUniversityDropdown(true);
-                    }}
-                    onFocus={() => setShowUniversityDropdown(true)}
+                    keyboardType="phone-pad"
+                    value={inputValue}
+                    onChangeText={setInputValue}
                   />
-                </View>
+                </>
+              ) : (
+                <>
+                  <Text style={s.inputLabel}>
+                    {locale === 'es' ? 'Código SMS (6 dígitos)' : 'SMS Code (6 digits)'}
+                  </Text>
+                  <TextInput
+                    style={s.input}
+                    placeholder="123456"
+                    placeholderTextColor="#555"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={smsCode}
+                    onChangeText={setSmsCode}
+                  />
+                </>
+              )}
+            </View>
+          )}
 
-                {showUniversityDropdown && (
-                  <View style={s.dropdownCard}>
-                    <ScrollView style={{ maxHeight: 180 }} keyboardShouldPersistTaps="handled">
-                      {filteredUniversities.length > 0 ? (
-                        filteredUniversities.map((uni, idx) => (
-                          <Pressable
-                            key={idx}
-                            style={s.dropdownItem}
-                            onPress={() => handleSelectUniversity(uni)}
-                          >
-                            <MaterialCommunityIcons name="school-outline" size={18} color="#999" />
-                            <View style={{ flex: 1, marginLeft: 10 }}>
-                              <Text style={s.uniNameText}>{uni.name}</Text>
-                              <Text style={s.uniCountryText}>{uni.country} · {uni.domain}</Text>
-                            </View>
-                          </Pressable>
-                        ))
-                      ) : (
-                        <View style={s.dropdownEmpty}>
-                          <Text style={s.dropdownEmptyText}>
-                            {locale === 'es' ? 'No se encontraron resultados' : 'No results found'}
-                          </Text>
-                        </View>
-                      )}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={s.selectedUniCard}>
-                <MaterialCommunityIcons name="school" size={24} color="#34C759" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={s.selectedUniName} numberOfLines={1}>{selectedUniversity.name}</Text>
-                  <Text style={s.selectedUniCountry}>{selectedUniversity.country}</Text>
+          {/* 5. Face Recognition / Identity Section (Web Camera Flow) */}
+          {type === 'identity' && (
+            <View style={{ width: '100%', alignItems: 'center' }}>
+              {Platform.OS === 'web' && !imageUri && (
+                <View style={s.webCameraWrapper}>
+                  {!streamActive ? (
+                    <View style={s.cameraFallbackCard}>
+                      <MaterialCommunityIcons name="webcam" size={48} color="#555" />
+                      <Text style={s.cameraFallbackText}>
+                        {locale === 'es' 
+                          ? 'Puedes usar la cámara web de tu PC para tomar la selfie en tiempo real.'
+                          : 'You can use your PC webcam to capture your real-time verification selfie.'}
+                      </Text>
+                      <Pressable 
+                        style={({ pressed }) => [s.cameraBtn, pressed && { opacity: 0.9 }]}
+                        onPress={startWebcam}
+                      >
+                        <MaterialCommunityIcons name="camera" size={18} color="#000" style={{ marginRight: 8 }} />
+                        <Text style={s.cameraBtnText}>{locale === 'es' ? 'Activar Cámara' : 'Activate Camera'}</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <View style={s.videoContainer}>
+                      <WebVideo 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                      <WebCanvas ref={canvasRef} style={{ display: 'none' }} />
+                      <View style={s.cameraMask} />
+                      
+                      <Pressable 
+                        style={({ pressed }) => [s.captureCircleBtn, pressed && { scale: 0.95 }]}
+                        onPress={captureWebcam}
+                      >
+                        <View style={s.captureCircleInner} />
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
-                <Pressable onPress={() => setSelectedUniversity(null)} style={s.clearUniBtn}>
-                  <MaterialCommunityIcons name="close-circle" size={20} color="#FF453A" />
+              )}
+
+              {/* Document File Uploader Fallback */}
+              {!imageUri && (!streamActive || Platform.OS !== 'web') && (
+                <Pressable 
+                  style={({ pressed }) => [s.uploadPlaceholderBtn, pressed && { opacity: 0.8 }]}
+                  onPress={async () => {
+                    let result = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                      allowsEditing: true,
+                      quality: 0.8,
+                    });
+                    if (!result.canceled) {
+                      setImageUri(result.assets[0].uri);
+                    }
+                  }}
+                >
+                  <MaterialCommunityIcons name="file-image-plus-outline" size={36} color="#0A84FF" />
+                  <Text style={s.uploadPlaceholderText}>
+                    {locale === 'es' ? 'Selecciona una foto de tu ID' : 'Select a photo of your ID'}
+                  </Text>
                 </Pressable>
-              </View>
-            )}
+              )}
 
-            {selectedUniversity && (
-              <View style={{ marginTop: 20 }}>
-                <Text style={s.inputLabel}>{t('trust.email_label')}</Text>
-                <TextInput
-                  style={s.input}
-                  placeholder={t('trust.email_placeholder_edu')}
-                  placeholderTextColor="#555"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={inputValue}
-                  onChangeText={setInputValue}
-                />
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* 2. Workplace Verification Section */}
-        {type === 'workplace' && (
-          <View style={s.inputWrapper}>
-            <Text style={s.inputLabel}>{t('trust.email_label')}</Text>
-            <TextInput
-              style={s.input}
-              placeholder={t('trust.email_placeholder_work')}
-              placeholderTextColor="#555"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={inputValue}
-              onChangeText={setInputValue}
-            />
-          </View>
-        )}
-
-        {/* 3. Instagram Connection Section */}
-        {type === 'social' && (
-          <View style={s.socialContainer}>
-            <Text style={s.socialHelpText}>
-              {locale === 'es' 
-                ? 'Vincula tu cuenta para verificar tu perfil de forma segura y subir tu nivel de confianza.'
-                : 'Link your account to securely verify your profile and increase your trust level.'}
-            </Text>
-            
-            <Pressable 
-              style={({ pressed }) => [
-                s.socialLinkBtn, 
-                pressed && { opacity: 0.9 }
-              ]} 
-              onPress={handleAction}
-            >
-              <MaterialCommunityIcons name="instagram" size={24} color="#fff" style={{ marginRight: 10 }} />
-              <Text style={s.socialLinkBtnText}>{t('trust.verify_btn_soc')}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* 4. Phone Verification Section */}
-        {type === 'phone' && (
-          <View style={s.inputWrapper}>
-            {!smsSent ? (
-              <>
-                <Text style={s.inputLabel}>{t('trust.phone_label')}</Text>
-                <TextInput
-                  style={s.input}
-                  placeholder={t('trust.phone_placeholder')}
-                  placeholderTextColor="#555"
-                  keyboardType="phone-pad"
-                  value={inputValue}
-                  onChangeText={setInputValue}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={s.inputLabel}>
-                  {locale === 'es' ? 'Código SMS (6 dígitos)' : 'SMS Code (6 digits)'}
-                </Text>
-                <TextInput
-                  style={s.input}
-                  placeholder="123456"
-                  placeholderTextColor="#555"
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  value={smsCode}
-                  onChangeText={setSmsCode}
-                />
-              </>
-            )}
-          </View>
-        )}
-
-        {/* 5. Identity Document Preview */}
-        {type === 'identity' && imageUri && (
-          <View style={s.previewContainer}>
-            <Image source={{ uri: imageUri }} style={s.previewImage} />
-            <Pressable 
-              style={s.removeImageBtn} 
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setImageUri(null);
-              }}
-            >
-              <MaterialCommunityIcons name="close-circle" size={24} color="#FF453A" />
-            </Pressable>
-          </View>
-        )}
-      </View>
+              {imageUri && (
+                <View style={s.previewContainer}>
+                  <Image source={{ uri: imageUri }} style={s.previewImage} />
+                  <Pressable 
+                    style={s.removeImageBtn} 
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setImageUri(null);
+                    }}
+                  >
+                    <MaterialCommunityIcons name="close-circle" size={24} color="#FF453A" />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
       {/* Footer (Not shown for social as it has its own link button) */}
       {type !== 'social' && (
@@ -715,7 +730,7 @@ const s = StyleSheet.create({
     opacity: 0.7,
     backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  content: { flex: 1, paddingHorizontal: 24, alignItems: 'center', paddingTop: 20 },
+  content: { flex: 1, paddingHorizontal: 24, alignItems: 'center', paddingTop: 20, width: '100%' },
   iconBox: { width: 90, height: 90, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
   title: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 12, textAlign: 'center', letterSpacing: -0.5 },
   desc: { color: '#888', fontSize: 14, textAlign: 'center', lineHeight: 22, paddingHorizontal: 10, marginBottom: 24 },
@@ -726,68 +741,96 @@ const s = StyleSheet.create({
   inputLabel: { color: '#555', fontSize: 11, fontWeight: '800', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1.5, marginLeft: 4 },
   input: { width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', color: '#fff', padding: 16, borderRadius: 20, fontSize: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' },
 
-  // University Search Styles
-  searchBarContainer: {
+  // PC/Web Camera VISOR styles
+  webCameraWrapper: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#0A84FF',
+    backgroundColor: '#07090e',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    marginBottom: 20
+  },
+  cameraFallbackCard: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  cameraFallbackText: {
+    color: '#666',
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginVertical: 14
+  },
+  cameraBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 20,
+    backgroundColor: '#fff',
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    height: 54,
-    width: '100%'
+    borderRadius: 20
   },
-  searchIcon: { marginRight: 10 },
-  searchInput: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 15,
+  cameraBtnText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  videoContainer: {
+    width: '100%',
     height: '100%',
-    outlineStyle: 'none'
-  } as any,
-  dropdownCard: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  cameraMask: {
     position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    backgroundColor: '#0f121a',
+    borderWidth: 3,
+    borderColor: 'rgba(10, 132, 255, 0.4)',
+    borderRadius: 105,
+    width: 210,
+    height: 210,
+    borderStyle: 'dashed'
+  },
+  captureCircleBtn: {
+    position: 'absolute',
+    bottom: 15,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 3,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  captureCircleInner: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#fff'
+  },
+  uploadPlaceholderBtn: {
+    width: '100%',
+    padding: 30,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(10, 132, 255, 0.25)',
+    borderStyle: 'dashed',
     borderRadius: 20,
-    zIndex: 9999,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    overflow: 'hidden'
-  },
-  dropdownItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)'
+    justifyContent: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.02)',
+    gap: 12
   },
-  uniNameText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  uniCountryText: { color: '#666', fontSize: 11, marginTop: 2 },
-  dropdownEmpty: { padding: 20, alignItems: 'center' },
-  dropdownEmptyText: { color: '#555', fontSize: 13 },
-  selectedUniCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(52, 199, 89, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(52, 199, 89, 0.15)',
-    borderRadius: 20,
-    padding: 16,
-    width: '100%'
+  uploadPlaceholderText: {
+    color: '#0A84FF',
+    fontSize: 14,
+    fontWeight: '700'
   },
-  selectedUniName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  selectedUniCountry: { color: '#888', fontSize: 12, marginTop: 2 },
-  clearUniBtn: { padding: 4 },
 
   // Social Styles
   socialContainer: { width: '100%', alignItems: 'center', paddingVertical: 10 },

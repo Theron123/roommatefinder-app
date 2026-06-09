@@ -23,32 +23,20 @@ const VERIFY_CONFIG: Record<string, { color: string; benefits_es: string[]; bene
       'Access to premium listings and exclusive matches.'
     ]
   },
-  university: {
+  background: {
     color: '#34C759',
     benefits_es: [
-      'Insignia de Estudiante en tu perfil.',
-      'Filtro exclusivo para conectar solo con estudiantes de tu universidad.',
-      'Mayor confianza para rentas compartidas universitarias.'
+      'Insignia de Antecedentes Limpios en tu perfil.',
+      'Genera la máxima confianza con futuros compañeros y propietarios.',
+      'Demuestra honestidad y compromiso de seguridad.'
     ],
     benefits_en: [
-      'Student Badge on your profile.',
-      'Exclusive filter to connect only with students from your university.',
-      'Greater trust for student co-living arrangements.'
+      'Clean Background Check Badge on your profile.',
+      'Generates maximum trust with future roommates and landlords.',
+      'Demonstrates honesty and safety commitment.'
     ]
   },
-  workplace: {
-    color: '#5E5CE6',
-    benefits_es: [
-      'Insignia Profesional en tu perfil.',
-      'Demuestra tu empleo actual y estabilidad profesional.',
-      'Conecta con otros profesionales con estilos de vida similares.'
-    ],
-    benefits_en: [
-      'Professional Badge on your profile.',
-      'Demonstrates your current employment and stability.',
-      'Connect with other working professionals with similar lifestyles.'
-    ]
-  },
+
   social: {
     color: '#E1306C',
     benefits_es: [
@@ -103,19 +91,18 @@ export default function TrustAndSafetyHub() {
     if (session?.user?.id) {
       const { data } = await supabase
         .from('profiles')
-        .select('trust_score, is_identity_verified, is_university_verified, is_workplace_verified, is_social_verified, is_phone_verified')
+        .select('trust_score, is_identity_verified, is_background_verified, is_social_verified, is_phone_verified')
         .eq('id', session.user.id)
         .single();
 
       if (data) {
-        // Calculate progressive trust score dynamically: 20 base + 16 per verified option (max 100)
+        // Calculate progressive trust score dynamically: 20 base + 20 per verified option (max 100)
         let count = 0;
         if (data.is_identity_verified) count++;
-        if (data.is_university_verified) count++;
-        if (data.is_workplace_verified) count++;
+        if (data.is_background_verified) count++;
         if (data.is_social_verified) count++;
         if (data.is_phone_verified) count++;
-        const calculatedScore = 20 + count * 16;
+        const calculatedScore = 20 + count * 20;
         
         const finalProfile = { ...data, trust_score: calculatedScore };
         setProfile(finalProfile);
@@ -166,19 +153,17 @@ export default function TrustAndSafetyHub() {
                 // Prepare profile update
                 const updateData: any = {};
                 if (type === 'identity') updateData.is_identity_verified = false;
-                if (type === 'university') updateData.is_university_verified = false;
-                if (type === 'workplace') updateData.is_workplace_verified = false;
+                if (type === 'background') updateData.is_background_verified = false;
                 if (type === 'social') updateData.is_social_verified = false;
                 if (type === 'phone') updateData.is_phone_verified = false;
 
                 // Recalculate score dynamically
                 let count = 0;
                 if (type !== 'identity' && profile.is_identity_verified) count++;
-                if (type !== 'university' && profile.is_university_verified) count++;
-                if (type !== 'workplace' && profile.is_workplace_verified) count++;
+                if (type !== 'background' && profile.is_background_verified) count++;
                 if (type !== 'social' && profile.is_social_verified) count++;
                 if (type !== 'phone' && profile.is_phone_verified) count++;
-                const newScore = 20 + count * 16;
+                const newScore = 20 + count * 20;
                 updateData.trust_score = newScore;
 
                 await supabase.from('profiles').update(updateData).eq('id', session.user.id);
@@ -216,8 +201,8 @@ export default function TrustAndSafetyHub() {
                 await supabase.from('verifications').delete().eq('user_id', session.user.id);
                 await supabase.from('profiles').update({
                   is_identity_verified: false,
-                  is_university_verified: false,
-                  is_workplace_verified: false,
+                  is_background_verified: false,
+                  is_references_verified: false,
                   is_social_verified: false,
                   is_phone_verified: false,
                   trust_score: 20
@@ -381,19 +366,13 @@ export default function TrustAndSafetyHub() {
           type="identity"
         />
         <VerificationItem 
-          icon="school" 
-          title={t('trust.education')} 
-          desc={t('trust.edu_desc')} 
-          verified={profile?.is_university_verified}
-          type="university"
+          icon="shield-account" 
+          title={t('trust.background')} 
+          desc={t('trust.background_desc')} 
+          verified={profile?.is_background_verified}
+          type="background"
         />
-        <VerificationItem 
-          icon="briefcase" 
-          title={t('trust.workplace')} 
-          desc={t('trust.work_desc')} 
-          verified={profile?.is_workplace_verified}
-          type="workplace"
-        />
+
         <VerificationItem 
           icon="instagram" 
           title={t('trust.social')} 
@@ -490,28 +469,22 @@ export default function TrustAndSafetyHub() {
                 </View>
               )}
 
-              {selectedBadge?.type === 'university' && selectedBadge?.metadata?.university && (
+              {selectedBadge?.type === 'background' && selectedBadge?.metadata?.name && (
                 <View style={s.metaDataBadge}>
-                  <MaterialCommunityIcons name="school" size={16} color="#34C759" />
+                  <MaterialCommunityIcons name="shield-account" size={16} color="#34C759" />
                   <Text style={s.metaDataText}>
-                    {selectedBadge.metadata.university}
+                    {selectedBadge.metadata.name}
                   </Text>
                 </View>
               )}
-              
-              {selectedBadge?.type === 'university' && selectedBadge?.metadata?.input && (
+              {selectedBadge?.type === 'background' && selectedBadge?.metadata?.idNumber && (
                 <Text style={s.metaDataSubText}>
-                  {locale === 'es' ? 'Correo institucional: ' : 'Institutional email: '}
-                  {selectedBadge.metadata.input}
+                  {locale === 'es' ? 'ID de Antecedentes: ' : 'Background ID: '}
+                  {selectedBadge.metadata.idNumber}
                 </Text>
               )}
 
-              {selectedBadge?.type === 'workplace' && selectedBadge?.metadata?.input && (
-                <View style={s.metaDataBadge}>
-                  <MaterialCommunityIcons name="briefcase" size={16} color="#5E5CE6" />
-                  <Text style={s.metaDataText}>{selectedBadge.metadata.input}</Text>
-                </View>
-              )}
+
 
               {selectedBadge?.type === 'phone' && selectedBadge?.metadata?.input && (
                 <View style={s.metaDataBadge}>
