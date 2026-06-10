@@ -123,13 +123,29 @@ export default function HomeScreen() {
       setCurrentUserPhoto(currentUserProfile.photoUrl);
     }
 
-    // Fetch profiles without the listings join since the foreign key is missing
-    const { data: otherProfiles } = await supabase
+    // Fetch blocked users first to filter them out of the feed
+    const { data: blockedRecords } = await supabase
+      .from('user_blocks')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${session.user.id},blocked_id.eq.${session.user.id}`);
+
+    const blockedUserIds = blockedRecords 
+      ? blockedRecords.map(r => r.blocker_id === session.user.id ? r.blocked_id : r.blocker_id) 
+      : [];
+
+    // Fetch profiles without the listings join since the foreign key is missing, filtering by is_public and excluding blocked profiles
+    let query = supabase
       .from('profiles')
       .select('id, name, age, photoUrl, likes, preferences, dealbreakers, latOffset, lngOffset')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
-      .limit(50);
+      .eq('is_public', true);
+
+    if (blockedUserIds.length > 0) {
+      query = query.not('id', 'in', `(${blockedUserIds.join(',')})`);
+    }
+
+    const { data: otherProfiles } = await query.limit(50);
 
     if (otherProfiles) {
       let scoredProfiles = otherProfiles.map((p: any) => {

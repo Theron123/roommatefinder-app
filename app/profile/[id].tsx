@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, Dimensions, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { supabase } from '@/lib/supabase';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,6 +46,54 @@ export default function ProfileDetailScreen() {
       if (listingRes.data) setListing(listingRes.data);
     }
     setLoading(false);
+  };
+
+  const handleBlockUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    Alert.alert(
+      locale === 'es' ? 'Bloquear Usuario' : 'Block User',
+      locale === 'es' 
+        ? `¿Estás seguro de que deseas bloquear a ${profile?.name || 'este usuario'}? Ya no aparecerá en tus recomendaciones y no podrán enviarse mensajes.`
+        : `Are you sure you want to block ${profile?.name || 'this user'}? They will no longer appear in your feed and you won't be able to message each other.`,
+      [
+        { text: locale === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
+        {
+          text: locale === 'es' ? 'Bloquear' : 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('user_blocks')
+                .insert({
+                  blocker_id: session.user.id,
+                  blocked_id: id
+                });
+              
+              if (!error) {
+                // Delete match record if any
+                await supabase
+                  .from('matches')
+                  .delete()
+                  .or(`user1_id.eq.${session.user.id},user2_id.eq.${session.user.id}`)
+                  .or(`user1_id.eq.${id},user2_id.eq.${id}`);
+
+                Alert.alert(
+                  locale === 'es' ? 'Usuario Bloqueado' : 'User Blocked',
+                  locale === 'es' ? 'El usuario ha sido bloqueado exitosamente.' : 'The user has been blocked.',
+                  [{ text: 'OK', onPress: () => router.back() }]
+                );
+              } else {
+                Alert.alert('Error', error.message);
+              }
+            } catch (err) {
+              console.log('Error blocking user:', err);
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (loading) {
@@ -253,12 +301,17 @@ export default function ProfileDetailScreen() {
         </View>
       </ScrollView>
  
-      {/* Floating Action Button for Chat */}
+      {/* Floating Action Button for Chat & Block */}
       <View style={styles.bottomBar}>
-        <Pressable style={styles.primaryButton} onPress={() => router.push(`/chat/${profile.id}`)}>
-          <IconSymbol name="paperplane.fill" size={20} color="#000" />
-          <Text style={styles.primaryButtonText}>{t('profile.message_user', 'Message') + ' ' + (profile.name || '')}</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Pressable style={[styles.primaryButton, { flex: 1 }]} onPress={() => router.push(`/chat/${profile.id}`)}>
+            <IconSymbol name="paperplane.fill" size={20} color="#000" style={{ marginRight: 8 } as any} />
+            <Text style={styles.primaryButtonText}>{t('profile.message_user', 'Message') + ' ' + (profile.name || '')}</Text>
+          </Pressable>
+          <Pressable style={styles.blockButton} onPress={handleBlockUser}>
+            <MaterialCommunityIcons name="account-cancel" size={24} color="#FF453A" />
+          </Pressable>
+        </View>
       </View>
 
       {/* Fullscreen Lightbox Modal */}
@@ -537,6 +590,16 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  blockButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 69, 58, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 69, 58, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   apartmentSection: {
     marginTop: 20,

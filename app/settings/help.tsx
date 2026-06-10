@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as DocumentPicker from 'expo-document-picker';
 
 export default function HelpScreen() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function HelpScreen() {
   const [category, setCategory] = useState<'general' | 'billing' | 'contracts' | 'reports'>('general');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [attachedDoc, setAttachedDoc] = useState<{ name: string; uri: string; size?: number } | null>(null);
 
   const faqs = [
     {
@@ -40,14 +42,36 @@ export default function HelpScreen() {
     {
       q_en: "How is my Trust Score calculated?",
       q_es: "¿Cómo se calcula mi Trust Score?",
-      a_en: "Your Trust Score starts at 20. It increases by verifying your identity (+30), university email (+15), employment (+15), income solvency (+10), and social media accounts (+10). Complete profiles stand out more!",
-      a_es: "Tu Trust Score inicia en 20. Aumenta al verificar tu identidad (+30), correo universitario (+15), empleo (+15), solvencia de ingresos (+10) y redes sociales (+10). ¡Los perfiles completos destacan más!"
+      a_en: "Your Trust Score starts at 20. It increases by 20 points for each verification you complete: Official ID (+20), Criminal Background (+20), Social Media (+20), and Phone Number (+20). Verifying all metrics reaches 100%!",
+      a_es: "Tu Trust Score inicia en 20. Aumenta 20 puntos por cada verificación completada: Identidad Oficial (+20), Antecedentes Penales (+20), Redes Sociales (+20) y Número Telefónico (+20). Al verificar todos los parámetros alcanzas el 100%."
     }
   ];
 
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setAttachedDoc({
+          name: asset.name,
+          uri: asset.uri,
+          size: asset.size
+        });
+      }
+    } catch (err) {
+      console.log('Error picking document:', err);
+    }
+  };
+
   const handleSendTicket = () => {
-    if (!message.trim()) {
-      Alert.alert(isEs ? "Error" : "Error", isEs ? "Por favor escribe un mensaje antes de enviar." : "Please write a message before sending.");
+    if (!message.trim() && !attachedDoc) {
+      Alert.alert(
+        isEs ? "Campos Vacíos" : "Empty Fields", 
+        isEs ? "Por favor escribe un mensaje o adjunta un documento antes de enviar." : "Please write a message or attach a document before sending."
+      );
       return;
     }
 
@@ -55,11 +79,18 @@ export default function HelpScreen() {
     setTimeout(() => {
       setSending(false);
       setMessage('');
+      const docName = attachedDoc?.name;
+      setAttachedDoc(null);
+      
       Alert.alert(
-        isEs ? "¡Mensaje Enviado!" : "Message Sent!",
+        isEs ? "¡Reporte Enviado!" : "Report Sent!",
         isEs 
-          ? "Hemos recibido tu solicitud de soporte. Te responderemos por correo electrónico en un lapso de 24 horas."
-          : "We have received your support request. We will reply to your registered email address within 24 hours."
+          ? (docName 
+              ? `Hemos recibido tu reporte de soporte y el documento "${docName}". Te responderemos por correo electrónico en un lapso de 24 horas.`
+              : "Hemos recibido tu solicitud de soporte. Te responderemos por correo electrónico en un lapso de 24 horas.")
+          : (docName
+              ? `We have received your support report and the document "${docName}". We will reply to your registered email address within 24 hours.`
+              : "We have received your support request. We will reply to your registered email address within 24 hours.")
       );
     }, 1200);
   };
@@ -158,6 +189,30 @@ export default function HelpScreen() {
             value={message}
             onChangeText={setMessage}
           />
+
+          {/* Attached Document Preview */}
+          {attachedDoc && (
+            <View style={styles.attachedContainer}>
+              <MaterialCommunityIcons name="file-document-outline" size={20} color="#49C788" />
+              <Text style={styles.attachedText} numberOfLines={1}>
+                {attachedDoc.name} {attachedDoc.size ? `(${Math.round(attachedDoc.size / 1024)} KB)` : ''}
+              </Text>
+              <Pressable onPress={() => setAttachedDoc(null)}>
+                <MaterialCommunityIcons name="close-circle" size={20} color="#FF453A" />
+              </Pressable>
+            </View>
+          )}
+
+          {/* Attach Button */}
+          <Pressable 
+            style={({ pressed }) => [styles.attachBtn, pressed && { opacity: 0.8 }]}
+            onPress={handlePickDocument}
+          >
+            <MaterialCommunityIcons name="paperclip" size={18} color="#49C788" style={{ marginRight: 6 }} />
+            <Text style={styles.attachBtnText}>
+              {isEs ? "Adjuntar Documento / Imagen" : "Attach Document / Image"}
+            </Text>
+          </Pressable>
 
           <Pressable 
             style={({ pressed }) => [styles.sendBtn, pressed && styles.sendBtnPressed]}
@@ -343,5 +398,40 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 15,
     fontWeight: '800',
+  },
+  attachBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+    marginBottom: 20,
+  },
+  attachBtnText: {
+    color: '#49C788',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  attachedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(73, 199, 136, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(73, 199, 136, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 20,
+    gap: 8,
+  },
+  attachedText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

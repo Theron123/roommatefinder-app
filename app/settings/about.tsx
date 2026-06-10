@@ -12,7 +12,9 @@ export default function AboutScreen() {
   const handleShowLicensing = () => {
     Alert.alert(
       isEs ? "Licencias de Código Abierto" : "Open Source Licenses",
-      "RoommateFinder relies on open-source libraries:\n\n• React Native (MIT)\n• Expo (MIT)\n• Supabase (MIT)\n• Shopify FlashList (MIT)\n• OpenStreetMap Nominatim (ODbL)\n\nThank you to all developers who build the open web!",
+      isEs
+        ? "RoommateFinder depende de bibliotecas de código abierto:\n\n• React Native (MIT)\n• Expo (MIT)\n• Supabase (MIT)\n• Shopify FlashList (MIT)\n• OpenStreetMap Nominatim (ODbL)\n\n¡Gracias a todos los desarrolladores que construyen la web abierta!"
+        : "RoommateFinder relies on open-source libraries:\n\n• React Native (MIT)\n• Expo (MIT)\n• Supabase (MIT)\n• Shopify FlashList (MIT)\n• OpenStreetMap Nominatim (ODbL)\n\nThank you to all developers who build the open web!",
       [{ text: "OK" }]
     );
   };

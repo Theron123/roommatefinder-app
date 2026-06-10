@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, Alert } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '@/lib/supabase';
 
 export default function PrivacyScreen() {
   const router = useRouter();
@@ -13,6 +14,45 @@ export default function PrivacyScreen() {
   const [readReceipts, setReadReceipts] = useState(true);
   const [shareBadges, setShareBadges] = useState(true);
   const [biometric, setBiometric] = useState(false);
+
+  useEffect(() => {
+    loadPrivacySettings();
+  }, []);
+
+  const loadPrivacySettings = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_public, read_receipts_enabled, share_badges_enabled, biometric_enabled')
+          .eq('id', session.user.id)
+          .single();
+        if (data) {
+          setVisibility(data.is_public ?? true);
+          setReadReceipts(data.read_receipts_enabled ?? true);
+          setShareBadges(data.share_badges_enabled ?? true);
+          setBiometric(data.biometric_enabled ?? false);
+        }
+      }
+    } catch (e) {
+      console.log('Error loading privacy settings:', e);
+    }
+  };
+
+  const updateSetting = async (key: string, val: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ [key]: val })
+          .eq('id', session.user.id);
+      }
+    } catch (e) {
+      console.log('Error updating privacy setting:', e);
+    }
+  };
 
   const isEs = locale === 'es';
 
@@ -101,9 +141,13 @@ export default function PrivacyScreen() {
           <ToggleItem
             icon="eye-outline"
             title={isEs ? "Perfil Público" : "Public Profile"}
-            description={isEs ? "Permitir que cualquier usuario encuentre tu perfil en el feed." : "Allow anyone to find your profile on the main feed."}
+            description={isEs ? "Permitir que cualquier usuario encuentre tu perfil en el home." : "Allow anyone to find your profile on the home screen."}
             value={visibility}
-            onToggle={() => setVisibility(!visibility)}
+            onToggle={() => {
+              const newVal = !visibility;
+              setVisibility(newVal);
+              updateSetting('is_public', newVal);
+            }}
             iconColor="#49C788"
             bgColor="rgba(73,199,136,0.1)"
           />
@@ -113,7 +157,11 @@ export default function PrivacyScreen() {
             title={isEs ? "Confirmación de Lectura" : "Read Receipts"}
             description={isEs ? "Mostrar cuándo has leído los mensajes de otros roommates." : "Show others when you have read their messages."}
             value={readReceipts}
-            onToggle={() => setReadReceipts(!readReceipts)}
+            onToggle={() => {
+              const newVal = !readReceipts;
+              setReadReceipts(newVal);
+              updateSetting('read_receipts_enabled', newVal);
+            }}
             iconColor="#0A84FF"
             bgColor="rgba(10,132,255,0.1)"
           />
@@ -123,7 +171,11 @@ export default function PrivacyScreen() {
             title={isEs ? "Insignias de Verificación" : "Verification Badges"}
             description={isEs ? "Mostrar tus badges de confianza (ID, escuela, trabajo) en tu perfil público." : "Show trust verification badges on your public profile."}
             value={shareBadges}
-            onToggle={() => setShareBadges(!shareBadges)}
+            onToggle={() => {
+              const newVal = !shareBadges;
+              setShareBadges(newVal);
+              updateSetting('share_badges_enabled', newVal);
+            }}
             iconColor="#FFD60A"
             bgColor="rgba(255,214,10,0.1)"
           />
@@ -138,7 +190,11 @@ export default function PrivacyScreen() {
             title={isEs ? "Bloqueo Biométrico" : "Biometric Lock"}
             description={isEs ? "Requerir FaceID o huella digital al abrir la aplicación." : "Require FaceID or fingerprint when opening the app."}
             value={biometric}
-            onToggle={() => setBiometric(!biometric)}
+            onToggle={() => {
+              const newVal = !biometric;
+              setBiometric(newVal);
+              updateSetting('biometric_enabled', newVal);
+            }}
             iconColor="#BF5AF2"
             bgColor="rgba(191,90,242,0.1)"
           />
@@ -146,10 +202,7 @@ export default function PrivacyScreen() {
           <Pressable 
             style={({ pressed }) => [styles.actionItem, pressed && styles.itemPressed]} 
             onPress={() => {
-              Alert.alert(
-                isEs ? "Usuarios Bloqueados" : "Blocked Users",
-                isEs ? "No tienes usuarios bloqueados actualmente." : "You have no blocked users currently."
-              );
+              router.push('/settings/blocked');
             }}
           >
             <View style={styles.itemLeft}>

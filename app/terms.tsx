@@ -3,64 +3,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../context/LanguageContext';
+import { translations } from '../constants/translations';
 
 export default function TermsScreen() {
-  const sections = [
-    {
-      icon: '🏛️',
-      title: 'Platform Role',
-      content:
-        'RoommateFinder acts ONLY as a technological intermediary. We are not a party to any contract generated within the application. The contracts created are direct agreements between the users.',
-    },
-    {
-      icon: '⚖️',
-      title: 'Legal Validity',
-      content:
-        'Contracts generated in this app constitute a record of intent and agreement between the parties. However, they DO NOT substitute a contract drafted or reviewed by a certified attorney. For greater legal validity, it is recommended to notarize the document before a public notary.',
-    },
-    {
-      icon: '🔏',
-      title: 'Acceptance as Signature',
-      content:
-        'By pressing "Accept Contract" or "Request Authorization", the user acknowledges having read, understood, and accepted all terms of the contract. This is recorded with a timestamp in our database.',
-    },
-    {
-      icon: '🛡️',
-      title: 'Limitation of Liability',
-      content:
-        'RoommateFinder is not responsible for:\n• Disputes between landlords and tenants\n• Breach of any contract clause\n• Damages, losses, or liabilities derived from using contracts generated in the app\n• False information provided by users\n• Any illegal acts committed by either party',
-    },
-    {
-      icon: '🔒',
-      title: 'Privacy and Data',
-      content:
-        'Contracts and their details are stored securely on our servers (Supabase). Only the parties involved have access to their contracts. We do not share contractual information with third parties without explicit consent, except under legal requirement.',
-    },
-    {
-      icon: '📧',
-      title: 'Email Authorization',
-      content:
-        'When a contract enters the "Pending authorization" state, both parties can review it. Acceptance within the app is recorded as a valid authorization under these Terms of Service.',
-    },
-    {
-      icon: '🚫',
-      title: 'Prohibited Use',
-      content:
-        'It is strictly prohibited to use the platform for:\n• Fraudulent or misleading contracts\n• Unauthorized subleases\n• Discrimination based on race, gender, religion, or other protected characteristics\n• Any activity contrary to local, state, or federal laws',
-    },
-    {
-      icon: '🔄',
-      title: 'Modifications',
-      content:
-        'We reserve the right to modify these Terms at any time. Changes will be notified within the application. Continued use of the platform implies acceptance of the updated terms.',
-    },
-    {
-      icon: '📞',
-      title: 'Contact and Disputes',
-      content:
-        'To report problems or irregularities in contracts, please contact our support team. For legal disputes, we recommend resorting to the mediation and arbitration mechanisms of your local jurisdiction.',
-    },
-  ];
+  const { t, locale } = useTranslation();
+
+  const icons = ['🏛️', '⚖️', '🔏', '🛡️', '🔒', '📧', '🚫', '🔄', '📞'];
+  const sections = (translations[locale]?.terms?.sections || []).map((sec: any, idx: number) => ({
+    ...sec,
+    icon: icons[idx] || '📄'
+  }));
 
   return (
     <SafeAreaView style={s.container}>
@@ -69,7 +22,7 @@ export default function TermsScreen() {
         <Pressable onPress={() => router.back()} style={s.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Terms of Service</Text>
+        <Text style={s.headerTitle}>{t('terms.title')}</Text>
         <View style={{ width: 36 }} />
       </LinearGradient>
 
@@ -79,10 +32,9 @@ export default function TermsScreen() {
           <View style={s.heroIconWrap}>
             <MaterialCommunityIcons name="shield-check" size={40} color="#49C788" />
           </View>
-          <Text style={s.heroTitle}>Usage Agreement</Text>
+          <Text style={s.heroTitle}>{t('terms.hero_title')}</Text>
           <Text style={s.heroSub}>
-            By using RoommateFinder&apos;s legal features, you agree to the following terms.
-            Last updated: May 2026
+            {t('terms.hero_sub')}
           </Text>
         </View>
 
@@ -90,8 +42,8 @@ export default function TermsScreen() {
         <View style={s.intermediaryCard}>
           <MaterialCommunityIcons name="information-outline" size={20} color="#49C788" />
           <Text style={s.intermediaryText}>
-            <Text style={{ fontWeight: '800', color: '#49C788' }}>RoommateFinder is an intermediary.</Text>
-            {' '}We are not a party to the contracts generated between users. Our platform facilitates the process, but contractual responsibility lies solely with the parties involved.
+            <Text style={{ fontWeight: '800', color: '#49C788' }}>{t('terms.intermediary_title')}</Text>
+            {' '}{t('terms.intermediary_desc')}
           </Text>
         </View>
 
@@ -109,9 +61,9 @@ export default function TermsScreen() {
         {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>
-            If you have questions about these terms, contact us before using the contract features.
+            {t('terms.questions_note')}
           </Text>
-          <Text style={s.footerVersion}>RoommateFinder · Legal & Agreements v1.0 · May 2026</Text>
+          <Text style={s.footerVersion}>{t('terms.footer_version')}</Text>
         </View>
 
         <View style={{ height: 40 }} />
