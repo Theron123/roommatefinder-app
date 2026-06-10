@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
 interface ExploreIconProps {
-  name: 'close' | 'skip-next' | 'message-text' | 'heart' | 'filter-variant' | 'cards-outline' | 'map-outline';
+  name: 'close' | 'skip-next' | 'arrow-down' | 'message-text' | 'heart' | 'filter-variant' | 'cards-outline' | 'map-outline';
   size: number;
   color: string;
 }
@@ -10,8 +10,8 @@ interface ExploreIconProps {
 export function ExploreIcon({ name, size, color }: ExploreIconProps) {
   switch (name) {
     case 'close': {
-      const lineLength = size * 0.46;
-      const lineWidth = 3;
+      const lineLength = size * 0.58;
+      const lineWidth = 4;
       return (
         <View style={[styles.centerContainer, { width: size, height: size }]}>
           <View style={{
@@ -112,6 +112,43 @@ export function ExploreIcon({ name, size, color }: ExploreIconProps) {
             position: 'absolute',
             bottom: size * 0.3,
             opacity: 0.95
+          }} />
+        </View>
+      );
+    }
+
+    case 'arrow-down': {
+      const lineLength = size * 0.35;
+      const stroke = 3.5;
+      return (
+        <View style={[styles.centerContainer, { width: size, height: size }]}>
+          <View style={{
+            position: 'absolute',
+            width: stroke,
+            height: size * 0.45,
+            borderRadius: stroke / 2,
+            backgroundColor: color,
+            top: size * 0.25
+          }} />
+          <View style={{
+            position: 'absolute',
+            width: lineLength,
+            height: stroke,
+            borderRadius: stroke / 2,
+            backgroundColor: color,
+            bottom: size * 0.3,
+            left: size * 0.28,
+            transform: [{ rotate: '45deg' }]
+          }} />
+          <View style={{
+            position: 'absolute',
+            width: lineLength,
+            height: stroke,
+            borderRadius: stroke / 2,
+            backgroundColor: color,
+            bottom: size * 0.3,
+            right: size * 0.28,
+            transform: [{ rotate: '-45deg' }]
           }} />
         </View>
       );

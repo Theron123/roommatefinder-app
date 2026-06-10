@@ -1,11 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ExploreIcon } from '@/components/ui/ExploreIcon';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import Swiper from 'react-native-deck-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
@@ -37,6 +38,10 @@ const QUOTA_KEY = '@roommatefinder:swipe_quotas';
 const LIMITS = { like: 30, reject: 30, skip: 5 };
 
 export default function ExploreScreen() {
+  const { width: screenWidth } = useWindowDimensions();
+  const btnBigSize = Math.min(Math.max(screenWidth * 0.15, 55), 65);
+  const btnSmallSize = Math.min(Math.max(screenWidth * 0.12, 45), 52);
+
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
@@ -799,53 +804,50 @@ export default function ExploreScreen() {
             <View style={styles.floatingActionButtons} pointerEvents="box-none">
               <Pressable 
                 style={({ pressed }) => [
-                  styles.actionButtonBig, 
+                  styles.actionButton, 
                   styles.buttonSkip,
+                  { width: btnSmallSize, height: btnSmallSize, borderRadius: btnSmallSize / 2 },
                   { transform: [{ scale: pressed ? 0.92 : 1 }] }
                 ]} 
                 onPress={() => swiperRef.current?.swipeBottom()}
               >
-                <ExploreIcon name="skip-next" size={32} color="#ff9800" />
+                <MaterialCommunityIcons name="arrow-down-thick" size={btnSmallSize * 0.55} color="#ff9800" />
               </Pressable>
 
               <Pressable 
                 style={({ pressed }) => [
-                  styles.actionButtonBig, 
+                  styles.actionButton, 
                   styles.buttonNope,
+                  { width: btnBigSize, height: btnBigSize, borderRadius: btnBigSize / 2 },
                   { transform: [{ scale: pressed ? 0.92 : 1 }] }
                 ]} 
                 onPress={() => swiperRef.current?.swipeLeft()}
               >
-                <ExploreIcon name="close" size={36} color="#FF4B4B" />
+                <MaterialCommunityIcons name="close" size={btnBigSize * 0.65} color="#FF4B4B" />
               </Pressable>
 
               <Pressable 
                 style={({ pressed }) => [
-                  styles.actionButtonBig, 
+                  styles.actionButton, 
                   styles.buttonLike,
+                  { width: btnBigSize, height: btnBigSize, borderRadius: btnBigSize / 2 },
                   { transform: [{ scale: pressed ? 0.92 : 1 }] }
                 ]} 
-                onPress={async () => {
-                  const idx = currentIndex;
-                  await onSwipedRight(idx);
-                  swiperRef.current?.swipeRight();
-                }}
+                onPress={() => swiperRef.current?.swipeRight()}
               >
-                <ExploreIcon name="heart" size={34} color="#4caf50" />
+                <MaterialCommunityIcons name="heart" size={btnBigSize * 0.55} color="#4caf50" />
               </Pressable>
 
               <Pressable 
                 style={({ pressed }) => [
-                  styles.actionButtonBig, 
+                  styles.actionButton, 
                   styles.buttonMessage,
+                  { width: btnSmallSize, height: btnSmallSize, borderRadius: btnSmallSize / 2 },
                   { transform: [{ scale: pressed ? 0.92 : 1 }] }
                 ]} 
-                onPress={() => {
-                  const card = profiles[currentIndex];
-                  if (card) router.push(`/chat/${card.id}`);
-                }}
+                onPress={() => swiperRef.current?.swipeTop()}
               >
-                <ExploreIcon name="message-text" size={32} color="#49C788" />
+                <IconSymbol name="bubble.left.and.bubble.right.fill" size={btnSmallSize * 0.55} color="#49C788" />
               </Pressable>
             </View>
           </>
@@ -1079,7 +1081,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 12, 
-    paddingBottom: 90, 
+    paddingBottom: 110, 
   },
   compatibilityBadge: {
     backgroundColor: '#49C788',
@@ -1173,29 +1175,26 @@ const styles = StyleSheet.create({
   },
   floatingActionButtons: {
     position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
+    bottom: 20,
+    width: '100%',
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    gap: 40,
     zIndex: 100,
+    paddingHorizontal: 10,
   },
   actionButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
     backgroundColor: 'rgba(18, 18, 18, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 5,
     elevation: 6,
     borderWidth: 1.5,
   },
   actionButtonBig: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
     backgroundColor: 'rgba(18, 18, 18, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
