@@ -414,14 +414,9 @@ export default function HomeScreen() {
                 setTimeout(measureAvatar, 50);
               }}
             >
-              {currentUserPhoto ? (
-                <Image source={{ uri: currentUserPhoto }} style={styles.headerAvatar} contentFit="cover" />
-              ) : (
-                <View style={styles.headerIconWrapper}>
-                  <IconSymbol size={22} name="person.crop.circle.fill" color="#888" />
-                </View>
-              )}
-              <View style={styles.activeDot} />
+              <View style={[styles.headerIconWrapper, { borderColor: '#333' }]}>
+                <MaterialCommunityIcons name="cog" size={24} color="#49C788" />
+              </View>
             </Pressable>
           </View>
         </View>
