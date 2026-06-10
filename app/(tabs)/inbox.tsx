@@ -359,7 +359,6 @@ const styles = StyleSheet.create({
   responsiveContent: {
     flex: 1,
     width: '100%',
-    maxWidth: 1200,
     alignSelf: 'center',
   },
   header: {

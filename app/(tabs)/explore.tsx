@@ -927,7 +927,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    maxWidth: 1200,
     alignSelf: 'center',
   },
   toggleContainer: {
@@ -1006,7 +1005,6 @@ const styles = StyleSheet.create({
   swiperContainer: {
     flex: 1,
     width: '100%',
-    maxWidth: 450,
     alignSelf: 'center',
   },
   swiper: {
@@ -1183,6 +1181,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     paddingHorizontal: 10,
   },
+
   actionButton: {
     backgroundColor: 'rgba(18, 18, 18, 0.85)',
     justifyContent: 'center',
