@@ -85,8 +85,21 @@ export default function ChatScreen() {
         if (raw) setDeletedMsgsForMe(JSON.parse(raw));
       } catch (e) {}
     };
+    const markAsViewed = async () => {
+      try {
+        if (id && typeof id === 'string') {
+          const raw = await AsyncStorage.getItem('@roommatefinder:viewed_matches');
+          const viewed = raw ? JSON.parse(raw) : [];
+          if (!viewed.includes(id)) {
+            viewed.push(id);
+            await AsyncStorage.setItem('@roommatefinder:viewed_matches', JSON.stringify(viewed));
+          }
+        }
+      } catch (e) {}
+    };
     loadDeleted();
-  }, []);
+    markAsViewed();
+  }, [id]);
 
   const visibleMessages = messages.filter(m => !deletedMsgsForMe.includes(m.id));
 

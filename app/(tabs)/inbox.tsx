@@ -41,8 +41,7 @@ export default function InboxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchConversations();
-      fetchMatches();
+      fetchData();
     }, [])
   );
 
@@ -60,7 +59,7 @@ export default function InboxScreen() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const newMsg = payload.new;
           if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
-            fetchConversations();
+            fetchData();
           }
         })
         .subscribe();
@@ -75,38 +74,16 @@ export default function InboxScreen() {
     };
   }, []);
 
-  const fetchMatches = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    
-    const myId = session.user.id;
-    setCurrentUserId(myId);
-    
-    const { data: matchData } = await supabase
-      .from('matches')
-      .select('user1, user2')
-      .or(`user1.eq.${myId},user2.eq.${myId}`);
-
-    if (matchData && matchData.length > 0) {
-      const matchIds = matchData.map(m => m.user1 === myId ? m.user2 : m.user1);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, photoUrl')
-        .in('id', matchIds);
-
-      if (profiles) setMatches(profiles);
-    }
-  };
-
-  const fetchConversations = async () => {
-    if (conversations.length === 0) {
+  const fetchData = async () => {
+    if (conversations.length === 0 && matches.length === 0) {
       setLoading(true);
     }
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const myId = session.user.id;
-      setCurrentUserId(myId);
+    if (!session) return;
+    const myId = session.user.id;
+    setCurrentUserId(myId);
 
+    try {
       // 1. Fetch messages
       const { data: msgs, error: msgsError } = await supabase
         .from('messages')
@@ -114,69 +91,117 @@ export default function InboxScreen() {
         .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
         .order('created_at', { ascending: false });
 
-      if (msgsError) {
-        console.error("Error fetching messages for inbox:", msgsError);
-      }
+      if (msgsError) console.error("Error fetching messages:", msgsError);
 
+      // 2. Fetch matches
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('user1, user2, created_at')
+        .or(`user1.eq.${myId},user2.eq.${myId}`);
+
+      // 3. Load local storage (deleted msgs + viewed matches)
       const deletedRaw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
       const deletedMsgs = deletedRaw ? JSON.parse(deletedRaw) : [];
+      
+      const viewedRaw = await AsyncStorage.getItem('@roommatefinder:viewed_matches');
+      const viewedMatches = viewedRaw ? JSON.parse(viewedRaw) : [];
 
-      if (msgs && msgs.length > 0) {
-        const validMsgs = msgs.filter(m => !deletedMsgs.includes(m.id));
-        const uniqueUserIds = new Set<string>();
-        const lastMsgs = new Map<string, any>();
-        const unreadCounts = new Map<string, number>();
+      const validMsgs = (msgs || []).filter(m => !deletedMsgs.includes(m.id));
+      const uniqueUserIdsWithMsgs = new Set<string>();
+      const lastMsgs = new Map<string, any>();
+      const unreadCounts = new Map<string, number>();
 
-        validMsgs.forEach(msg => {
-          const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
-          if (!uniqueUserIds.has(otherId)) {
-            uniqueUserIds.add(otherId);
-            lastMsgs.set(otherId, msg);
-          }
-          if (msg.receiver_id === myId && !msg.is_read) {
-            unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
-          }
-        });
+      validMsgs.forEach(msg => {
+        const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
+        if (!uniqueUserIdsWithMsgs.has(otherId)) {
+          uniqueUserIdsWithMsgs.add(otherId);
+          lastMsgs.set(otherId, msg);
+        }
+        if (msg.receiver_id === myId && !msg.is_read) {
+          unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
+        }
+      });
 
-        // 2. Fetch profiles
+      // Match logic
+      const allMatchIds = matchData ? matchData.map(m => m.user1 === myId ? m.user2 : m.user1) : [];
+      
+      // Collect all user IDs we need profiles for (msgs + matches)
+      const allUserIdsToFetch = new Set([...Array.from(uniqueUserIdsWithMsgs), ...allMatchIds]);
+
+      if (allUserIdsToFetch.size > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, name, age, photoUrl')
-          .in('id', Array.from(uniqueUserIds));
+          .in('id', Array.from(allUserIdsToFetch));
 
         if (profiles) {
-          const formattedConvos = profiles.map(p => {
-            const lastMsg = lastMsgs.get(p.id);
-            const date = new Date(lastMsg.created_at);
-            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
-            return {
-              id: p.id,
-              name: p.name || 'Roommate',
-              age: p.age,
-              photoUrl: p.photoUrl,
-              lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
-              time: timeStr,
-              unreadCount: unreadCounts.get(p.id) || 0,
-              lastMsgSenderId: lastMsg.sender_id,
-              lastMsgIsRead: lastMsg.is_read,
-            };
+          const formattedConvos: any[] = [];
+          const newMatchesList: any[] = [];
+
+          profiles.forEach(p => {
+            const hasMessages = uniqueUserIdsWithMsgs.has(p.id);
+            const isMatch = allMatchIds.includes(p.id);
+            const isViewed = viewedMatches.includes(p.id);
+
+            if (hasMessages) {
+              // Has messages -> goes to conversations
+              const lastMsg = lastMsgs.get(p.id);
+              const date = new Date(lastMsg.created_at);
+              const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              
+              formattedConvos.push({
+                id: p.id,
+                name: p.name || 'Roommate',
+                age: p.age,
+                photoUrl: p.photoUrl,
+                lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
+                time: timeStr,
+                unreadCount: unreadCounts.get(p.id) || 0,
+                lastMsgSenderId: lastMsg.sender_id,
+                lastMsgIsRead: lastMsg.is_read,
+                timestamp: date.getTime()
+              });
+            } else if (isMatch) {
+              if (isViewed) {
+                // Viewed but no messages -> goes to conversations
+                const matchObj = matchData?.find(m => (m.user1 === p.id && m.user2 === myId) || (m.user2 === p.id && m.user1 === myId));
+                const matchDate = matchObj ? new Date(matchObj.created_at) : new Date();
+                const timeStr = matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                formattedConvos.push({
+                  id: p.id,
+                  name: p.name || 'Roommate',
+                  age: p.age,
+                  photoUrl: p.photoUrl,
+                  lastMessage: 'Tap to chat',
+                  time: timeStr,
+                  unreadCount: 0,
+                  lastMsgSenderId: null,
+                  lastMsgIsRead: true,
+                  timestamp: matchDate.getTime()
+                });
+              } else {
+                // Unviewed match without messages -> stays in New Matches
+                newMatchesList.push(p);
+              }
+            }
           });
 
-          // Sort formattedConvos by lastMsg created_at DESC
-          formattedConvos.sort((a, b) => {
-            const timeA = new Date(lastMsgs.get(a.id).created_at).getTime();
-            const timeB = new Date(lastMsgs.get(b.id).created_at).getTime();
-            return timeB - timeA;
-          });
-
+          // Sort formattedConvos
+          formattedConvos.sort((a, b) => b.timestamp - a.timestamp);
+          
           setConversations(formattedConvos);
+          setMatches(newMatchesList);
         }
       } else {
         setConversations([]);
+        setMatches([]);
       }
+    } catch (e) {
+      console.error('Error fetching inbox data', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const renderConversation = useCallback(({ item }: { item: any }) => {
