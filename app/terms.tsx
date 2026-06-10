@@ -48,7 +48,7 @@ export default function TermsScreen() {
         </View>
 
         {/* Sections */}
-        {sections.map((sec, i) => (
+        {sections.map((sec: any, i: number) => (
           <View key={i} style={s.section}>
             <View style={s.sectionHeader}>
               <Text style={s.sectionIcon}>{sec.icon}</Text>

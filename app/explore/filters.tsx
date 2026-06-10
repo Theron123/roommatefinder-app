@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
 export type ExploreFilters = {
   role: 'all' | 'seeker' | 'host';
@@ -34,16 +35,6 @@ let _savedFilters: ExploreFilters = { ...DEFAULT_FILTERS };
 export const getActiveFilters = () => _savedFilters;
 
 const BUDGET_STEPS = [0, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 20000];
-const SLEEP_OPTIONS = [
-  { label: 'Early Bird 🌅', value: 'early_bird' },
-  { label: 'Night Owl 🌙', value: 'night_owl' },
-  { label: 'Flexible 🤷', value: 'flexible' },
-];
-const CLEAN_OPTIONS = [
-  { label: 'Very Clean ✨', value: 'very_clean' },
-  { label: 'Average 👌', value: 'average' },
-  { label: 'Relaxed 🛋️', value: 'relaxed' },
-];
 
 function BudgetSlider({
   value, max, min, onIncrease, onDecrease, label,
@@ -83,7 +74,19 @@ function OptionChip({
 }
 
 export default function ExploreFiltersScreen() {
+  const { t, locale } = useTranslation();
   const [filters, setFilters] = useState<ExploreFilters>({ ..._savedFilters });
+
+  const sleepOptions = [
+    { label: locale === 'es' ? 'Madrugador 🌅' : 'Early Bird 🌅', value: 'early_bird' },
+    { label: locale === 'es' ? 'Noctámbulo 🌙' : 'Night Owl 🌙', value: 'night_owl' },
+    { label: locale === 'es' ? 'Flexible 🤷' : 'Flexible 🤷', value: 'flexible' },
+  ];
+  const cleanOptions = [
+    { label: locale === 'es' ? 'Muy Limpio ✨' : 'Very Clean ✨', value: 'very_clean' },
+    { label: locale === 'es' ? 'Promedio 👌' : 'Average 👌', value: 'average' },
+    { label: locale === 'es' ? 'Relajado 🛋️' : 'Relaxed 🛋️', value: 'relaxed' },
+  ];
 
   const stepIndex = (val: number) => BUDGET_STEPS.indexOf(val);
 
@@ -136,34 +139,36 @@ export default function ExploreFiltersScreen() {
         <Pressable onPress={() => router.back()} style={s.closeBtn}>
           <MaterialCommunityIcons name="close" size={22} color="#fff" />
         </Pressable>
-        <Text style={s.headerTitle}>Advanced Filters</Text>
+        <Text style={s.headerTitle}>{t('explore.filters_title')}</Text>
         <Pressable onPress={resetFilters}>
-          <Text style={s.resetText}>Clear All</Text>
+          <Text style={s.resetText}>{t('explore.clear_all')}</Text>
         </Pressable>
       </LinearGradient>
 
       {activeCount > 0 && (
         <View style={s.activeBanner}>
           <MaterialCommunityIcons name="filter-check" size={14} color="#49C788" />
-          <Text style={s.activeBannerText}>{activeCount} active filter{activeCount > 1 ? 's' : ''}</Text>
+          <Text style={s.activeBannerText}>
+            {activeCount} {activeCount === 1 ? t('explore.active_filters') : t('explore.active_filters_plural')}
+          </Text>
         </View>
       )}
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* ── Tipo de usuario ── */}
-        <Text style={s.sectionTitle}>I AM LOOKING FOR</Text>
+        <Text style={s.sectionTitle}>{t('explore.looking_for')}</Text>
         <View style={s.chipRow}>
-          <OptionChip label="All" selected={filters.role === 'all'} onPress={() => setFilters(f => ({ ...f, role: 'all' }))} />
-          <OptionChip label="🔎 Seeks room" selected={filters.role === 'seeker'} onPress={() => setFilters(f => ({ ...f, role: 'seeker' }))} />
-          <OptionChip label="🏠 Has room" selected={filters.role === 'host'} onPress={() => setFilters(f => ({ ...f, role: 'host' }))} />
+          <OptionChip label={t('explore.all')} selected={filters.role === 'all'} onPress={() => setFilters(f => ({ ...f, role: 'all' }))} />
+          <OptionChip label={t('explore.seeks_room')} selected={filters.role === 'seeker'} onPress={() => setFilters(f => ({ ...f, role: 'seeker' }))} />
+          <OptionChip label={t('explore.has_room_filter')} selected={filters.role === 'host'} onPress={() => setFilters(f => ({ ...f, role: 'host' }))} />
         </View>
 
         {/* ── Presupuesto ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>MONTHLY BUDGET</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.monthly_budget')}</Text>
         <View style={s.card}>
           <BudgetSlider
-            label="Min"
+            label={t('explore.min')}
             value={filters.minBudget}
             min={0}
             max={filters.maxBudget}
@@ -172,7 +177,7 @@ export default function ExploreFiltersScreen() {
           />
           <View style={s.divider} />
           <BudgetSlider
-            label="Max"
+            label={t('explore.max')}
             value={filters.maxBudget}
             min={filters.minBudget}
             max={20000}
@@ -182,11 +187,11 @@ export default function ExploreFiltersScreen() {
         </View>
 
         {/* ── Solo Verificados ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SAFETY & TRUST</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.safety_trust')}</Text>
         <View style={[s.card, s.row]}>
           <View style={{ flex: 1 }}>
-            <Text style={s.rowLabel}>Verified profiles only</Text>
-            <Text style={s.rowSub}>Users with verified Trust Score</Text>
+            <Text style={s.rowLabel}>{t('explore.verified_only')}</Text>
+            <Text style={s.rowSub}>{t('explore.verified_sub')}</Text>
           </View>
           <Switch
             value={filters.onlyVerified}
@@ -197,35 +202,35 @@ export default function ExploreFiltersScreen() {
         </View>
 
         {/* ── Mascotas ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>PETS</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.pets')}</Text>
         <View style={s.chipRow}>
-          <OptionChip label="No preference" selected={filters.petsAllowed === null} onPress={() => setFilters(f => ({ ...f, petsAllowed: null }))} />
-          <OptionChip label="🐾 Pets allowed" selected={filters.petsAllowed === true} onPress={() => setFilters(f => ({ ...f, petsAllowed: true }))} />
-          <OptionChip label="🚫 No pets allowed" selected={filters.petsAllowed === false} onPress={() => setFilters(f => ({ ...f, petsAllowed: false }))} />
+          <OptionChip label={t('explore.no_pref')} selected={filters.petsAllowed === null} onPress={() => setFilters(f => ({ ...f, petsAllowed: null }))} />
+          <OptionChip label={t('explore.pets_allowed')} selected={filters.petsAllowed === true} onPress={() => setFilters(f => ({ ...f, petsAllowed: true }))} />
+          <OptionChip label={t('explore.no_pets')} selected={filters.petsAllowed === false} onPress={() => setFilters(f => ({ ...f, petsAllowed: false }))} />
         </View>
 
         {/* ── Fumadores ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SMOKING</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.smoking')}</Text>
         <View style={s.chipRow}>
-          <OptionChip label="No preference" selected={filters.smokingAllowed === null} onPress={() => setFilters(f => ({ ...f, smokingAllowed: null }))} />
-          <OptionChip label="🚬 Allowed" selected={filters.smokingAllowed === true} onPress={() => setFilters(f => ({ ...f, smokingAllowed: true }))} />
-          <OptionChip label="🚭 Not allowed" selected={filters.smokingAllowed === false} onPress={() => setFilters(f => ({ ...f, smokingAllowed: false }))} />
+          <OptionChip label={t('explore.no_pref')} selected={filters.smokingAllowed === null} onPress={() => setFilters(f => ({ ...f, smokingAllowed: null }))} />
+          <OptionChip label={t('explore.allowed')} selected={filters.smokingAllowed === true} onPress={() => setFilters(f => ({ ...f, smokingAllowed: true }))} />
+          <OptionChip label={t('explore.not_allowed')} selected={filters.smokingAllowed === false} onPress={() => setFilters(f => ({ ...f, smokingAllowed: false }))} />
         </View>
 
         {/* ── Horario de sueño ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>SCHEDULE</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.schedule')}</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Any" selected={filters.sleepSchedule === null} onPress={() => setFilters(f => ({ ...f, sleepSchedule: null }))} />
-          {SLEEP_OPTIONS.map(o => (
+          <OptionChip label={t('explore.any')} selected={filters.sleepSchedule === null} onPress={() => setFilters(f => ({ ...f, sleepSchedule: null }))} />
+          {sleepOptions.map(o => (
             <OptionChip key={o.value} label={o.label} selected={filters.sleepSchedule === o.value} onPress={() => setFilters(f => ({ ...f, sleepSchedule: o.value }))} />
           ))}
         </View>
 
         {/* ── Limpieza ── */}
-        <Text style={[s.sectionTitle, { marginTop: 24 }]}>CLEANLINESS</Text>
+        <Text style={[s.sectionTitle, { marginTop: 24 }]}>{t('explore.cleanliness')}</Text>
         <View style={s.chipRow}>
-          <OptionChip label="Any" selected={filters.cleanliness === null} onPress={() => setFilters(f => ({ ...f, cleanliness: null }))} />
-          {CLEAN_OPTIONS.map(o => (
+          <OptionChip label={t('explore.any')} selected={filters.cleanliness === null} onPress={() => setFilters(f => ({ ...f, cleanliness: null }))} />
+          {cleanOptions.map(o => (
             <OptionChip key={o.value} label={o.label} selected={filters.cleanliness === o.value} onPress={() => setFilters(f => ({ ...f, cleanliness: o.value }))} />
           ))}
         </View>
@@ -237,7 +242,7 @@ export default function ExploreFiltersScreen() {
       <View style={s.footer}>
         <Pressable style={s.applyBtn} onPress={applyFilters}>
           <MaterialCommunityIcons name="filter-check-outline" size={20} color="#000" />
-          <Text style={s.applyBtnText}>Apply Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Text>
+          <Text style={s.applyBtnText}>{t('explore.apply_filters')}{activeCount > 0 ? ` (${activeCount})` : ''}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

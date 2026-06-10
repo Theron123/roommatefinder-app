@@ -8,27 +8,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from '../../context/LanguageContext';
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
 type Match = { user_id: string; name: string };
-
-// ── Cláusulas predefinidas opcionales ────────────────────────────────────────
-const OPTIONAL_CLAUSES = [
-  { key: 'no_subletting',       label: 'No subletting',          desc: 'Subletting without consent is prohibited.' },
-  { key: 'guest_policy',        label: 'Guest policy',         desc: 'Maximum 7 consecutive nights for guests.' },
-  { key: 'cleaning_rota',       label: 'Cleaning rotation',             desc: 'Weekly rotation in common areas.' },
-  { key: 'no_parties',          label: 'No surprise parties',          desc: 'Large gatherings require 24h advance notice.' },
-  { key: 'parking_included',    label: 'Parking',               desc: 'Includes 1 parking spot at no extra cost.' },
-  { key: 'internet_split',      label: 'Shared Internet',           desc: 'The payment is split equally.' },
-];
-
-const STEPS = [
-  { title: 'Type', icon: 'file-document-edit-outline' },
-  { title: 'Roommate', icon: 'account-search-outline' },
-  { title: 'Finance', icon: 'cash-multiple' },
-  { title: 'Rules', icon: 'home-heart' },
-  { title: 'Add-ons', icon: 'view-grid-plus-outline' },
-];
 
 export default function NewContractScreen() {
   const [step, setStep]             = useState(0);
@@ -112,26 +94,45 @@ export default function NewContractScreen() {
     );
   };
 
+  const { t, locale } = useTranslation();
+
+  const steps = [
+    { title: t('contracts.steps.type'), icon: 'file-document-edit-outline' },
+    { title: t('contracts.steps.roommate'), icon: 'account-search-outline' },
+    { title: t('contracts.steps.finance'), icon: 'cash-multiple' },
+    { title: t('contracts.steps.rules'), icon: 'home-heart' },
+    { title: t('contracts.steps.addons'), icon: 'view-grid-plus-outline' },
+  ];
+
+  const optionalClauses = [
+    { key: 'no_subletting',       label: locale === 'es' ? 'Sin subarrendamiento' : 'No subletting',          desc: locale === 'es' ? 'Queda prohibido subarrendar sin consentimiento.' : 'Subletting without consent is prohibited.' },
+    { key: 'guest_policy',        label: locale === 'es' ? 'Política de invitados' : 'Guest policy',         desc: locale === 'es' ? 'Máximo 7 noches consecutivas de invitados.' : 'Maximum 7 consecutive nights for guests.' },
+    { key: 'cleaning_rota',       label: locale === 'es' ? 'Turno de limpieza' : 'Cleaning rotation',             desc: locale === 'es' ? 'Rotación semanal de limpieza en áreas comunes.' : 'Weekly rotation in common areas.' },
+    { key: 'no_parties',          label: locale === 'es' ? 'Sin fiestas sorpresa' : 'No surprise parties',          desc: locale === 'es' ? 'Reuniones grandes requieren aviso previo de 24h.' : 'Large gatherings require 24h advance notice.' },
+    { key: 'parking_included',    label: locale === 'es' ? 'Estacionamiento' : 'Parking',               desc: locale === 'es' ? 'Incluye 1 espacio de estacionamiento sin costo extra.' : 'Includes 1 parking spot at no extra cost.' },
+    { key: 'internet_split',      label: locale === 'es' ? 'Internet compartido' : 'Shared Internet',           desc: locale === 'es' ? 'El pago del servicio se divide por partes iguales.' : 'The payment is split equally.' },
+  ];
+
   const handleAIGenerate = () => {
     setAiLoading(true);
     setTimeout(() => {
       setSelectedOptional(['guest_policy', 'cleaning_rota', 'no_parties']);
       setAiLoading(false);
-      Alert.alert('AI Add-ons Applied', 'We have automatically selected the recommended clauses based on the users\' profiles and lifestyle.');
+      Alert.alert(t('contracts.ai_applied_title'), t('contracts.ai_applied_desc'));
     }, 1200);
   };
 
   const handleSubmit = async () => {
     if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
-      Alert.alert('Missing fields', 'Please enter the financial amounts and effective date.');
+      Alert.alert(t('contracts.missing_fields'), t('contracts.missing_fields_desc'));
       return;
     }
 
     // Convertir DD/MM/AAAA a AAAA-MM-DD para Supabase
     const dateParts = effectiveDate.split('/');
     if (dateParts.length !== 3 || dateParts[0].length !== 2 || dateParts[1].length !== 2 || dateParts[2].length !== 4) {
-      Alert.alert('Invalid date', 'The date must be in DD/MM/YYYY format.');
+      Alert.alert(t('contracts.invalid_date'), t('contracts.invalid_date_format'));
       return;
     }
 
@@ -140,7 +141,7 @@ export default function NewContractScreen() {
     const year = parseInt(dateParts[2]);
 
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
-      Alert.alert('Invalid date', 'Please enter a valid date.');
+      Alert.alert(t('contracts.invalid_date'), t('contracts.invalid_date_values'));
       return;
     }
 
@@ -171,7 +172,7 @@ export default function NewContractScreen() {
 
     if (error || !newContract) {
       setLoading(false);
-      Alert.alert('Error', 'Could not create the draft.');
+      Alert.alert(t('general.error'), t('contracts.draft_error'));
       return;
     }
 
@@ -187,7 +188,7 @@ export default function NewContractScreen() {
 
     setLoading(false);
     if (partError) {
-      Alert.alert('Error', 'Could not register the participants.');
+      Alert.alert(t('general.error'), t('contracts.participants_error'));
       return;
     }
 
@@ -210,28 +211,28 @@ export default function NewContractScreen() {
           <Pressable onPress={() => step === 0 ? router.back() : setStep(step - 1)} style={s.backBtn}>
             <MaterialCommunityIcons name={step === 0 ? "close" : "arrow-left"} size={24} color="#fff" />
           </Pressable>
-          <Text style={s.headerTitle}>Create Agreement</Text>
-          <Text style={s.stepCounter}>{step + 1} / {STEPS.length}</Text>
+          <Text style={s.headerTitle}>{t('contracts.create_title')}</Text>
+          <Text style={s.stepCounter}>{step + 1} / {steps.length}</Text>
         </View>
 
         {/* Dynamic Progress Bar */}
         <View style={s.progressBarWrap}>
-          <View style={[s.progressBar, { width: `${((step + 1) / STEPS.length) * 100}%` }]} />
+          <View style={[s.progressBar, { width: `${((step + 1) / steps.length) * 100}%` }]} />
         </View>
 
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           
           <View style={s.stepHeader}>
             <View style={s.stepIconWrap}>
-              <MaterialCommunityIcons name={STEPS[step].icon as any} size={28} color="#49C788" />
+              <MaterialCommunityIcons name={steps[step].icon as any} size={28} color="#49C788" />
             </View>
-            <Text style={s.stepTitle}>{STEPS[step].title}</Text>
+            <Text style={s.stepTitle}>{steps[step].title}</Text>
           </View>
 
           {/* ── STEP 0: Tipo ── */}
           {step === 0 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Select your agreement format</Text>
+              <Text style={s.sectionHint}>{t('contracts.select_format')}</Text>
               {(['roommate_agreement', 'rental_agreement'] as const).map(type => (
                 <Pressable
                   key={type}
@@ -249,12 +250,12 @@ export default function NewContractScreen() {
                   />
                   <View style={{ flex: 1, marginLeft: 16 }}>
                     <Text style={[s.typeTitle, contractType === type && { color: '#49C788' }]}>
-                      {type === 'roommate_agreement' ? 'Roommate Agreement' : 'Rental Agreement'}
+                      {type === 'roommate_agreement' ? t('contracts.roommate_agreement') : t('contracts.rental_agreement')}
                     </Text>
                     <Text style={s.typeDesc}>
                       {type === 'roommate_agreement'
-                        ? 'Co-living house rules and split expenses.'
-                        : 'Formalize rent, deposit, and property usage.'}
+                        ? t('contracts.roommate_desc')
+                        : t('contracts.rental_desc')}
                     </Text>
                   </View>
                   <MaterialCommunityIcons
@@ -270,7 +271,7 @@ export default function NewContractScreen() {
           {/* ── STEP 1: Parte ── */}
           {step === 1 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Who are you signing this agreement with?</Text>
+              <Text style={s.sectionHint}>{t('contracts.who_signing')}</Text>
 
               {/* Buscador de Matches */}
               {matches.length > 0 && (
@@ -280,7 +281,7 @@ export default function NewContractScreen() {
                     style={s.searchInput}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Search roommates..."
+                    placeholder={t('contracts.search_roommates')}
                     placeholderTextColor="#666"
                   />
                   {searchQuery.length > 0 && (
@@ -312,7 +313,7 @@ export default function NewContractScreen() {
                   <View style={s.emptyIconWrap}>
                     <MaterialCommunityIcons name="account-question-outline" size={40} color="#666" />
                   </View>
-                  <Text style={s.emptyStateText}>You need an approved match to create a formal agreement.</Text>
+                  <Text style={s.emptyStateText}>{t('contracts.need_match')}</Text>
                 </View>
               ) : (
                 (() => {
@@ -320,7 +321,7 @@ export default function NewContractScreen() {
                   if (filtered.length === 0) {
                     return (
                       <View style={s.emptyState}>
-                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>No roommates found with that name.</Text>
+                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>{t('contracts.no_roommates_match')}</Text>
                       </View>
                     );
                   }
@@ -352,10 +353,10 @@ export default function NewContractScreen() {
           {/* ── STEP 2: Finanzas ── */}
           {step === 2 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Set the base amounts. These can be adjusted later in the clauses.</Text>
+              <Text style={s.sectionHint}>{t('contracts.set_amounts')}</Text>
               
               <View style={s.inputGroup}>
-                <Text style={s.fieldLabel}>Total Monthly Rent ($) *</Text>
+                <Text style={s.fieldLabel}>{t('contracts.total_rent')}</Text>
                 <View style={s.inputWrapper}>
                   <MaterialCommunityIcons name="currency-usd" size={20} color="#888" style={s.inputIcon} />
                   <TextInput style={s.inputWithIcon} value={rent} onChangeText={setRent} keyboardType="numeric" placeholder="1200" placeholderTextColor="#444" />
@@ -363,7 +364,7 @@ export default function NewContractScreen() {
               </View>
 
               <View style={s.inputGroup}>
-                <Text style={s.fieldLabel}>Security Deposit ($) *</Text>
+                <Text style={s.fieldLabel}>{t('contracts.sec_deposit')}</Text>
                 <View style={s.inputWrapper}>
                   <MaterialCommunityIcons name="shield-lock-outline" size={20} color="#888" style={s.inputIcon} />
                   <TextInput style={s.inputWithIcon} value={deposit} onChangeText={setDeposit} keyboardType="numeric" placeholder="2400" placeholderTextColor="#444" />
@@ -372,17 +373,17 @@ export default function NewContractScreen() {
 
               <View style={s.row}>
                 <View style={[s.inputGroup, { flex: 1 }]}>
-                  <Text style={s.fieldLabel}>Due day</Text>
-                  <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder="e.g. 1" placeholderTextColor="#444" />
+                  <Text style={s.fieldLabel}>{t('contracts.due_day')}</Text>
+                  <TextInput style={s.input} value={dueDay} onChangeText={setDueDay} keyboardType="numeric" maxLength={2} placeholder={t('contracts.due_day_placeholder')} placeholderTextColor="#444" />
                 </View>
                 <View style={{ width: 16 }} />
                 <View style={[s.inputGroup, { flex: 1.5 }]}>
-                  <Text style={s.fieldLabel}>Start date *</Text>
+                  <Text style={s.fieldLabel}>{t('contracts.start_date')}</Text>
                   <TextInput
                     style={s.input}
                     value={effectiveDate}
                     onChangeText={handleDateChange}
-                    placeholder="DD/MM/YYYY"
+                    placeholder={locale === 'es' ? 'DD/MM/AAAA' : 'DD/MM/YYYY'}
                     placeholderTextColor="#444"
                     keyboardType="numeric"
                     maxLength={10}
@@ -395,13 +396,13 @@ export default function NewContractScreen() {
           {/* ── STEP 3: Reglas ── */}
           {step === 3 && (
             <View style={s.stepContent}>
-              <Text style={s.sectionHint}>Configure the basic housing policies.</Text>
-              <ToggleRow label="Pets allowed" icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
-              <ToggleRow label="Smoking allowed" icon="smoking" value={smokingAllowed} onToggle={setSmokingAllowed} />
-              <ToggleRow label="Overnight guests" icon="weather-night" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
+              <Text style={s.sectionHint}>{t('contracts.configure_policies')}</Text>
+              <ToggleRow label={t('contracts.pets_allowed')} icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
+              <ToggleRow label={t('contracts.smoking_allowed')} icon="smoking" value={smokingAllowed} onToggle={setSmokingAllowed} />
+              <ToggleRow label={t('contracts.overnight_guests')} icon="weather-night" value={visitorsAllowed} onToggle={setVisitorsAllowed} />
 
               <View style={[s.inputGroup, { marginTop: 16 }]}>
-                <Text style={s.fieldLabel}>Cleaning schedule</Text>
+                <Text style={s.fieldLabel}>{t('contracts.cleaning_schedule')}</Text>
                 <View style={s.segmented}>
                   {(['daily', 'weekly', 'biweekly'] as const).map(opt => (
                     <Pressable
@@ -410,7 +411,7 @@ export default function NewContractScreen() {
                       onPress={() => setCleaningSchedule(opt)}
                     >
                       <Text style={[s.segmentText, cleaningSchedule === opt && { color: '#000' }]}>
-                        {opt === 'daily' ? 'Daily' : opt === 'weekly' ? 'Weekly' : 'Biweekly'}
+                        {t(`contracts.cleaning_opts.${opt}`)}
                       </Text>
                     </Pressable>
                   ))}
@@ -424,10 +425,10 @@ export default function NewContractScreen() {
             <View style={s.stepContent}>
               <Pressable style={s.aiBanner} onPress={handleAIGenerate} disabled={aiLoading}>
                 {aiLoading ? <ActivityIndicator size="small" color="#0A84FF" /> : <MaterialCommunityIcons name="auto-fix" size={20} color="#0A84FF" />}
-                <Text style={s.aiText}>{aiLoading ? 'Analyzing profiles...' : 'Suggest clauses with Artificial Intelligence'}</Text>
+                <Text style={s.aiText}>{aiLoading ? t('contracts.ai_analyzing') : t('contracts.ai_suggest')}</Text>
               </Pressable>
 
-              {OPTIONAL_CLAUSES.map(c => {
+              {optionalClauses.map(c => {
                 const selected = selectedOptional.includes(c.key);
                 return (
                   <Pressable
@@ -456,12 +457,12 @@ export default function NewContractScreen() {
 
         {/* Bottom CTA */}
         <View style={s.footer}>
-          {step < STEPS.length - 1 ? (
+          {step < steps.length - 1 ? (
             <Pressable
               style={[s.nextBtn, !canNext() && s.nextBtnDisabled]}
               onPress={() => canNext() && setStep(step + 1)}
             >
-              <Text style={s.nextBtnText}>Next Step</Text>
+              <Text style={s.nextBtnText}>{t('contracts.next_step')}</Text>
               <MaterialCommunityIcons name="arrow-right" size={20} color="#000" />
             </Pressable>
           ) : (
@@ -471,7 +472,7 @@ export default function NewContractScreen() {
               ) : (
                 <>
                   <MaterialCommunityIcons name="file-document-check" size={20} color="#000" />
-                  <Text style={s.nextBtnText}>Save and Send to Review</Text>
+                  <Text style={s.nextBtnText}>{t('contracts.save_send')}</Text>
                 </>
               )}
             </Pressable>

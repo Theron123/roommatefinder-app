@@ -30,17 +30,17 @@ export default function AgreementsHubScreen() {
   const [activeTab, setActiveTab] = useState<'contracts' | 'rules' | 'conflicts'>('contracts');
 
   const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-    draft:                  { label: t('contracts.steps.type'),    color: '#888',    icon: 'pencil-outline' },
+    draft:                  { label: locale === 'es' ? 'Borrador' : 'Draft',    color: '#888',    icon: 'pencil-outline' },
     pending_authorization:  { label: t('contracts.stat_pending'),   color: '#FFB800', icon: 'clock-outline' },
     active:                 { label: t('contracts.stat_active'),      color: '#49C788', icon: 'check-circle-outline' },
-    terminated:             { label: 'Terminated',   color: '#FF4B4B', icon: 'close-circle-outline' },
-    disputed:               { label: 'Disputed',  color: '#E53935', icon: 'alert-circle-outline' },
+    terminated:             { label: locale === 'es' ? 'Terminado' : 'Terminated',   color: '#FF4B4B', icon: 'close-circle-outline' },
+    disputed:               { label: locale === 'es' ? 'En disputa' : 'Disputed',  color: '#E53935', icon: 'alert-circle-outline' },
   };
 
   const TYPE_LABELS: Record<string, string> = {
     roommate_agreement: t('contracts.roommate_agreement'),
     rental_agreement:   t('contracts.rental_agreement'),
-    sublease:           'Sublease',
+    sublease:           locale === 'es' ? 'Subarrendamiento' : 'Sublease',
   };
 
   useFocusEffect(

@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function MyProfileScreen() {
-  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal } = useTranslation();
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -482,7 +482,7 @@ export default function MyProfileScreen() {
                 <View style={styles.chipWrapInline}>
                   {languagesArr.map((lang: string) => (
                     <View key={`lang-${lang}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{lang}</Text>
+                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{translateLanguage(lang)}</Text>
                     </View>
                   ))}
                 </View>

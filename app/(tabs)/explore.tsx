@@ -42,7 +42,7 @@ export default function ExploreScreen() {
   const btnBigSize = Math.min(Math.max(screenWidth * 0.15, 55), 65);
   const btnSmallSize = Math.min(Math.max(screenWidth * 0.12, 45), 52);
 
-  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
+  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -533,7 +533,7 @@ export default function ExploreScreen() {
                 <Text style={styles.subtitle}>{t('explore.preferences')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.preferences) || t('explore.flexible', 'Flexible')}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translatePreferencesList(card.preferences) || t('explore.flexible', 'Flexible')}</Text>
                 </View>
               </View>
             </View>

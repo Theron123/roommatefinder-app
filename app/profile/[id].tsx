@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 
 export default function ProfileDetailScreen() {
-  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList } = useTranslation();
+  const { t, locale, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
@@ -148,6 +148,11 @@ export default function ProfileDetailScreen() {
       : [profile.photoUrl].filter(Boolean))
     : [];
 
+  const lifestyleObj = profile?.lifestyle 
+    ? (typeof profile.lifestyle === 'string' ? JSON.parse(profile.lifestyle) : profile.lifestyle) 
+    : {};
+  const languagesArr = lifestyleObj?.languages || [];
+
   return (
     <View style={styles.container}>
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
@@ -264,8 +269,17 @@ export default function ProfileDetailScreen() {
           <Text style={styles.tagsText}>{translateHobbiesList(profile.likes) || t('explore.no_pref')}</Text>
  
           <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
-          <Text style={styles.tagsText}>{translateHobbiesList(profile.preferences) || t('explore.no_pref')}</Text>
+          <Text style={styles.tagsText}>{translatePreferencesList(profile.preferences) || t('explore.no_pref')}</Text>
  
+          {languagesArr.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>{t('myprofile.languages')}</Text>
+              <Text style={styles.tagsText}>
+                {languagesArr.map((lang: string) => translateLanguage(lang)).join(', ')}
+              </Text>
+            </>
+          )}
+
           <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
           <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{translateDealbreakersList(profile.dealbreakers) || t('explore.no_pref')}</Text>
           

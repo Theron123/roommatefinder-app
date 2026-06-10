@@ -342,7 +342,7 @@ export default function VerificationWizard() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }} keyboardShouldPersistTaps="handled">
         <View style={s.content}>
           <View style={[s.iconBox, { backgroundColor: config.color + '1a', borderColor: config.color + '33', borderWidth: 1 }]}>
-            <MaterialCommunityIcons name={config.icon} size={44} color={config.color} />
+            <MaterialCommunityIcons name={config.icon as any} size={44} color={config.color} />
           </View>
           <Text style={s.title}>{config.title}</Text>
           <Text style={s.desc}>{config.desc}</Text>
@@ -469,7 +469,7 @@ export default function VerificationWizard() {
                       <View style={s.cameraMask} />
                       
                       <Pressable 
-                        style={({ pressed }) => [s.captureCircleBtn, pressed && { scale: 0.95 }]}
+                        style={({ pressed }) => [s.captureCircleBtn, pressed && { transform: [{ scale: 0.95 }] }]}
                         onPress={captureWebcam}
                       >
                         <View style={s.captureCircleInner} />

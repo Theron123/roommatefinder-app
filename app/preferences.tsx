@@ -4,13 +4,13 @@ import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'TU_CLAVE_AQUI';
-
 import { useState, useEffect } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useTranslation } from '../context/LanguageContext';
+
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'TU_CLAVE_AQUI';
 
 const HOBBIES = [
   '🎮 Video Games', '📚 Reading', '🏋️ Fitness', '🍳 Cooking', 
@@ -40,6 +40,8 @@ const LIFESTYLE_OPTIONS = [
 const LANGUAGES = ['Spanish', 'English', 'French', 'German', 'Portuguese', 'Italian'];
 
 export default function PreferencesScreen() {
+  const { t, locale, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
+
   const [selectedLikes, setSelectedLikes] = useState<Set<string>>(new Set());
   const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
   
@@ -104,13 +106,13 @@ export default function PreferencesScreen() {
         
         if (data.latOffset && data.lngOffset) {
           setSelectedLocation({ lat: data.latOffset, lng: data.lngOffset });
-          setLocationName('Loading location...');
+          setLocationName(locale === 'es' ? 'Cargando ubicación...' : 'Loading location...');
           
           try {
             const url = `https://nominatim.openstreetmap.org/reverse?lat=${data.latOffset}&lon=${data.lngOffset}&format=json`;
             const res = await fetch(url, {
               headers: {
-                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Language': locale === 'es' ? 'es-MX,es;q=0.9' : 'en-US,en;q=0.9',
                 'User-Agent': 'RoommateFinderApp/1.0'
               }
             });
@@ -120,10 +122,10 @@ export default function PreferencesScreen() {
               const shortName = parts.slice(0, 3).join(',').trim();
               setLocationName(shortName);
             } else {
-              setLocationName('Saved Location');
+              setLocationName(t('preferences.saved_loc'));
             }
           } catch (e) {
-            setLocationName('Saved Location');
+            setLocationName(t('preferences.saved_loc'));
           }
         }
       }
@@ -208,7 +210,10 @@ export default function PreferencesScreen() {
         setPhotos(updatedPhotos);
       } catch (error) {
         console.error('Error uploading image:', error);
-        Alert.alert('Upload Failed', 'There was an error uploading your profile picture.');
+        Alert.alert(
+          locale === 'es' ? 'Error de Carga' : 'Upload Failed',
+          locale === 'es' ? 'Hubo un error al subir tu foto de perfil.' : 'There was an error uploading your profile picture.'
+        );
       } finally {
         setUploading(false);
       }
@@ -229,10 +234,21 @@ export default function PreferencesScreen() {
     setLifestyleData(prev => ({ ...prev, [key]: value }));
   };
 
-  const ChipGroup = ({ items, selectedSet, setFn }: { items: string[], selectedSet: Set<string>, setFn: any }) => (
+  const ChipGroup = ({ 
+    items, 
+    selectedSet, 
+    setFn, 
+    translateFn 
+  }: { 
+    items: string[], 
+    selectedSet: Set<string>, 
+    setFn: any, 
+    translateFn?: (val: string) => string 
+  }) => (
     <View style={styles.chipContainer}>
       {items.map(item => {
         const isSelected = selectedSet.has(item);
+        const displayLabel = translateFn ? translateFn(item) : item;
         return (
           <Pressable 
             key={item} 
@@ -240,7 +256,7 @@ export default function PreferencesScreen() {
             style={[styles.chip, isSelected && styles.chipSelected]}
           >
             <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-              {item}
+              {displayLabel}
             </Text>
           </Pressable>
         );
@@ -248,10 +264,21 @@ export default function PreferencesScreen() {
     </View>
   );
 
-  const SingleChoiceGroup = ({ options, selectedValue, onSelect }: { options: string[], selectedValue: string, onSelect: (val: string) => void }) => (
+  const SingleChoiceGroup = ({ 
+    options, 
+    selectedValue, 
+    onSelect, 
+    translateFn 
+  }: { 
+    options: string[], 
+    selectedValue: string, 
+    onSelect: (val: string) => void, 
+    translateFn?: (val: string) => string 
+  }) => (
     <View style={styles.chipContainer}>
       {options.map(item => {
         const isSelected = selectedValue === item;
+        const displayLabel = translateFn ? translateFn(item) : item;
         return (
           <Pressable 
             key={item} 
@@ -259,7 +286,7 @@ export default function PreferencesScreen() {
             style={[styles.chip, isSelected && { borderColor: '#00C9A7', backgroundColor: 'rgba(0, 201, 167, 0.1)' }]}
           >
             <Text style={[styles.chipText, isSelected && { color: '#00C9A7', fontWeight: 'bold' }]}>
-              {item}
+              {displayLabel}
             </Text>
           </Pressable>
         );
@@ -271,13 +298,16 @@ export default function PreferencesScreen() {
     setLoading(true);
 
     if (!focus && !selectedLocation) {
-      Alert.alert('Location Required', 'Please search and select your city to continue.');
+      Alert.alert(t('preferences.loc_req'), t('preferences.loc_req_desc'));
       setLoading(false);
       return;
     }
 
     if (!focus && (!photos || photos.filter(Boolean).length === 0)) {
-      Alert.alert('Photo Required', 'Please upload at least one profile photo to identify yourself.');
+      Alert.alert(
+        locale === 'es' ? 'Foto Requerida' : 'Photo Required',
+        locale === 'es' ? 'Por favor sube al menos una foto de perfil para identificarte.' : 'Please upload at least one profile photo to identify yourself.'
+      );
       setLoading(false);
       return;
     }
@@ -290,9 +320,15 @@ export default function PreferencesScreen() {
       languages: Array.from(selectedLanguages),
     };
 
+    // Construct comma-separated lifestyle string for legacy/matching preferences column
+    const selectedLifestyleVals = Object.entries(lifestyleData)
+      .filter(([k, v]) => k !== 'languages' && v)
+      .map(([_, v]) => v);
+    const preferences = selectedLifestyleVals.join(', ');
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      Alert.alert('Error', 'Not authenticated');
+      Alert.alert(t('general.error'), t('preferences.not_auth'));
       setLoading(false);
       return;
     }
@@ -302,6 +338,7 @@ export default function PreferencesScreen() {
       likes,
       dealbreakers,
       lifestyle: finalLifestyle,
+      preferences,
     };
 
     if (selectedLocation) {
@@ -348,7 +385,7 @@ export default function PreferencesScreen() {
       <View style={styles.header}>
         <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/myprofile')} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color="#49C788" />
-          <Text style={styles.backText}>Cancel</Text>
+          <Text style={styles.backText}>{t('general.cancel')}</Text>
         </Pressable>
       </View>
 
@@ -359,20 +396,27 @@ export default function PreferencesScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <Text style={styles.title}>
-            {focus === 'hobbies' ? 'Hobbies & Interests' : focus === 'lifestyle' ? 'Lifestyle Details' : focus === 'dealbreakers' ? 'Dealbreakers' : 'Your Preferences'}
+            {focus === 'hobbies' 
+              ? t('preferences.hobbies_title') 
+              : focus === 'lifestyle' 
+                ? t('preferences.lifestyle_title') 
+                : focus === 'dealbreakers' 
+                  ? t('preferences.deals_title') 
+                  : t('preferences.general_title')
+            }
           </Text>
           <Text style={styles.subtitle}>
-            {focus ? 'Add specifics to find a better match.' : 'Fill out your lifestyle to find your perfect match.'}
+            {focus ? t('preferences.add_specs') : t('preferences.fill_lifestyle')}
           </Text>
 
           {(!focus) && (
             <>
-              <Text style={styles.sectionTitle}>Where do you live?</Text>
+              <Text style={styles.sectionTitle}>{t('preferences.where_live')}</Text>
               <View style={{ zIndex: 999, marginBottom: 16 }}>
-                {locationName ? <Text style={styles.locationSavedText}>Saved: {locationName}</Text> : null}
+                {locationName ? <Text style={styles.locationSavedText}>{locale === 'es' ? 'Guardada: ' : 'Saved: '}{locationName}</Text> : null}
                 <LocationAutocomplete
                   apiKey={GOOGLE_API_KEY}
-                  placeholder="Search city, neighborhood, or zip..."
+                  placeholder={t('preferences.search_city')}
                   onSelect={(lat, lng, description) => {
                     setSelectedLocation({ lat, lng });
                     setLocationName(description);
@@ -385,9 +429,11 @@ export default function PreferencesScreen() {
 
           {(!focus) && (
             <>
-              <Text style={styles.sectionTitle}>Profile Photos *</Text>
+              <Text style={styles.sectionTitle}>{locale === 'es' ? 'Fotos de Perfil *' : 'Profile Photos *'}</Text>
               <Text style={{ color: '#888', fontSize: 13, marginBottom: 16, marginTop: -8 }}>
-                Upload at least 1 photo to verify your identity. 3:4 portrait works best.
+                {locale === 'es' 
+                  ? 'Sube al menos 1 foto para verificar tu identidad. Formato vertical 3:4 recomendado.' 
+                  : 'Upload at least 1 photo to verify your identity. 3:4 portrait works best.'}
               </Text>
               <View style={styles.photosManagerContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photosScrollContent}>
@@ -415,7 +461,7 @@ export default function PreferencesScreen() {
                             <View style={styles.emptySlotPlusCircle}>
                               <MaterialCommunityIcons name="plus" size={16} color="#49C788" />
                             </View>
-                            <Text style={styles.emptySlotText}>Slot {index + 1}</Text>
+                            <Text style={styles.emptySlotText}>{locale === 'es' ? `Espacio ${index + 1}` : `Slot ${index + 1}`}</Text>
                           </View>
                         )}
                       </Pressable>
@@ -426,7 +472,7 @@ export default function PreferencesScreen() {
               {uploading && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16, marginTop: 4 }}>
                   <ActivityIndicator color="#49C788" size="small" />
-                  <Text style={{ color: '#49C788', fontSize: 13, fontWeight: '600' }}>Uploading photo...</Text>
+                  <Text style={{ color: '#49C788', fontSize: 13, fontWeight: '600' }}>{locale === 'es' ? 'Subiendo foto...' : 'Uploading photo...'}</Text>
                 </View>
               )}
             </>
@@ -434,11 +480,11 @@ export default function PreferencesScreen() {
 
           {(!focus || focus === 'hobbies') && (
             <>
-              {!focus && <Text style={styles.sectionTitle}>Hobbies & Interests</Text>}
-              <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} />
+              {!focus && <Text style={styles.sectionTitle}>{t('preferences.hobbies_title')}</Text>}
+              <ChipGroup items={HOBBIES} selectedSet={selectedLikes} setFn={setSelectedLikes} translateFn={translateHobby} />
               <TextInput 
                 style={styles.otherInput} 
-                placeholder="Other hobbies... (e.g. Skiing)" 
+                placeholder={t('preferences.other_hobbies')} 
                 placeholderTextColor="#555"
                 value={otherLikes}
                 onChangeText={setOtherLikes}
@@ -450,21 +496,22 @@ export default function PreferencesScreen() {
           
           {(!focus || focus === 'lifestyle') && (
             <>
-              {!focus && <Text style={styles.sectionTitle}>Lifestyle & Habits</Text>}
+              {!focus && <Text style={styles.sectionTitle}>{t('preferences.lifestyle_title')}</Text>}
               {LIFESTYLE_OPTIONS.map(opt => (
                 <View key={opt.key} style={styles.lifestyleGroup}>
-                  <Text style={styles.lifestyleLabel}>{opt.title}</Text>
+                  <Text style={styles.lifestyleLabel}>{translateLifestyleKey(opt.key)}</Text>
                   <SingleChoiceGroup 
                     options={opt.options} 
                     selectedValue={lifestyleData[opt.key] || ''} 
                     onSelect={(val) => setLifestyleField(opt.key, val)} 
+                    translateFn={translateLifestyleVal}
                   />
                 </View>
               ))}
 
               <View style={styles.lifestyleGroup}>
-                <Text style={styles.lifestyleLabel}>Languages</Text>
-                <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} />
+                <Text style={styles.lifestyleLabel}>{locale === 'es' ? 'Idiomas' : 'Languages'}</Text>
+                <ChipGroup items={LANGUAGES} selectedSet={selectedLanguages} setFn={setSelectedLanguages} translateFn={translateLanguage} />
               </View>
             </>
           )}
@@ -473,11 +520,11 @@ export default function PreferencesScreen() {
 
           {(!focus || focus === 'dealbreakers') && (
             <>
-              {!focus && <Text style={styles.sectionTitle}>Dealbreakers</Text>}
-              <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} />
+              {!focus && <Text style={styles.sectionTitle}>{t('preferences.deals_title')}</Text>}
+              <ChipGroup items={DEALBREAKERS} selectedSet={selectedDeals} setFn={setSelectedDeals} translateFn={translateDealbreaker} />
               <TextInput 
                 style={styles.otherInput} 
-                placeholder="Other dealbreakers... (e.g. Allergies)" 
+                placeholder={t('preferences.other_deals')} 
                 placeholderTextColor="#555"
                 value={otherDeals}
                 onChangeText={setOtherDeals}
@@ -493,7 +540,7 @@ export default function PreferencesScreen() {
             {loading ? (
               <ActivityIndicator color="#000" />
             ) : (
-              <Text style={styles.buttonText}>Save and Continue</Text>
+              <Text style={styles.buttonText}>{t('preferences.save_cont')}</Text>
             )}
           </Pressable>
         </ScrollView>

@@ -153,7 +153,7 @@ export default function BlockedUsersScreen() {
         <Image source={{ uri: item.photoUrl }} style={s.avatar} contentFit="cover" />
       ) : (
         <View style={s.avatarFallback}>
-          <MaterialCommunityIcons name="person" size={20} color="#666" />
+          <MaterialCommunityIcons name="account" size={20} color="#666" />
         </View>
       )}
       <View style={s.userInfo}>
@@ -174,7 +174,7 @@ export default function BlockedUsersScreen() {
         <Image source={{ uri: item.photoUrl }} style={s.avatar} contentFit="cover" />
       ) : (
         <View style={s.avatarFallback}>
-          <MaterialCommunityIcons name="person" size={20} color="#666" />
+          <MaterialCommunityIcons name="account" size={20} color="#666" />
         </View>
       )}
       <View style={s.userInfo}>
