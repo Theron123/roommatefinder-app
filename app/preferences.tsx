@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
 import * as ImagePicker from 'expo-image-picker';
+import { uriToBlob } from '@/utils/file';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -151,8 +152,7 @@ export default function PreferencesScreen() {
         if (!session) return;
 
         const photoUri = result.assets[0].uri;
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
+        const blob = await uriToBlob(photoUri);
 
         const fileExt = photoUri.split('.').pop() || 'jpeg';
         const fileName = `${session.user.id}-${Date.now()}-${slotIndex}.${fileExt}`;

@@ -48,7 +48,7 @@ export default function HomeScreen() {
   const avatarRef = useRef<any>(null);
 
   const measureAvatar = () => {
-    if (avatarRef.current) {
+    if (avatarRef.current && typeof avatarRef.current.measureInWindow === 'function') {
       avatarRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
         if (width > 0 && height > 0) {
           DeviceEventEmitter.emit('register_tutorial_coords', {

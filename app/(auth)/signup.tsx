@@ -3,7 +3,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -129,96 +132,108 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Roommate Finder</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Roommate Finder</Text>
 
-      {message.text ? (
-        <View style={[styles.messageBox, message.type === 'error' ? styles.messageBoxError : styles.messageBoxSuccess]}>
-          <Text style={[styles.messageText, message.type === 'error' ? styles.messageTextError : styles.messageTextSuccess]}>
-            {message.text}
-          </Text>
+        {message.text ? (
+          <View style={[styles.messageBox, message.type === 'error' ? styles.messageBoxError : styles.messageBoxSuccess]}>
+            <Text style={[styles.messageText, message.type === 'error' ? styles.messageTextError : styles.messageTextSuccess]}>
+              {message.text}
+            </Text>
+          </View>
+        ) : null}
+
+        <TextInput
+          placeholder="Full Name"
+          placeholderTextColor="#999"
+          value={name}
+          onChangeText={setName}
+          style={styles.input}
+        />
+
+        <View style={styles.idRow}>
+          <TextInput
+            placeholder="Country (e.g. CRI, USA)"
+            placeholderTextColor="#999"
+            autoCapitalize="characters"
+            maxLength={3}
+            value={countryCode}
+            onChangeText={setCountryCode}
+            style={[styles.input, styles.countryInput]}
+          />
+          <TextInput
+            placeholder="National ID / Passport"
+            placeholderTextColor="#999"
+            value={nationalId}
+            onChangeText={setNationalId}
+            style={[styles.input, styles.idInput]}
+          />
         </View>
-      ) : null}
 
-      <TextInput
-        placeholder="Full Name"
-        placeholderTextColor="#999"
-        value={name}
-        onChangeText={setName}
-        style={styles.input}
-      />
-
-      <View style={styles.idRow}>
         <TextInput
-          placeholder="Country (e.g. CRI, USA)"
+          placeholder="Email address"
           placeholderTextColor="#999"
-          autoCapitalize="characters"
-          maxLength={3}
-          value={countryCode}
-          onChangeText={setCountryCode}
-          style={[styles.input, styles.countryInput]}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
         />
-        <TextInput
-          placeholder="National ID / Passport"
-          placeholderTextColor="#999"
-          value={nationalId}
-          onChangeText={setNationalId}
-          style={[styles.input, styles.idInput]}
-        />
-      </View>
 
-      <TextInput
-        placeholder="Email address"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-      />
+        <View style={styles.passwordContainer}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#999"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.passwordInput}
+          />
+          <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
+            <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
+          </Pressable>
+        </View>
 
-      <View style={styles.passwordContainer}>
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#999"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-          style={styles.passwordInput}
-        />
-        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
-          <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
+        <Pressable
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text style={styles.buttonText}>Create Account</Text>
+          )}
         </Pressable>
-      </View>
 
-      <Pressable
-        style={[styles.button, loading && { opacity: 0.6 }]}
-        onPress={handleSignUp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <Text style={styles.buttonText}>Create Account</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={styles.toggleButton}
-        onPress={() => router.back()}
-        disabled={loading}
-      >
-        <Text style={styles.toggleButtonText}>
-          Already have an account? <Text style={styles.blueText}>Sign in</Text>
-        </Text>
-      </Pressable>
-    </View>
+        <Pressable
+          style={styles.toggleButton}
+          onPress={() => router.back()}
+          disabled={loading}
+        >
+          <Text style={styles.toggleButtonText}>
+            Already have an account? <Text style={styles.blueText}>Sign in</Text>
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
     backgroundColor: '#000',

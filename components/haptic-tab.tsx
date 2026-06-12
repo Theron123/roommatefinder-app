@@ -21,7 +21,7 @@ export function HapticTab(props: BottomTabBarButtonProps) {
   }
 
   const measureAndRegister = () => {
-    if (pressableRef.current) {
+    if (pressableRef.current && typeof pressableRef.current.measureInWindow === 'function') {
       pressableRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
         if (width > 0 && height > 0) {
           DeviceEventEmitter.emit('register_tutorial_coords', {

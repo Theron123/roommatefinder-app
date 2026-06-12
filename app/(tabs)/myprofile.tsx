@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { uriToBlob } from '@/utils/file';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -111,8 +112,7 @@ export default function MyProfileScreen() {
         const photoUri = result.assets[0].uri;
         
         // Convert URI to blob
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
+        const blob = await uriToBlob(photoUri);
 
         // Create unique filename based on user ID, timestamp, and slot index
         const fileExt = photoUri.split('.').pop() || 'jpeg';

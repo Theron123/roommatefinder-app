@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Pressable, ScrollView,
   StyleSheet, Text, View, Platform
 } from 'react-native';
+import { uriToBlob } from '@/utils/file';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -460,8 +461,7 @@ export default function ContractDetailScreen() {
                 blob = await html2pdf().set(opt).from(html).output('blob');
               } else {
                 const { uri } = await Print.printToFileAsync({ html, base64: false });
-                const response = await fetch(uri);
-                blob = await response.blob();
+                blob = await uriToBlob(uri);
               }
 
               // 5. Upload to Supabase Storage contracts bucket
@@ -588,8 +588,7 @@ export default function ContractDetailScreen() {
 
         // On mobile, if it's active, let's upload it to Supabase
         if (contract.status === 'active') {
-          const response = await fetch(uri);
-          blob = await response.blob();
+          blob = await uriToBlob(uri);
           const fileName = `${contract.id}.pdf`;
           const { error: uploadError } = await supabase.storage.from('contracts').upload(fileName, blob, {
             contentType: 'application/pdf',

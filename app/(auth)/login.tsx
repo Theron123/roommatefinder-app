@@ -3,7 +3,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -57,69 +60,81 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Roommate Finder</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>Roommate Finder</Text>
 
-      {message.text ? (
-        <View style={[styles.messageBox, message.type === 'error' ? styles.messageBoxError : styles.messageBoxSuccess]}>
-          <Text style={[styles.messageText, message.type === 'error' ? styles.messageTextError : styles.messageTextSuccess]}>
-            {message.text}
-          </Text>
-        </View>
-      ) : null}
+        {message.text ? (
+          <View style={[styles.messageBox, message.type === 'error' ? styles.messageBoxError : styles.messageBoxSuccess]}>
+            <Text style={[styles.messageText, message.type === 'error' ? styles.messageTextError : styles.messageTextSuccess]}>
+              {message.text}
+            </Text>
+          </View>
+        ) : null}
 
-      <TextInput
-        placeholder="Email address"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-      />
-
-      <View style={styles.passwordContainer}>
         <TextInput
-          placeholder="Password"
+          placeholder="Email address"
           placeholderTextColor="#999"
-          secureTextEntry={!showPassword}
-          value={password}
-          onChangeText={setPassword}
-          style={styles.passwordInput}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
         />
-        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
-          <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#999"
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            style={styles.passwordInput}
+          />
+          <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon} hitSlop={8}>
+            <IconSymbol name={showPassword ? "eye.slash.fill" : "eye.fill"} size={20} color="#999" />
+          </Pressable>
+        </View>
+
+        <Pressable
+          style={[styles.button, loading && { opacity: 0.6 }]}
+          onPress={handleSignIn}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#000" />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
         </Pressable>
-      </View>
 
-      <Pressable
-        style={[styles.button, loading && { opacity: 0.6 }]}
-        onPress={handleSignIn}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
-        )}
-      </Pressable>
-
-      <Pressable
-        style={styles.toggleButton}
-        onPress={() => router.push('/signup')}
-        disabled={loading}
-      >
-        <Text style={styles.toggleButtonText}>
-          Don&apos;t have an account? <Text style={styles.blueText}>Sign up here</Text>
-        </Text>
-      </Pressable>
-    </View>
+        <Pressable
+          style={styles.toggleButton}
+          onPress={() => router.push('/signup')}
+          disabled={loading}
+        >
+          <Text style={styles.toggleButtonText}>
+            Don&apos;t have an account? <Text style={styles.blueText}>Sign up here</Text>
+          </Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
     backgroundColor: '#000',

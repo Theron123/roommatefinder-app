@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { uriToBlob } from '@/utils/file';
 import { useEffect, useState, useRef } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
@@ -433,8 +434,7 @@ export default function ChatScreen() {
         content: '🎙️ Mensaje de voz', media_type: 'audio', media_url: uri,
         created_at: new Date().toISOString(), status: 'pending',
       }]);
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const blob = await uriToBlob(uri);
       await uploadAudioBlob(blob, 'm4a', tempId);
     } catch (e) { console.error('uploadAudioFile error', e); }
   };
@@ -547,8 +547,7 @@ export default function ChatScreen() {
         created_at: new Date().toISOString(), status: 'pending',
       }]);
 
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const blob = await uriToBlob(uri);
       const fileExt = filename ? filename.split('.').pop() : uri.split('.').pop() || 'bin';
       const filePath = `${myId}/${Date.now()}.${fileExt}`;
 

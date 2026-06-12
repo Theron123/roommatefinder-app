@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
+import { uriToBlob } from '@/utils/file';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -114,8 +115,7 @@ export default function ManageListingScreen() {
         if (!session) return;
 
         const photoUri = result.assets[0].uri;
-        const response = await fetch(photoUri);
-        const blob = await response.blob();
+        const blob = await uriToBlob(photoUri);
         const fileExt = photoUri.split('.').pop() || 'jpeg';
         const fileName = `listing-${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
