@@ -1,9 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { uriToBlob } from '@/utils/file';
+import { uploadToSupabase, getCleanExtension } from '@/utils/file';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useCallback } from 'react';
@@ -13,6 +13,7 @@ import { useTranslation } from '../../context/LanguageContext';
 
 export default function MyProfileScreen() {
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -110,25 +111,11 @@ export default function MyProfileScreen() {
         if (!session) return;
 
         const photoUri = result.assets[0].uri;
-        
-        // Convert URI to blob
-        const blob = await uriToBlob(photoUri);
-
-        // Create unique filename based on user ID, timestamp, and slot index
-        const fileExt = photoUri.split('.').pop() || 'jpeg';
+        const fileExt = getCleanExtension(photoUri, result.assets[0].mimeType);
         const fileName = `${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
-        // Upload to Supabase Storage 'Roommate' bucket
-        const { error: uploadError } = await supabase.storage
-          .from('Roommate')
-          .upload(fileName, blob, {
-            contentType: `image/${fileExt}`,
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
+        // Upload to Supabase Storage 'Roommate' bucket using unified platform-safe helper
+        await uploadToSupabase('Roommate', fileName, photoUri, `image/${fileExt}`);
 
         // Get Public URL
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
@@ -219,11 +206,11 @@ export default function MyProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         
         {/* Header with avatar */}
-        <LinearGradient colors={['#1a1a24', '#000']} style={styles.heroSection}>
+        <LinearGradient colors={['#1a1a24', '#000']} style={[styles.heroSection, { paddingTop: insets.top + 20 }]}>
           <View style={styles.avatarWrapper}>
             <Pressable onPress={() => pickImage(0)} disabled={uploading}>
               {uploading ? (
@@ -440,8 +427,8 @@ export default function MyProfileScreen() {
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
-          {likesArr.length > 0 ? likesArr.map((tag: string) => (
-            <View key={tag} style={styles.chip}>
+          {likesArr.length > 0 ? likesArr.map((tag: string, idx: number) => (
+            <View key={`${tag}-${idx}`} style={styles.chip}>
               <Text style={styles.chipText}>{translateHobby(tag)}</Text>
             </View>
           )) : (
@@ -480,8 +467,8 @@ export default function MyProfileScreen() {
               <View style={styles.lifestyleCategoryRow}>
                 <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.languages')}</Text>
                 <View style={styles.chipWrapInline}>
-                  {languagesArr.map((lang: string) => (
-                    <View key={`lang-${lang}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
+                  {languagesArr.map((lang: string, idx: number) => (
+                    <View key={`lang-${lang}-${idx}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
                       <Text style={[styles.chipText, { color: '#00C9A7' }]}>{translateLanguage(lang)}</Text>
                     </View>
                   ))}
@@ -494,8 +481,8 @@ export default function MyProfileScreen() {
               <View style={styles.lifestyleCategoryRow}>
                 <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.other')}</Text>
                 <View style={styles.chipWrapInline}>
-                  {prefsArr.map((tag: string) => (
-                    <View key={tag} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
+                  {prefsArr.map((tag: string, idx: number) => (
+                    <View key={`${tag}-${idx}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
                       <Text style={[styles.chipText, { color: '#00C9A7' }]}>{tag}</Text>
                     </View>
                   ))}
@@ -520,8 +507,8 @@ export default function MyProfileScreen() {
           </Pressable>
         </View>
         <View style={styles.chipWrap}>
-          {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string) => (
-            <View key={tag} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
+          {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string, idx: number) => (
+            <View key={`${tag}-${idx}`} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
               <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{translateDealbreaker(tag)}</Text>
             </View>
           ))}</>) : (
@@ -600,7 +587,7 @@ export default function MyProfileScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1111,8 +1098,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(73, 199, 136, 0.05)',
   },
   slotImage: {
-    width: '100%',
-    height: '100%',
+    width: 100,
+    height: 130,
   },
   slotBadge: {
     position: 'absolute',

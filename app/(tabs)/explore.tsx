@@ -403,17 +403,15 @@ export default function ExploreScreen() {
     if (!card) return null;
     
     const photosList = Array.isArray(card.photos) && card.photos.length > 0
-      ? card.photos
+      ? card.photos.filter(Boolean)
       : [card.photoUrl].filter(Boolean);
 
     const activePhotoIdx = cardPhotoIndices[card.id] || 0;
-
     const imageSource = photosList[activePhotoIdx]
       ? { uri: photosList[activePhotoIdx] }
       : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' };
 
     const compatibility = calculateCompatibility(currentUser, card);
-
     const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
       looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
       exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },

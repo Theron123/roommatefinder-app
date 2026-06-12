@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { uriToBlob } from '@/utils/file';
+import { uploadToSupabase, getCleanExtension } from '@/utils/file';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -27,23 +27,30 @@ export default function ManageListingScreen() {
   }, []);
 
   const fetchListing = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    if (id) {
-      const { data } = await supabase.from('listings').select('*').eq('id', id).single();
-      if (data && data.user_id === session.user.id) {
-        setListingId(data.id);
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setPrice(data.price ? data.price.toString() : '');
-        setAddress(data.address || '');
-        setImages(data.images || []);
-        setUtilities(data.utilities_included || false);
+      const { data: listing } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (listing) {
+        setListingId(listing.id);
+        setTitle(listing.title || '');
+        setDescription(listing.description || '');
+        setPrice(listing.price ? listing.price.toString() : '');
+        setAddress(listing.address || '');
+        setImages(listing.images || []);
+        setUtilities(listing.utilities_included || false);
       }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSave = async () => {
@@ -115,16 +122,10 @@ export default function ManageListingScreen() {
         if (!session) return;
 
         const photoUri = result.assets[0].uri;
-        const blob = await uriToBlob(photoUri);
-        const fileExt = photoUri.split('.').pop() || 'jpeg';
+        const fileExt = getCleanExtension(photoUri, result.assets[0].mimeType);
         const fileName = `listing-${session.user.id}-${Date.now()}-${targetIdx}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage.from('Roommate').upload(fileName, blob, {
-          contentType: `image/${fileExt}`,
-          upsert: true,
-        });
-
-        if (uploadError) throw uploadError;
+        await uploadToSupabase('Roommate', fileName, photoUri, `image/${fileExt}`);
 
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
@@ -273,8 +274,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(73, 199, 136, 0.05)',
   },
   slotImage: {
-    width: '100%',
-    height: '100%',
+    width: 100,
+    height: 130,
   },
   slotBadge: {
     position: 'absolute',

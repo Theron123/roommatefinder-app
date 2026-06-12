@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, Pressable, DeviceEventEmitter, Animated, useWindowDimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, Pressable, DeviceEventEmitter, Animated, useWindowDimensions, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
@@ -138,14 +138,14 @@ export default function TutorialModal() {
       }
     };
     
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       sub.remove();
       coordsSub.remove();
-      if (typeof window !== 'undefined') {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
         window.removeEventListener('keydown', handleKeyDown);
       }
     };

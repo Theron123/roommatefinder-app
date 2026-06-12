@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 
 // ── Configure how notifications appear when app is in foreground ──
@@ -61,12 +62,25 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
   }
 
-  // Get Expo push token
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-  });
+  // Get Expo push token safely
+  let token = null;
+  try {
+    const projectId = 
+      process.env.EXPO_PUBLIC_PROJECT_ID || 
+      Constants.expoConfig?.extra?.eas?.projectId || 
+      (Constants.easConfig as any)?.projectId;
 
-  const token = tokenData.data;
+    if (projectId) {
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      token = tokenData.data;
+    } else {
+      console.warn('[Notifications] No projectId found in env or expoConfig, skipping push token registration.');
+    }
+  } catch (error) {
+    console.warn('[Notifications] Failed to get Expo push token:', error);
+  }
 
   // Save to Supabase profile
   try {

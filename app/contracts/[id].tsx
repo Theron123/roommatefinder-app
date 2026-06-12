@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert, Pressable, ScrollView,
   StyleSheet, Text, View, Platform
 } from 'react-native';
-import { uriToBlob } from '@/utils/file';
+import { uploadToSupabase } from '@/utils/file';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -447,7 +447,7 @@ export default function ContractDetailScreen() {
               const html = generateContractHTML(updatedContract, 'active');
 
               // 4. Generate PDF file
-              let blob: Blob;
+              const fileName = `${updatedContract.id}.pdf`;
               if (Platform.OS === 'web') {
                 const html2pdfModule = await import('html2pdf.js');
                 const html2pdf = html2pdfModule.default || html2pdfModule;
@@ -458,22 +458,13 @@ export default function ContractDetailScreen() {
                   html2canvas:  { scale: 2 },
                   jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
                 };
-                blob = await html2pdf().set(opt).from(html).output('blob');
+                const webBlob = await html2pdf().set(opt).from(html).output('blob');
+                const blobUri = URL.createObjectURL(webBlob);
+                await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
               } else {
                 const { uri } = await Print.printToFileAsync({ html, base64: false });
-                blob = await uriToBlob(uri);
+                await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
               }
-
-              // 5. Upload to Supabase Storage contracts bucket
-              const fileName = `${updatedContract.id}.pdf`;
-              const { error: uploadError } = await supabase.storage
-                .from('contracts')
-                .upload(fileName, blob, {
-                  contentType: 'application/pdf',
-                  upsert: true
-                });
-
-              if (uploadError) throw uploadError;
 
               const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
               const publicUrl = publicUrlData.publicUrl;
@@ -546,7 +537,6 @@ export default function ContractDetailScreen() {
       const html = generateContractHTML(contract, contract.status);
 
       let localUri: string | null = null;
-      let blob: Blob;
 
       if (Platform.OS === 'web') {
         const html2pdfModule = await import('html2pdf.js');
@@ -558,24 +548,24 @@ export default function ContractDetailScreen() {
           html2canvas:  { scale: 2 },
           jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
         };
-        blob = await html2pdf().set(opt).from(html).output('blob');
+        const webBlob = await html2pdf().set(opt).from(html).output('blob');
         
-        // On web, if it's active, let's save it to Supabase
+        // On web, if it's active, let's save it to Supabase using uploadToSupabase helper
         if (contract.status === 'active') {
           const fileName = `${contract.id}.pdf`;
-          const { error: uploadError } = await supabase.storage.from('contracts').upload(fileName, blob, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-          if (!uploadError) {
+          const blobUri = URL.createObjectURL(webBlob);
+          try {
+            await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
             const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
             await supabase.from('contracts').update({ pdf_url: publicUrlData.publicUrl }).eq('id', contract.id);
             contract.pdf_url = publicUrlData.publicUrl; // update local ref
+          } catch (uploadError) {
+            console.error("Error uploading contract PDF on web:", uploadError);
           }
         }
 
         // Trigger browser download
-        const downloadUrl = contract.pdf_url || URL.createObjectURL(blob);
+        const downloadUrl = contract.pdf_url || URL.createObjectURL(webBlob);
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = `contrato_${contract.id}.pdf`;
@@ -586,18 +576,16 @@ export default function ContractDetailScreen() {
         const { uri } = await Print.printToFileAsync({ html, base64: false });
         localUri = uri;
 
-        // On mobile, if it's active, let's upload it to Supabase
+        // On mobile, if it's active, let's upload it to Supabase using uploadToSupabase helper
         if (contract.status === 'active') {
-          blob = await uriToBlob(uri);
           const fileName = `${contract.id}.pdf`;
-          const { error: uploadError } = await supabase.storage.from('contracts').upload(fileName, blob, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-          if (!uploadError) {
+          try {
+            await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
             const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
             await supabase.from('contracts').update({ pdf_url: publicUrlData.publicUrl }).eq('id', contract.id);
             contract.pdf_url = publicUrlData.publicUrl; // update local ref
+          } catch (uploadError) {
+            console.error("Error uploading active contract PDF on mobile:", uploadError);
           }
         }
 

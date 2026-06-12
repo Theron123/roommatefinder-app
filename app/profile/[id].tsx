@@ -144,7 +144,7 @@ export default function ProfileDetailScreen() {
 
   const photosList = profile
     ? (Array.isArray(profile.photos) && profile.photos.length > 0
-      ? profile.photos
+      ? profile.photos.filter(Boolean)
       : [profile.photoUrl].filter(Boolean))
     : [];
 

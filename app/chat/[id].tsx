@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { uriToBlob } from '@/utils/file';
+import { uploadToSupabase } from '@/utils/file';
 import { useEffect, useState, useRef } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
@@ -411,7 +411,8 @@ export default function ChatScreen() {
         mr.stream.getTracks().forEach(t => t.stop());
         await new Promise<void>(res => { mr.onstop = () => res(); });
         const blob = new Blob(webChunksRef.current, { type: 'audio/webm' });
-        await uploadAudioBlob(blob, 'webm');
+        const blobUri = URL.createObjectURL(blob);
+        await uploadAudioFile(blobUri, 'webm');
       } else {
         const rec = recordingRef.current;
         if (!rec) return;
@@ -426,43 +427,32 @@ export default function ChatScreen() {
     }
   };
 
-  const uploadAudioFile = async (uri: string) => {
+  const uploadAudioFile = async (uri: string, extensionOverride?: string) => {
+    const tempId = `temp_${Date.now()}`;
     try {
-      const tempId = `temp_${Date.now()}`;
       setMessages(prev => [...prev, {
         id: tempId, sender_id: myId, receiver_id: id,
         content: '🎙️ Mensaje de voz', media_type: 'audio', media_url: uri,
         created_at: new Date().toISOString(), status: 'pending',
       }]);
-      const blob = await uriToBlob(uri);
-      await uploadAudioBlob(blob, 'm4a', tempId);
-    } catch (e) { console.error('uploadAudioFile error', e); }
-  };
 
-  const uploadAudioBlob = async (blob: Blob, ext: string, tempId?: string) => {
-    const tId = tempId ?? `temp_${Date.now()}`;
-    if (!tempId) {
-      setMessages(prev => [...prev, {
-        id: tId, sender_id: myId, receiver_id: id,
-        content: '🎙️ Mensaje de voz', media_type: 'audio', media_url: '',
-        created_at: new Date().toISOString(), status: 'pending',
-      }]);
-    }
-    try {
+      const ext = extensionOverride || 'm4a';
       const filePath = `${myId}/audio_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from('chat_media').upload(filePath, blob, { contentType: blob.type || 'audio/mpeg' });
-      if (uploadError) throw uploadError;
+
+      await uploadToSupabase('chat_media', filePath, uri, `audio/${ext}`);
+
       const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(filePath);
+
       const { data: dbData, error: dbError } = await supabase.from('messages').insert({
         sender_id: myId, receiver_id: id,
         content: '🎙️ Mensaje de voz', media_url: publicUrl, media_type: 'audio',
       }).select().single();
+
       if (dbError) throw dbError;
-      setMessages(prev => prev.map(m => m.id === tId ? { ...dbData, status: 'sent' } : m));
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...dbData, status: 'sent' } : m));
     } catch (e) {
-      console.error('uploadAudioBlob error', e);
-      setMessages(prev => prev.map(m => m.id === tId ? { ...m, status: 'error' } : m));
+      console.error('uploadAudioFile error', e);
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
     }
   };
 
@@ -539,21 +529,19 @@ export default function ChatScreen() {
   };
 
   const uploadFile = async (uri: string, mediaType: string, contentText: string, filename?: string, mimeType?: string) => {
+    const tempId = `temp_${Date.now()}`;
     try {
-      const tempId = `temp_${Date.now()}`;
       setMessages(prev => [...prev, {
         id: tempId, sender_id: myId, receiver_id: id,
         content: contentText, media_url: uri, media_type: mediaType,
         created_at: new Date().toISOString(), status: 'pending',
       }]);
 
-      const blob = await uriToBlob(uri);
       const fileExt = filename ? filename.split('.').pop() : uri.split('.').pop() || 'bin';
       const filePath = `${myId}/${Date.now()}.${fileExt}`;
+      const resolvedMime = mimeType || `application/octet-stream`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('chat_media').upload(filePath, blob, { contentType: mimeType || blob.type || 'application/octet-stream' });
-      if (uploadError) throw uploadError;
+      await uploadToSupabase('chat_media', filePath, uri, resolvedMime);
 
       const { data: { publicUrl } } = supabase.storage.from('chat_media').getPublicUrl(filePath);
 
@@ -566,6 +554,7 @@ export default function ChatScreen() {
       setMessages(prev => prev.map(m => m.id === tempId ? { ...dbData, status: 'sent' } : m));
     } catch (err) {
       console.error('Error uploading file:', err);
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
     }
   };
 

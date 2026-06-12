@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import LocationAutocomplete from '@/components/ui/LocationAutocomplete';
 import * as ImagePicker from 'expo-image-picker';
-import { uriToBlob } from '@/utils/file';
+import { uploadToSupabase, getCleanExtension } from '@/utils/file';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
@@ -152,21 +152,10 @@ export default function PreferencesScreen() {
         if (!session) return;
 
         const photoUri = result.assets[0].uri;
-        const blob = await uriToBlob(photoUri);
-
-        const fileExt = photoUri.split('.').pop() || 'jpeg';
+        const fileExt = getCleanExtension(photoUri, result.assets[0].mimeType);
         const fileName = `${session.user.id}-${Date.now()}-${slotIndex}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('Roommate')
-          .upload(fileName, blob, {
-            contentType: `image/${fileExt}`,
-            upsert: true,
-          });
-
-        if (uploadError) {
-          throw uploadError;
-        }
+        await uploadToSupabase('Roommate', fileName, photoUri, `image/${fileExt}`);
 
         const { data } = supabase.storage.from('Roommate').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
@@ -622,8 +611,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   slotImage: {
-    width: '100%',
-    height: '100%',
+    width: 100,
+    height: 133,
   },
   slotBadge: {
     position: 'absolute',
