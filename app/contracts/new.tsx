@@ -10,8 +10,12 @@ import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 import { useMatches } from '@/hooks/useMatches';
+import ContractStepMatches from '@/components/contracts/ContractStepMatches';
+import Constants from 'expo-constants';
 
 type Match = { user_id: string; name: string };
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
 export default function NewContractScreen() {
   const [step, setStep]             = useState(0);
@@ -263,84 +267,15 @@ export default function NewContractScreen() {
 
           {/* ── STEP 1: Parte ── */}
           {step === 1 && (
-            <View style={s.stepContent}>
-              <Text style={s.sectionHint}>{t('contracts.who_signing')}</Text>
-
-              {/* Buscador de Matches */}
-              {matches.length > 0 && (
-                <View style={s.searchContainer}>
-                  <MaterialCommunityIcons name="magnify" size={20} color="#666" style={s.searchIcon} />
-                  <TextInput
-                    style={s.searchInput}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder={t('contracts.search_roommates')}
-                    placeholderTextColor="#666"
-                  />
-                  {searchQuery.length > 0 && (
-                    <Pressable onPress={() => setSearchQuery('')}>
-                      <MaterialCommunityIcons name="close" size={18} color="#666" />
-                    </Pressable>
-                  )}
-                </View>
-              )}
-
-              {/* Píldoras de seleccionados */}
-              {selectedUsers.length > 0 && (
-                <View style={s.selectedPillsContainer}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.selectedPillsScroll}>
-                    {selectedUsers.map(user => (
-                      <Pressable key={user.user_id} style={s.selectedPill} onPress={() => handleToggleUser(user)}>
-                        <Text style={s.selectedPillText}>{user.name}</Text>
-                        <MaterialCommunityIcons name="close-circle" size={16} color="#fff" style={{ marginLeft: 6 }} />
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              {loadingMatches ? (
-                <ActivityIndicator color="#49C788" style={{ marginTop: 40 }} />
-              ) : matches.length === 0 ? (
-                <View style={s.emptyState}>
-                  <View style={s.emptyIconWrap}>
-                    <MaterialCommunityIcons name="account-question-outline" size={40} color="#666" />
-                  </View>
-                  <Text style={s.emptyStateText}>{t('contracts.need_match')}</Text>
-                </View>
-              ) : (
-                (() => {
-                  const filtered = matches.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                  if (filtered.length === 0) {
-                    return (
-                      <View style={s.emptyState}>
-                        <Text style={{ color: '#666', textAlign: 'center', marginTop: 20 }}>{t('contracts.no_roommates_match')}</Text>
-                      </View>
-                    );
-                  }
-                  return filtered.map(m => {
-                    const isSelected = selectedUsers.some(u => u.user_id === m.user_id);
-                    return (
-                      <Pressable
-                        key={m.user_id}
-                        style={[s.matchCard, isSelected && s.matchCardActive]}
-                        onPress={() => handleToggleUser(m)}
-                      >
-                        <View style={[s.matchAvatar, isSelected && { backgroundColor: '#49C788' }]}>
-                          <Text style={[s.matchInitial, isSelected && { color: '#000' }]}>{m.name[0]?.toUpperCase()}</Text>
-                        </View>
-                        <Text style={s.matchName}>{m.name}</Text>
-                        <MaterialCommunityIcons 
-                          name={isSelected ? "check-circle" : "circle-outline"} 
-                          size={24} 
-                          color={isSelected ? "#49C788" : "#333"} 
-                        />
-                      </Pressable>
-                    );
-                  });
-                })()
-              )}
-            </View>
+            <ContractStepMatches
+              matches={matches}
+              selectedUsers={selectedUsers}
+              loadingMatches={loadingMatches}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleToggleUser={handleToggleUser}
+              t={t}
+            />
           )}
 
           {/* ── STEP 2: Finanzas ── */}

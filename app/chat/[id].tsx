@@ -17,6 +17,11 @@ import { setActiveChatUserId } from '@/lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import ChatSettingsModal, { PRESET_WALLPAPERS } from '@/components/chat/modals/ChatSettingsModal';
+import ChatAttachMenu from '@/components/chat/modals/ChatAttachMenu';
+import ChatForwardModal from '@/components/chat/modals/ChatForwardModal';
+import ChatActionMenu from '@/components/chat/modals/ChatActionMenu';
+import ImageViewerModal from '@/components/chat/modals/ImageViewerModal';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams();
@@ -69,15 +74,6 @@ export default function ChatScreen() {
   const webAnalyserRef = useRef<AnalyserNode | null>(null);
   const micIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [liveWaveform, setLiveWaveform] = useState<number[]>(new Array(20).fill(4));
-
-  const PRESET_WALLPAPERS = [
-    { id: 'default', name: 'Original', value: 'default', color: '#090d14' },
-    { id: 'emerald', name: 'Mint Green', value: '#063f35', color: '#063f35' },
-    { id: 'midnight', name: 'Midnight', value: '#05070A', color: '#05070A' },
-    { id: 'classic_dark', name: 'Classic Green', value: '#0b141a', color: '#0b141a' },
-    { id: 'aurora', name: 'Deep Purple', value: '#120d1c', color: '#120d1c' },
-    { id: 'chocolate', name: 'Deep Brown', value: '#1a1412', color: '#1a1412' },
-  ];
 
   useEffect(() => {
     const loadDeleted = async () => {
@@ -875,259 +871,74 @@ export default function ChatScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      <Modal visible={!!selectedImage} transparent animationType="fade" onRequestClose={() => setSelectedImage(null)}>
-        <View style={styles.modalContainer}>
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setSelectedImage(null)} />
+      {/* ─── Image Viewer Modal ─── */}
+      <ImageViewerModal
+        visible={!!selectedImage}
+        selectedImage={selectedImage}
+        imageScale={imageScale}
+        zoomOffset={zoomOffset}
+        onClose={() => setSelectedImage(null)}
+        onForward={(url) => openForward({ url })}
+        onDownload={(url) => downloadImage(url)}
+        onZoomChange={(scale, offset) => {
+          setImageScale(scale);
+          setZoomOffset(offset);
+        }}
+      />
 
-          <View style={styles.imageModalTopBar}>
-            <Pressable style={styles.modalActionBtn} onPress={() => setSelectedImage(null)}>
-              <Text style={styles.modalActionText}>✕ Close</Text>
-            </Pressable>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <Pressable style={styles.modalActionBtn}
-                onPress={() => selectedImage && openForward({ url: selectedImage })}>
-                <Text style={styles.modalActionText}>➡ Forward</Text>
-              </Pressable>
-              <Pressable style={styles.modalActionBtn}
-                onPress={() => selectedImage && downloadImage(selectedImage)}>
-                <Text style={styles.modalActionText}>📥 Save</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {selectedImage && (
-            <Pressable onPress={(e) => {
-              if (imageScale > 1) {
-                setImageScale(1);
-                setZoomOffset({ x: 0, y: 0 });
-              } else {
-                const { pageX, pageY } = e.nativeEvent;
-                const cx = pageX - (SCREEN_WIDTH / 2);
-                const cy = pageY - (SCREEN_HEIGHT / 2);
-                const S = 2.5;
-                
-                setImageScale(S);
-                setZoomOffset({ x: -cx, y: -cy });
-              }
-            }}>
-              <Image
-                source={{ uri: selectedImage }}
-                style={[
-                  styles.fullImage, 
-                  { 
-                    transform: [
-                      { translateX: zoomOffset.x },
-                      { translateY: zoomOffset.y },
-                      { scale: imageScale }
-                    ] 
-                  }
-                ]}
-                resizeMode="contain"
-              />
-            </Pressable>
-          )}
-
-          <View style={styles.zoomBadge}>
-            <Text style={styles.zoomBadgeText}>{Math.round(imageScale * 100)}%</Text>
-            {imageScale !== 1 && (
-              <Pressable onPress={() => { setImageScale(1); setZoomOffset({ x: 0, y: 0 }); }} style={styles.resetZoomBtn}>
-                <Text style={styles.modalActionText}>Reset</Text>
-              </Pressable>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      <Modal visible={showActionMenu} transparent animationType="fade" onRequestClose={() => setShowActionMenu(false)}>
-        <Pressable style={styles.actionMenuOverlay} onPress={() => setShowActionMenu(false)}>
-          <View style={styles.actionMenu}>
-            <Text style={styles.actionMenuTitle} numberOfLines={1}>
-              &quot;{activeMessage?.content || 'Message'}&quot;
-            </Text>
-
-            {showDeleteOptions ? (
-              <>
-                <Text style={{color: '#888', textAlign: 'center', marginBottom: 10, fontSize: 13, paddingHorizontal: 10}}>¿Deseas eliminar este mensaje para ti o para todos?</Text>
-                <Pressable style={styles.actionMenuItem} onPress={() => deleteForMe(activeMessage!.id)}>
-                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para mí</Text>
-                </Pressable>
-                <Pressable style={styles.actionMenuItem} onPress={() => deleteForEveryone(activeMessage!.id)}>
-                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para todos</Text>
-                </Pressable>
-                <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowDeleteOptions(false)}>
-                  <Text style={[styles.actionMenuItemText, { color: '#fff' }]}>Cancelar</Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Pressable style={styles.actionMenuItem} onPress={() => {
-                  setReplyingTo(activeMessage);
-                  setShowActionMenu(false);
-                }}>
-                  <Text style={styles.actionMenuItemText}>↩  Reply</Text>
-                </Pressable>
-                <Pressable style={styles.actionMenuItem} onPress={() => {
-                  openForward(
-                    activeMessage?.media_url
-                      ? { url: activeMessage.media_url }
-                      : { text: activeMessage?.content }
-                  );
-                }}>
-                  <Text style={styles.actionMenuItemText}>➡  Forward</Text>
-                </Pressable>
-                
-                <Pressable style={styles.actionMenuItem} onPress={async () => {
-                  await Clipboard.setStringAsync(activeMessage?.content || '');
-                  setShowActionMenu(false);
-                  Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
-                }}>
-                  <Text style={styles.actionMenuItemText}>📄  Copy</Text>
-                </Pressable>
-
-                {activeMessage?.sender_id === myId && (
-                  <Pressable style={styles.actionMenuItem} onPress={() => {
-                    setShowActionMenu(false);
-                    const isRead = activeMessage.is_read;
-                    const timeStr = new Date(activeMessage.created_at).toLocaleString();
-                    Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
-                  }}>
-                    <Text style={styles.actionMenuItemText}>ℹ️  Info</Text>
-                  </Pressable>
-                )}
-
-                <Pressable style={styles.actionMenuItem} onPress={() => {
-                  if (activeMessage) {
-                    if (myId === activeMessage.sender_id) {
-                      setShowDeleteOptions(true);
-                    } else {
-                      if (Platform.OS === 'web') {
-                        if (window.confirm('¿Eliminar este mensaje para ti?')) {
-                          deleteForMe(activeMessage.id);
-                        } else {
-                          setShowActionMenu(false);
-                        }
-                      } else {
-                        Alert.alert('Eliminar mensaje', '¿Eliminar este mensaje para ti?', [
-                          { text: 'Cancelar', style: 'cancel' },
-                          { text: 'Eliminar para mí', style: 'destructive', onPress: () => deleteForMe(activeMessage.id) }
-                        ]);
-                      }
-                    }
-                  }
-                }}>
-                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑  Delete</Text>
-                </Pressable>
-
-                <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]}
-                  onPress={() => setShowActionMenu(false)}>
-                  <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
+      <ChatActionMenu
+        visible={showActionMenu}
+        activeMessage={activeMessage}
+        myId={myId}
+        onClose={() => setShowActionMenu(false)}
+        onReply={(msg) => setReplyingTo(msg)}
+        onForward={(payload) => openForward(payload)}
+        onCopy={(content) => {
+          Clipboard.setStringAsync(content);
+          Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
+        }}
+        onInfo={(msg) => {
+          const isRead = msg.is_read;
+          const timeStr = new Date(msg.created_at).toLocaleString();
+          Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
+        }}
+        onDeleteForMe={(id) => {
+          if (Platform.OS === 'web') {
+            if (window.confirm('¿Eliminar este mensaje para ti?')) deleteForMe(id);
+          } else {
+            Alert.alert('Eliminar mensaje', '¿Eliminar este mensaje para ti?', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Eliminar para mí', style: 'destructive', onPress: () => deleteForMe(id) }
+            ]);
+          }
+        }}
+        onDeleteForEveryone={(id) => deleteForEveryone(id)}
+      />
 
       {/* ─── Forward User Picker Modal ─── */}
-      <Modal visible={showForwardModal} transparent animationType="slide" onRequestClose={() => setShowForwardModal(false)}>
-        <View style={styles.forwardModalContainer}>
-          <View style={styles.forwardModal}>
-            <Text style={styles.forwardTitle}>Forward to...</Text>
-            <FlatList
-              data={allProfiles}
-              keyExtractor={p => p.id}
-              renderItem={({ item }) => (
-                <Pressable style={styles.forwardUser} onPress={() => sendForward(item.id)}>
-                  <View style={styles.forwardUserAvatar}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                      {item.name?.[0]?.toUpperCase() || '?'}
-                    </Text>
-                  </View>
-                  <Text style={styles.forwardUserName}>{item.name}</Text>
-                </Pressable>
-              )}
-              ListEmptyComponent={<Text style={{ color: '#888', textAlign: 'center', marginTop: 20 }}>No users found</Text>}
-            />
-            <Pressable style={styles.forwardCancelBtn} onPress={() => setShowForwardModal(false)}>
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <ChatForwardModal
+        visible={showForwardModal}
+        profiles={allProfiles}
+        onClose={() => setShowForwardModal(false)}
+        onSendForward={sendForward}
+      />
 
       {/* ─── Attach Menu Modal ─── */}
-      <Modal visible={showAttachMenu} transparent animationType="fade" onRequestClose={() => setShowAttachMenu(false)}>
-        <Pressable style={styles.actionMenuOverlay} onPress={() => setShowAttachMenu(false)}>
-          <View style={styles.actionMenu}>
-            <Text style={styles.actionMenuTitle}>Attach File</Text>
-            <Pressable style={styles.actionMenuItem} onPress={pickMedia}>
-              <Text style={styles.actionMenuItemText}>🖼  Photo or Video (Gallery)</Text>
-            </Pressable>
-            <Pressable style={styles.actionMenuItem} onPress={pickDocument}>
-              <Text style={styles.actionMenuItemText}>🎵  Audio or Document</Text>
-            </Pressable>
-            <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowAttachMenu(false)}>
-              <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      <ChatAttachMenu
+        visible={showAttachMenu}
+        onClose={() => setShowAttachMenu(false)}
+        onPickMedia={pickMedia}
+        onPickDocument={pickDocument}
+      />
 
       {/* ─── Chat Customization (Wallpaper) Modal ─── */}
-      <Modal visible={showSettingsModal} transparent animationType="slide" onRequestClose={() => setShowSettingsModal(false)}>
-        <Pressable style={styles.actionMenuOverlay} onPress={() => setShowSettingsModal(false)}>
-          <View style={styles.bottomSheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Personalizar Fondo</Text>
-              <Pressable onPress={() => setShowSettingsModal(false)} style={styles.sheetCloseBtn}>
-                <MaterialCommunityIcons name="close" size={20} color="#fff" />
-              </Pressable>
-            </View>
-
-            <Text style={styles.sheetSub}>Elige un estilo para el fondo del chat:</Text>
-
-            {/* Custom Gallery Option */}
-            <Pressable style={styles.galleryOption} onPress={pickCustomWallpaper}>
-              <MaterialCommunityIcons name="image-multiple-outline" size={24} color="#49C788" />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.galleryOptionText}>Seleccionar de Galería</Text>
-                <Text style={styles.galleryOptionSub}>Elige una foto de tu dispositivo</Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
-            </Pressable>
-
-            <Text style={styles.sheetSub}>O elige un color sólido:</Text>
-            
-            <View style={styles.presetsGrid}>
-              {PRESET_WALLPAPERS.map((preset) => (
-                <Pressable
-                  key={preset.id}
-                  style={[
-                    styles.presetCard,
-                    { backgroundColor: preset.color },
-                    wallpaper === preset.value && styles.presetCardActive
-                  ]}
-                  onPress={() => selectPresetWallpaper(preset.value)}
-                >
-                  <Text style={styles.presetName} numberOfLines={1}>{preset.name}</Text>
-                  {wallpaper === preset.value && (
-                    <View style={styles.activeCheck}>
-                      <MaterialCommunityIcons name="check" size={12} color="#000" />
-                    </View>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-
-            <Pressable 
-              style={styles.resetBtn} 
-              onPress={() => selectPresetWallpaper('default')}
-            >
-              <Text style={styles.resetBtnText}>Restablecer fondo por defecto</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
+      <ChatSettingsModal
+        visible={showSettingsModal}
+        wallpaper={wallpaper}
+        onClose={() => setShowSettingsModal(false)}
+        onPickCustom={pickCustomWallpaper}
+        onSelectPreset={selectPresetWallpaper}
+      />
     </SafeAreaView>
   );
 }

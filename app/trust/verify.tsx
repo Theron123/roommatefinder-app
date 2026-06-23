@@ -8,6 +8,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from '../../context/LanguageContext';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
+import TrustAlertModal from '@/components/trust/TrustAlertModal';
+import TrustInstagramModal from '@/components/trust/TrustInstagramModal';
 
 // Custom string tag helper components to render raw HTML elements on Web
 // without causing compilation or runtime crashes on native (iOS/Android)
@@ -550,165 +552,25 @@ export default function VerificationWizard() {
       )}
 
       {/* Instagram Simulated Browser OAuth Modal */}
-      <Modal
+      <TrustInstagramModal
         visible={instagramModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setInstagramModalVisible(false)}
-      >
-        <SafeAreaView style={s.browserOverlay}>
-          <View style={s.browserContainer}>
-            {/* Header / Address Bar */}
-            <View style={s.browserHeader}>
-              <Pressable onPress={() => setInstagramModalVisible(false)} style={s.browserCloseBtn}>
-                <MaterialCommunityIcons name="close" size={22} color="#aaa" />
-              </Pressable>
-              <View style={s.addressBar}>
-                <MaterialCommunityIcons name="lock" size={12} color="#34C759" style={{ marginRight: 4 }} />
-                <Text style={s.addressText} numberOfLines={1}>api.instagram.com/oauth/authorize</Text>
-              </View>
-              <Pressable style={{ padding: 4 }}>
-                <MaterialCommunityIcons name="refresh" size={18} color="#888" />
-              </Pressable>
-            </View>
-
-            {/* Browser Content */}
-            <View style={s.browserContent}>
-              {instagramStage === 'login' && (
-                <View style={s.instaLoginContainer}>
-                  <Text style={s.instaLogoText}>Instagram</Text>
-                  
-                  <Text style={s.instaOAuthNote}>
-                    {locale === 'es' 
-                      ? 'RoommateFinder solicita permiso para acceder a tu nombre de usuario y fotos.'
-                      : 'RoommateFinder requests permission to access your username and photos.'}
-                  </Text>
-
-                  <View style={s.instaInputWrap}>
-                    <TextInput
-                      style={s.instaInput}
-                      placeholder={locale === 'es' ? "Usuario o correo electrónico" : "Username or email"}
-                      placeholderTextColor="#555"
-                      value={instagramUsername}
-                      onChangeText={setInstagramUsername}
-                      autoCapitalize="none"
-                    />
-                    <TextInput
-                      style={s.instaInput}
-                      placeholder={locale === 'es' ? "Contraseña" : "Password"}
-                      placeholderTextColor="#555"
-                      value={instagramPassword}
-                      onChangeText={setInstagramPassword}
-                      secureTextEntry
-                      autoCapitalize="none"
-                    />
-                  </View>
-
-                  <Pressable 
-                    style={s.instaBtn} 
-                    onPress={() => {
-                      if (!instagramUsername.trim()) {
-                        triggerAlert('Error', locale === 'es' ? 'Por favor ingresa tu usuario.' : 'Please enter your username.');
-                        return;
-                      }
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      setInstagramStage('loading');
-                      setTimeout(() => {
-                        setInstagramStage('success');
-                        setTimeout(() => {
-                          setInstagramModalVisible(false);
-                          const finalUsername = instagramUsername.startsWith('@') ? instagramUsername : `@${instagramUsername}`;
-                          setInputValue(finalUsername);
-                          submitVerification(undefined, finalUsername);
-                        }, 1500);
-                      }, 2000);
-                    }}
-                  >
-                    <Text style={s.instaBtnText}>{locale === 'es' ? 'Autorizar y Vincular' : 'Authorize & Link'}</Text>
-                  </Pressable>
-
-                  <Text style={s.instaFooterText}>Instagram © 2026</Text>
-                </View>
-              )}
-
-              {instagramStage === 'loading' && (
-                <View style={s.instaStatusContainer}>
-                  <ActivityIndicator size="large" color="#E1306C" />
-                  <Text style={s.instaStatusText}>
-                    {locale === 'es' ? 'Conectando con Instagram...' : 'Connecting to Instagram...'}
-                  </Text>
-                  <Text style={s.instaStatusSub}>
-                    {locale === 'es' ? 'Autorizando tokens y perfil seguro...' : 'Authorizing tokens and secure profile...'}
-                  </Text>
-                </View>
-              )}
-
-              {instagramStage === 'success' && (
-                <View style={s.instaStatusContainer}>
-                  <View style={s.instaSuccessCircle}>
-                    <MaterialCommunityIcons name="check" size={38} color="#fff" />
-                  </View>
-                  <Text style={[s.instaStatusText, { color: '#34C759', fontWeight: '800' }]}>
-                    {locale === 'es' ? '¡Vinculación Exitosa!' : 'Linking Successful!'}
-                  </Text>
-                  <Text style={s.instaStatusSub}>
-                    {instagramUsername.startsWith('@') ? instagramUsername : `@${instagramUsername}`}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
+        locale={locale}
+        onClose={() => setInstagramModalVisible(false)}
+        onSuccess={(finalUsername) => {
+          setInputValue(finalUsername);
+          submitVerification(undefined, finalUsername);
+        }}
+        triggerAlert={triggerAlert}
+      />
 
       {/* Reusable Custom Premium Alert Modal */}
-      <Modal
+      <TrustAlertModal
         visible={customAlertVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCustomAlertVisible(false)}
-      >
-        <View style={s.alertOverlay}>
-          <BlurView intensity={25} tint="dark" style={s.alertBlur}>
-            <View style={s.alertCard}>
-              <Text style={s.alertCardTitle}>{customAlertTitle}</Text>
-              <Text style={s.alertCardMsg}>{customAlertMessage}</Text>
-              <View style={s.alertButtonsRow}>
-                {customAlertButtons.map((btn, idx) => (
-                  <Pressable
-                    key={idx}
-                    style={({ pressed }) => [
-                      s.alertBtn,
-                      btn.style === 'destructive' 
-                        ? s.alertBtnDestructive 
-                        : btn.style === 'cancel' 
-                          ? s.alertBtnCancel 
-                          : s.alertBtnPrimary,
-                      pressed && { opacity: 0.8 }
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setCustomAlertVisible(false);
-                      if (btn.onPress) btn.onPress();
-                    }}
-                  >
-                    <Text style={[
-                      s.alertBtnText,
-                      btn.style === 'destructive' 
-                        ? s.alertBtnTextDestructive 
-                        : btn.style === 'cancel' 
-                          ? s.alertBtnTextCancel 
-                          : s.alertBtnTextPrimary
-                     ]}>
-                      {btn.text}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </BlurView>
-        </View>
-      </Modal>
+        title={customAlertTitle}
+        message={customAlertMessage}
+        buttons={customAlertButtons}
+        onClose={() => setCustomAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

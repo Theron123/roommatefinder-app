@@ -8,62 +8,9 @@ import { supabase } from '@/lib/supabase';
 import { useTranslation } from '../../context/LanguageContext';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
-
-const VERIFY_CONFIG: Record<string, { color: string; benefits_es: string[]; benefits_en: string[] }> = {
-  identity: {
-    color: '#0A84FF',
-    benefits_es: [
-      'Insignia de Identidad Oficial en tu perfil público.',
-      'Prioridad de aparición en las búsquedas (3x más visualizaciones).',
-      'Acceso a alquileres premium y roommate matches exclusivos.'
-    ],
-    benefits_en: [
-      'Official Identity Badge on your public profile.',
-      'Priority search appearance (3x more views).',
-      'Access to premium listings and exclusive matches.'
-    ]
-  },
-  background: {
-    color: '#34C759',
-    benefits_es: [
-      'Insignia de Antecedentes Limpios en tu perfil.',
-      'Genera la máxima confianza con futuros compañeros y propietarios.',
-      'Demuestra honestidad y compromiso de seguridad.'
-    ],
-    benefits_en: [
-      'Clean Background Check Badge on your profile.',
-      'Generates maximum trust with future roommates and landlords.',
-      'Demonstrates honesty and safety commitment.'
-    ]
-  },
-
-  social: {
-    color: '#E1306C',
-    benefits_es: [
-      'Insignia de Redes Conectadas.',
-      'Mayor credibilidad y verificación humana.',
-      'Muestra tus intereses compartidos en redes de forma segura.'
-    ],
-    benefits_en: [
-      'Connected Social Media Badge.',
-      'Enhanced credibility and human verification.',
-      'Safely demonstrates your shared interests.'
-    ]
-  },
-  phone: {
-    color: '#FF9F0A',
-    benefits_es: [
-      'Insignia de Teléfono Verificado en tu perfil.',
-      'Facilita que roommates y caseros te contacten directamente.',
-      'Protección de cuenta y prevención de fraudes SMS.'
-    ],
-    benefits_en: [
-      'Verified Phone Badge on your profile.',
-      'Makes it easier for roommates and landlords to contact you.',
-      'Account protection and SMS fraud prevention.'
-    ]
-  }
-};
+import TrustBadgeDetailModal from '@/components/trust/TrustBadgeDetailModal';
+import TrustAlertModal from '@/components/trust/TrustAlertModal';
+import { VERIFY_CONFIG } from '@/constants/verifyConfig';
 
 export default function TrustAndSafetyHub() {
   const { t, locale } = useTranslation();
@@ -431,163 +378,24 @@ export default function TrustAndSafetyHub() {
       </ScrollView>
 
       {/* Badge Detail Modal */}
-      <Modal
+      <TrustBadgeDetailModal
         visible={detailModalVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setDetailModalVisible(false)}
-      >
-        <View style={s.modalOverlay}>
-          <BlurView intensity={30} tint="dark" style={s.modalBlur}>
-            <View style={s.modalContainer}>
-              <View style={[s.modalHeaderLine, { backgroundColor: selectedBadge?.color }]} />
-              
-              <View style={s.modalIconWrap}>
-                <View style={[s.modalIconCircle, { backgroundColor: selectedBadge?.color + '20' }]}>
-                  <MaterialCommunityIcons name={selectedBadge?.icon} size={48} color={selectedBadge?.color} />
-                </View>
-                <MaterialCommunityIcons 
-                  name="check-decagram" 
-                  size={24} 
-                  color={selectedBadge?.color} 
-                  style={s.modalCheckBadge}
-                />
-              </View>
-
-              <Text style={s.modalTitle}>{selectedBadge?.title}</Text>
-              
-              <View style={s.statusBadge}>
-                <Text style={[s.statusText, { color: selectedBadge?.color }]}>
-                  {locale === 'es' ? 'VERIFICACIÓN ACTIVA' : 'ACTIVE VERIFICATION'}
-                </Text>
-              </View>
-
-              {/* Show Custom Metadata if available */}
-              {selectedBadge?.type === 'social' && selectedBadge?.metadata?.input && (
-                <View style={s.metaDataBadge}>
-                  <MaterialCommunityIcons name="instagram" size={16} color="#E1306C" />
-                  <Text style={s.metaDataText}>{selectedBadge.metadata.input}</Text>
-                </View>
-              )}
-
-              {selectedBadge?.type === 'background' && selectedBadge?.metadata?.name && (
-                <View style={s.metaDataBadge}>
-                  <MaterialCommunityIcons name="shield-account" size={16} color="#34C759" />
-                  <Text style={s.metaDataText}>
-                    {selectedBadge.metadata.name}
-                  </Text>
-                </View>
-              )}
-              {selectedBadge?.type === 'background' && selectedBadge?.metadata?.idNumber && (
-                <Text style={s.metaDataSubText}>
-                  {locale === 'es' ? 'ID de Antecedentes: ' : 'Background ID: '}
-                  {selectedBadge.metadata.idNumber}
-                </Text>
-              )}
-
-
-
-              {selectedBadge?.type === 'phone' && selectedBadge?.metadata?.input && (
-                <View style={s.metaDataBadge}>
-                  <MaterialCommunityIcons name="phone" size={16} color="#FF9F0A" />
-                  <Text style={s.metaDataText}>{selectedBadge.metadata.input}</Text>
-                </View>
-              )}
-
-              <Text style={s.modalDesc}>{selectedBadge?.desc}</Text>
-
-              {/* Benefits list */}
-              <View style={s.benefitsContainer}>
-                <Text style={s.benefitsHeader}>
-                  {locale === 'es' ? 'Beneficios Obtenidos:' : 'Benefits Achieved:'}
-                </Text>
-                
-                {((locale === 'es' 
-                  ? VERIFY_CONFIG[selectedBadge?.type]?.benefits_es 
-                  : VERIFY_CONFIG[selectedBadge?.type]?.benefits_en) || []).map((benefit, i) => (
-                    <View key={i} style={s.benefitRow}>
-                      <MaterialCommunityIcons name="check" size={16} color={selectedBadge?.color} style={{ marginTop: 2 }} />
-                      <Text style={s.benefitText}>{benefit}</Text>
-                    </View>
-                ))}
-              </View>
-
-              {/* Action Buttons */}
-              <View style={s.modalActions}>
-                <Pressable 
-                  style={[s.modalBtn, { backgroundColor: '#1c1c1e' }]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setDetailModalVisible(false);
-                  }}
-                >
-                  <Text style={s.modalBtnTextClose}>{locale === 'es' ? 'Cerrar' : 'Close'}</Text>
-                </Pressable>
-                
-                <Pressable 
-                  style={[s.modalBtn, s.revokeBtn]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    handleRevoke(selectedBadge?.type);
-                  }}
-                >
-                  <MaterialCommunityIcons name="delete" size={16} color="#FF453A" style={{ marginRight: 6 }} />
-                  <Text style={s.revokeBtnText}>{locale === 'es' ? 'Revocar' : 'Revoke'}</Text>
-                </Pressable>
-              </View>
-            </View>
-          </BlurView>
-        </View>
-      </Modal>
+        selectedBadge={selectedBadge}
+        locale={locale}
+        benefitsEn={VERIFY_CONFIG[selectedBadge?.type]?.benefits_en || []}
+        benefitsEs={VERIFY_CONFIG[selectedBadge?.type]?.benefits_es || []}
+        onClose={() => setDetailModalVisible(false)}
+        onRevoke={handleRevoke}
+      />
 
       {/* Reusable Custom Premium Alert Modal */}
-      <Modal
+      <TrustAlertModal
         visible={customAlertVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setCustomAlertVisible(false)}
-      >
-        <View style={s.alertOverlay}>
-          <BlurView intensity={25} tint="dark" style={s.alertBlur}>
-            <View style={s.alertCard}>
-              <Text style={s.alertCardTitle}>{customAlertTitle}</Text>
-              <Text style={s.alertCardMsg}>{customAlertMessage}</Text>
-              <View style={s.alertButtonsRow}>
-                {customAlertButtons.map((btn, idx) => (
-                  <Pressable
-                    key={idx}
-                    style={({ pressed }) => [
-                      s.alertBtn,
-                      btn.style === 'destructive' 
-                        ? s.alertBtnDestructive 
-                        : btn.style === 'cancel' 
-                          ? s.alertBtnCancel 
-                          : s.alertBtnPrimary,
-                      pressed && { opacity: 0.8 }
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setCustomAlertVisible(false);
-                      if (btn.onPress) btn.onPress();
-                    }}
-                  >
-                    <Text style={[
-                      s.alertBtnText,
-                      btn.style === 'destructive' 
-                        ? s.alertBtnTextDestructive 
-                        : btn.style === 'cancel' 
-                          ? s.alertBtnTextCancel 
-                          : s.alertBtnTextPrimary
-                     ]}>
-                      {btn.text}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </BlurView>
-        </View>
-      </Modal>
+        title={customAlertTitle}
+        message={customAlertMessage}
+        buttons={customAlertButtons}
+        onClose={() => setCustomAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
