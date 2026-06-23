@@ -47,6 +47,11 @@ export default function ExploreScreen() {
   const btnSmallSize = Math.min(Math.max(screenWidth * 0.12, 45), 52);
 
   const { t, translateHobbiesList, translatePreferencesList, translateDealbreakersList } = useTranslation();
+  const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
+    looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
+    exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
+    have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
+  };
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +141,7 @@ export default function ExploreScreen() {
 
       const { data: currentUserData } = await supabase
         .from('profiles')
-        .select('id, latOffset, lngOffset, likes, preferences, dealbreakers')
+        .select('id, name, age, photoUrl, latOffset, lngOffset, likes, preferences, dealbreakers, availability_status')
         .eq('id', session.user.id)
         .single();
       if (currentUserData) {
@@ -415,11 +420,6 @@ export default function ExploreScreen() {
       : { uri: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=1200&auto=format&fit=crop' };
 
     const compatibility = calculateCompatibility(currentUser, card);
-    const STATUS_MAP: Record<string, { label: string; color: string; icon: string }> = {
-      looking_urgent: { label: t('explore.looking_urgent'), color: '#34C759', icon: 'lightning-bolt' },
-      exploring: { label: t('explore.exploring'), color: '#FFCC00', icon: 'compass' },
-      have_room: { label: t('explore.role_host'), color: '#0A84FF', icon: 'home-account' }
-    };
     const statusConfig = card.availability_status ? STATUS_MAP[card.availability_status] : null;
 
     return (
@@ -629,11 +629,43 @@ export default function ExploreScreen() {
             showsUserLocation={true}
             userInterfaceStyle="dark"
           >
-            {matchedProfiles.map(profile => {
+            {/* Marcador del Usuario Actual (Bandera Verde) */}
+            {currentUser && (
+              <Marker
+                key="current_user_marker"
+                coordinate={{
+                  latitude: currentUser.latOffset || userLocation?.latitude || 19.4326,
+                  longitude: currentUser.lngOffset || userLocation?.longitude || -99.1332
+                }}
+              >
+                <View style={styles.currentUserMarkerContainer}>
+                  <Image 
+                    source={{ uri: currentUser.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=100&w=200&auto=format&fit=crop' }} 
+                    style={styles.currentUserMarkerImage} 
+                  />
+                  <View style={styles.currentUserMarkerBadge}>
+                    <MaterialCommunityIcons name="flag" size={10} color="#fff" />
+                  </View>
+                </View>
+                <Callout>
+                  <View style={styles.calloutContainer}>
+                    <Text style={styles.calloutName}>{currentUser.name || 'Tú'} (Tú)</Text>
+                    <Text style={styles.calloutRole}>
+                      {currentUser.availability_status 
+                        ? (STATUS_MAP[currentUser.availability_status]?.label || currentUser.availability_status) 
+                        : 'Disponible'}
+                    </Text>
+                  </View>
+                </Callout>
+              </Marker>
+            )}
+
+            {/* Perfiles de Candidatos de Explore */}
+            {profiles.map(profile => {
               if (!profile.latitude || !profile.longitude) return null;
               return (
                 <Marker
-                  key={profile.id}
+                  key={`explore_${profile.id}`}
                   coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
                 >
                   <View style={styles.markerContainer}>
@@ -642,12 +674,40 @@ export default function ExploreScreen() {
                       style={styles.markerImage} 
                     />
                     <View style={styles.markerBadge}>
-                      <MaterialCommunityIcons name="home-search" size={10} color="#000" />
+                      <MaterialCommunityIcons name="account-search" size={10} color="#000" />
                     </View>
                   </View>
                   <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
                     <View style={styles.calloutContainer}>
                       <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
+                      <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
+                      <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
+                    </View>
+                  </Callout>
+                </Marker>
+              );
+            })}
+
+            {/* Perfiles de Matches */}
+            {matchedProfiles.map(profile => {
+              if (!profile.latitude || !profile.longitude) return null;
+              return (
+                <Marker
+                  key={`match_${profile.id}`}
+                  coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
+                >
+                  <View style={[styles.markerContainer, { borderColor: '#FFCC00' }]}>
+                    <Image 
+                      source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
+                      style={styles.markerImage} 
+                    />
+                    <View style={[styles.markerBadge, { backgroundColor: '#FFCC00' }]}>
+                      <MaterialCommunityIcons name="heart" size={10} color="#000" />
+                    </View>
+                  </View>
+                  <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
+                    <View style={styles.calloutContainer}>
+                      <Text style={styles.calloutName}>{profile.name}, {profile.age} (Match!)</Text>
                       <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
                       <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
                     </View>
@@ -949,6 +1009,39 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  currentUserMarkerContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#34C759', // Green color
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  currentUserMarkerImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  currentUserMarkerBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#34C759', // Green color representing current user/status
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#000'
   },
   markerContainer: {
     width: 44,
