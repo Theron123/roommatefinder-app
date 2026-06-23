@@ -56,20 +56,6 @@ export default function SignUpScreen() {
 
   const selectedCountry = COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0];
 
-  const checkProfileAndRedirect = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', userId)
-      .single();
-
-    if (data && data.role) {
-      router.replace('/(tabs)');
-    } else {
-      router.replace('/role-select');
-    }
-  };
-
   const handleSignUp = async () => {
     setMessage({ text: '', type: '' });
     if (!email || !password || !name || !nationalId || !countryCode) {
@@ -99,7 +85,7 @@ export default function SignUpScreen() {
         setMessage({ text: 'Invalid National ID for the selected country.', type: 'error' });
         return;
       }
-    } catch (e) {
+    } catch {
       setMessage({ text: 'Error validating ID.', type: 'error' });
       return;
     }

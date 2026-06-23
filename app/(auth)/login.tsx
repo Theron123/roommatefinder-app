@@ -22,7 +22,7 @@ export default function LoginScreen() {
   const [message, setMessage] = useState({ text: '', type: '' });
 
   const checkProfileAndRedirect = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
       .select('id, role')
       .eq('id', userId)

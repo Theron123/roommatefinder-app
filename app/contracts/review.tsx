@@ -67,6 +67,7 @@ export default function ReviewContractScreen() {
     return configs[status] || configs.draft;
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) fetchContract(); }, [id]);
 
   const fetchContract = async () => {
@@ -85,7 +86,7 @@ export default function ReviewContractScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? (locale === 'es' ? 'Parte Iniciadora' : 'Initiating Party');
-      const counterparties = contract.contract_participants?.map(p => p.user?.name).filter(Boolean) || [];
+      
       
       const effectiveDate = contract.effective_date 
         ? new Date(contract.effective_date).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 

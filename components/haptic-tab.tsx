@@ -42,6 +42,7 @@ export function HapticTab(props: BottomTabBarButtonProps) {
       clearTimeout(timer);
       measureSub.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabKey]);
 
   return (

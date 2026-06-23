@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
 // Stub out all exported names that explore.tsx uses
 export const PROVIDER_GOOGLE = 'google';
@@ -11,11 +11,13 @@ let Popup: any = () => null;
 let L: any = null;
 
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const RL = require('react-leaflet');
   MapContainer = RL.MapContainer;
   TileLayer = RL.TileLayer;
   RMarker = RL.Marker;
   Popup = RL.Popup;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   L = require('leaflet');
 
   // Fix for default marker icons in leaflet

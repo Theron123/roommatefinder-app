@@ -20,7 +20,7 @@ const CONFLICT_REASONS = [
 
 export default function ConflictResolutionCenter() {
   const { t, locale } = useTranslation();
-  const { userId, userName, contractId } = useLocalSearchParams<{ userId?: string, userName?: string, contractId?: string }>();
+  const { userId, userName } = useLocalSearchParams<{ userId?: string, userName?: string, contractId?: string }>();
   
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');

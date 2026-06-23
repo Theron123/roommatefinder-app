@@ -49,7 +49,6 @@ export default function ChatScreen() {
   // Attach Menu
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
-  const [inputHeight, setInputHeight] = useState(40);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -63,7 +62,6 @@ export default function ChatScreen() {
   const [wallpaper, setWallpaper] = useState<string>('default');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  const [micVolume, setMicVolume] = useState<number>(0);
   const [playbackProgress, setPlaybackProgress] = useState<number>(0);
   const webAudioCtxRef = useRef<AudioContext | null>(null);
   const webAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -84,7 +82,7 @@ export default function ChatScreen() {
       try {
         const raw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
         if (raw) setDeletedMsgsForMe(JSON.parse(raw));
-      } catch (e) {}
+      } catch {}
     };
     const markAsViewed = async () => {
       try {
@@ -96,7 +94,7 @@ export default function ChatScreen() {
             await AsyncStorage.setItem('@roommatefinder:viewed_matches', JSON.stringify(viewed));
           }
         }
-      } catch (e) {}
+      } catch {}
     };
     loadDeleted();
     markAsViewed();
@@ -155,6 +153,7 @@ export default function ChatScreen() {
     return () => {
       setActiveChatUserId(null);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {

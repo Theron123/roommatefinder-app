@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
+
   Pressable,
   StyleSheet,
   Text,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type Role = 'landlord' | 'host' | 'seeker';
 
@@ -124,7 +124,7 @@ export default function RoleSelectScreen() {
       }
 
       router.replace('/preferences?firstTime=true');
-    } catch (e) {
+    } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.');
       setSaving(false);
     }
@@ -166,7 +166,7 @@ export default function RoleSelectScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [entranceFade, entranceSlide]);
 
   if (saving) {
     return (

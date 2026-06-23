@@ -64,7 +64,7 @@ export default function NewContractScreen() {
 
   useEffect(() => {
     if (step === 1 && matches.length === 0) loadMatches();
-  }, [step]);
+  }, [step, matches.length]);
 
   const loadMatches = async () => {
     setLoadingMatches(true);

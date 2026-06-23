@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, Text, FlatList, Pressable, StyleSheet, Platform, ActivityIndicator } from 'react-native';
+import { View, TextInput, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 
 interface Props {
   apiKey: string;

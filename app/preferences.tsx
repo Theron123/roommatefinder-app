@@ -65,6 +65,7 @@ export default function PreferencesScreen() {
 
   useEffect(() => {
     loadExistingPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadExistingPreferences = async () => {
@@ -125,7 +126,7 @@ export default function PreferencesScreen() {
             } else {
               setLocationName(t('preferences.saved_loc'));
             }
-          } catch (e) {
+          } catch {
             setLocationName(t('preferences.saved_loc'));
           }
         }

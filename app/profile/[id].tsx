@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal, Dimensions, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { supabase } from '@/lib/supabase';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
@@ -13,7 +13,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { useMyProfile, useUserProfile } from '@/hooks/useProfileQueries';
 
 export default function ProfileDetailScreen() {
-  const { t, locale, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
+  const { t, locale, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
