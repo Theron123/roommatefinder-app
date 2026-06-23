@@ -304,6 +304,9 @@ export default function ChatScreen() {
           const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
           if (AudioCtx) {
             const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') {
+              await ctx.resume();
+            }
             const source = ctx.createMediaStreamSource(stream);
             const analyser = ctx.createAnalyser();
             analyser.fftSize = 64;
@@ -351,7 +354,14 @@ export default function ChatScreen() {
         webMediaRecorderRef.current = mr;
         mr.start();
       } else {
-        await Audio.requestPermissionsAsync();
+        const permission = await Audio.requestPermissionsAsync();
+        if (permission.status !== 'granted') {
+          Alert.alert(
+            'Permiso denegado',
+            'Para poder grabar mensajes de voz, debes permitir el acceso al micrófono en los ajustes de tu dispositivo.'
+          );
+          return;
+        }
         await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
         const { recording } = await Audio.Recording.createAsync(
           Audio.RecordingOptionsPresets.HIGH_QUALITY

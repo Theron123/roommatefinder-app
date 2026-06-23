@@ -9,15 +9,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from '../../context/LanguageContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useInboxData } from '@/hooks/useInboxQueries';
 
 export default function InboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, refetch } = useInboxData();
+  const conversations = data?.conversations || [];
+  const matches = data?.matches || [];
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [matches, setMatches] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,8 +46,8 @@ export default function InboxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
-    }, [])
+      refetch();
+    }, [refetch])
   );
 
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function InboxScreen() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
           const newMsg = payload.new;
           if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: ['inbox'] });
           }
         })
         .subscribe();
@@ -72,137 +77,7 @@ export default function InboxScreen() {
         supabase.removeChannel(inboxChannel);
       }
     };
-  }, []);
-
-  const fetchData = async () => {
-    if (conversations.length === 0 && matches.length === 0) {
-      setLoading(true);
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const myId = session.user.id;
-    setCurrentUserId(myId);
-
-    try {
-      // 1. Fetch messages
-      const { data: msgs, error: msgsError } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
-        .order('created_at', { ascending: false });
-
-      if (msgsError) console.error("Error fetching messages:", msgsError);
-
-      // 2. Fetch matches
-      const { data: matchData } = await supabase
-        .from('matches')
-        .select('user1, user2, created_at')
-        .or(`user1.eq.${myId},user2.eq.${myId}`);
-
-      // 3. Load local storage (deleted msgs + viewed matches)
-      const deletedRaw = await AsyncStorage.getItem('@roommatefinder:deleted_msgs_for_me');
-      const deletedMsgs = deletedRaw ? JSON.parse(deletedRaw) : [];
-      
-      const viewedRaw = await AsyncStorage.getItem('@roommatefinder:viewed_matches');
-      const viewedMatches = viewedRaw ? JSON.parse(viewedRaw) : [];
-
-      const validMsgs = (msgs || []).filter(m => !deletedMsgs.includes(m.id));
-      const uniqueUserIdsWithMsgs = new Set<string>();
-      const lastMsgs = new Map<string, any>();
-      const unreadCounts = new Map<string, number>();
-
-      validMsgs.forEach(msg => {
-        const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
-        if (!uniqueUserIdsWithMsgs.has(otherId)) {
-          uniqueUserIdsWithMsgs.add(otherId);
-          lastMsgs.set(otherId, msg);
-        }
-        if (msg.receiver_id === myId && !msg.is_read) {
-          unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
-        }
-      });
-
-      // Match logic
-      const allMatchIds = matchData ? matchData.map(m => m.user1 === myId ? m.user2 : m.user1) : [];
-      
-      // Collect all user IDs we need profiles for (msgs + matches)
-      const allUserIdsToFetch = new Set([...Array.from(uniqueUserIdsWithMsgs), ...allMatchIds]);
-
-      if (allUserIdsToFetch.size > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, name, age, photoUrl')
-          .in('id', Array.from(allUserIdsToFetch));
-
-        if (profiles) {
-          const formattedConvos: any[] = [];
-          const newMatchesList: any[] = [];
-
-          profiles.forEach(p => {
-            const hasMessages = uniqueUserIdsWithMsgs.has(p.id);
-            const isMatch = allMatchIds.includes(p.id);
-            const isViewed = viewedMatches.includes(p.id);
-
-            if (hasMessages) {
-              // Has messages -> goes to conversations
-              const lastMsg = lastMsgs.get(p.id);
-              const date = new Date(lastMsg.created_at);
-              const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              
-              formattedConvos.push({
-                id: p.id,
-                name: p.name || 'Roommate',
-                age: p.age,
-                photoUrl: p.photoUrl,
-                lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
-                time: timeStr,
-                unreadCount: unreadCounts.get(p.id) || 0,
-                lastMsgSenderId: lastMsg.sender_id,
-                lastMsgIsRead: lastMsg.is_read,
-                timestamp: date.getTime()
-              });
-            } else if (isMatch) {
-              if (isViewed) {
-                // Viewed but no messages -> goes to conversations
-                const matchObj = matchData?.find(m => (m.user1 === p.id && m.user2 === myId) || (m.user2 === p.id && m.user1 === myId));
-                const matchDate = matchObj ? new Date(matchObj.created_at) : new Date();
-                const timeStr = matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                formattedConvos.push({
-                  id: p.id,
-                  name: p.name || 'Roommate',
-                  age: p.age,
-                  photoUrl: p.photoUrl,
-                  lastMessage: 'Tap to chat',
-                  time: timeStr,
-                  unreadCount: 0,
-                  lastMsgSenderId: null,
-                  lastMsgIsRead: true,
-                  timestamp: matchDate.getTime()
-                });
-              } else {
-                // Unviewed match without messages -> stays in New Matches
-                newMatchesList.push(p);
-              }
-            }
-          });
-
-          // Sort formattedConvos
-          formattedConvos.sort((a, b) => b.timestamp - a.timestamp);
-          
-          setConversations(formattedConvos);
-          setMatches(newMatchesList);
-        }
-      } else {
-        setConversations([]);
-        setMatches([]);
-      }
-    } catch (e) {
-      console.error('Error fetching inbox data', e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [queryClient]);
 
   const renderConversation = useCallback(({ item }: { item: any }) => {
     const isUnread = item.unreadCount > 0;
@@ -307,7 +182,7 @@ export default function InboxScreen() {
             contentContainerStyle={styles.list}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
-        ) : loading ? (
+        ) : (isLoading && conversations.length === 0) ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator color="#49C788" size="large" />
           </View>

@@ -6,24 +6,31 @@ import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMyProfile, useUpdateProfileMutation } from '@/hooks/useProfileQueries';
 
 export default function MyProfileScreen() {
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
   const insets = useSafeAreaInsets();
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, refetch } = useMyProfile();
+  const updateProfileMutation = useUpdateProfileMutation();
+
+  const profile = data?.profile || null;
+  const listing = data?.listing || null;
+  const contractCount = data?.contractCount || 0;
+  const pendingCount = data?.pendingCount || 0;
+
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [name, setName] = useState<string>('');
   const [bio, setBio] = useState<string>('');
   const [age, setAge] = useState<string>('');
-  const [listing, setListing] = useState<any>(null);
-  const [contractCount, setContractCount] = useState<number>(0);
-  const [pendingCount, setPendingCount] = useState<number>(0);
   const [status, setStatus] = useState<string>('exploring');
 
   const STATUS_OPTIONS = [
@@ -32,65 +39,43 @@ export default function MyProfileScreen() {
     { id: 'have_room', label: t('explore.have_room'), color: '#0A84FF', icon: 'home-account' }
   ];
 
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || '');
+      setBio(profile.bio || '');
+      setAge(profile.age ? profile.age.toString() : '');
+      setStatus(profile.availability_status || 'exploring');
+    }
+  }, [profile]);
+
   useFocusEffect(
     useCallback(() => {
-      fetchMyProfile();
-    }, [])
+      refetch();
+    }, [refetch])
   );
 
-  const fetchMyProfile = async () => {
-    if (!profile) {
-      setLoading(true);
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      if (data) {
-        setProfile(data);
-        setName(data.name || 'You');
-        setBio(data.bio || '');
-        setAge(data.age ? data.age.toString() : '');
-        setStatus(data.availability_status || 'exploring');
-      }
-
-      const { data: listingData } = await supabase.from('listings').select('*').eq('user_id', session.user.id).single();
-      if (listingData) {
-        setListing(listingData);
-      } else {
-        setListing(null);
-      }
-
-      // Fetch contract counts
-      const { data: contracts } = await supabase
-        .from('contracts')
-        .select('id, status')
-        .or(`initiator_id.eq.${session.user.id},counterparty_id.eq.${session.user.id}`);
-      if (contracts) {
-        setContractCount(contracts.length);
-        setPendingCount(contracts.filter((c: any) => c.status === 'pending_authorization').length);
-      }
-    }
-    setLoading(false);
-  };
-
   const handleSaveProfile = async () => {
-    if (profile) {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const updateData = { name, bio, age: age ? parseInt(age) : null };
-        await supabase.from('profiles').update(updateData).eq('id', session.user.id);
-        setProfile({ ...profile, ...updateData });
-      }
+    try {
+      await updateProfileMutation.mutateAsync({
+        name,
+        bio,
+        age: age ? parseInt(age) : null,
+      });
+      setEditing(false);
+      Alert.alert(t('general.saved'), t('myprofile.saved_alert'));
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'No se pudo guardar el perfil');
     }
-    setEditing(false);
-    Alert.alert(t('general.saved'), t('myprofile.saved_alert'));
   };
 
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.from('profiles').update({ availability_status: newStatus }).eq('id', session.user.id);
+    try {
+      await updateProfileMutation.mutateAsync({
+        availability_status: newStatus,
+      });
+    } catch (err) {
+      console.log('Error updating status:', err);
     }
   };
 
@@ -146,10 +131,7 @@ export default function MyProfileScreen() {
         // Save URL to profile
         await supabase.from('profiles').update(updatePayload).eq('id', session.user.id);
         
-        setProfile((prev: any) => ({
-          ...prev,
-          ...updatePayload
-        }));
+        queryClient.invalidateQueries({ queryKey: ['myProfile'] });
 
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -165,7 +147,7 @@ export default function MyProfileScreen() {
     router.replace('/(auth)/login');
   };
 
-  if (loading) {
+  if (isLoading && !profile) {
     return <SafeAreaView style={styles.container}><ActivityIndicator color="#fff" style={{marginTop: 40}} /></SafeAreaView>;
   }
 

@@ -10,43 +10,27 @@ import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpe
 import MapComponent from '@/components/ui/MapComponent';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
+import { useMyProfile, useUserProfile } from '@/hooks/useProfileQueries';
 
 export default function ProfileDetailScreen() {
   const { t, locale, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
   const { id } = useLocalSearchParams();
   const router = useRouter();
 
-  const [profile, setProfile] = useState<any>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [listing, setListing] = useState<any>(null);
+  const { data: targetData, isLoading: isTargetLoading } = useUserProfile(id as string);
+  const { data: myProfileData, isLoading: isMyProfileLoading } = useMyProfile();
+
+  const profile = targetData?.profile || null;
+  const listing = targetData?.listing || null;
+  const currentUser = myProfileData?.profile || null;
+
+  const loading = (isTargetLoading && !profile) || (isMyProfileLoading && !currentUser);
+
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   // Fullscreen Lightbox states
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
-
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session) {
-      const [profileRes, currentUserRes, listingRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', id).single(),
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.from('listings').select('*').eq('user_id', id).single()
-      ]);
-      
-      if (profileRes.data) setProfile(profileRes.data);
-      if (currentUserRes.data) setCurrentUser(currentUserRes.data);
-      if (listingRes.data) setListing(listingRes.data);
-    }
-    setLoading(false);
-  };
 
   const handleBlockUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
