@@ -44,7 +44,7 @@ export default function ExploreScreen() {
   const btnBigSize = Math.min(Math.max(screenWidth * 0.15, 55), 65);
   const btnSmallSize = Math.min(Math.max(screenWidth * 0.12, 45), 52);
 
-  const { t } = useTranslation();
+  const { t, translateHobbiesList, translatePreferencesList, translateDealbreakersList } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);

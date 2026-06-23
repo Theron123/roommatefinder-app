@@ -42,6 +42,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [feedMode, setFeedMode] = useState<'people' | 'apartments'>('people');
   const [isPremium, setIsPremium] = useState(false);
+  const [currentUserPhoto, setCurrentUserPhoto] = useState<string | null>(null);
   const router = useRouter();
 
   const avatarRef = useRef<any>(null);
