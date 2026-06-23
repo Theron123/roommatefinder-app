@@ -108,7 +108,7 @@ export default function OnboardingScreen() {
       } else {
         router.replace('/(auth)/login');
       }
-    } catch (err) {
+    } catch {
       router.replace('/(auth)/login');
     }
   };

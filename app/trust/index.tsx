@@ -82,6 +82,7 @@ export default function TrustAndSafetyHub() {
   useFocusEffect(
     useCallback(() => {
       fetchData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 

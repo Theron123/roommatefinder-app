@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import { useCallback, useState, useRef, useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Dimensions, Alert, Platform, Pressable, useWindowDimensions } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Alert, Platform, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { notifyNewMatch } from '@/lib/notifications';
 import { useTranslation } from '../../context/LanguageContext';
 
-const { height, width } = Dimensions.get('window');
+
 
 type Profile = {
   id: string;
@@ -44,12 +44,12 @@ export default function ExploreScreen() {
   const btnBigSize = Math.min(Math.max(screenWidth * 0.15, 55), 65);
   const btnSmallSize = Math.min(Math.max(screenWidth * 0.12, 45), 52);
 
-  const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
+  const { t } = useTranslation();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
+
   const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
   const [matchedProfiles, setMatchedProfiles] = useState<Profile[]>([]);
@@ -86,8 +86,7 @@ export default function ExploreScreen() {
     const setupUnreadSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const myId = session.user.id;
-
+      
       unreadChannel = supabase
         .channel('public:unread_messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
@@ -122,7 +121,7 @@ export default function ExploreScreen() {
   const fetchProfiles = async () => {
     setLoading(true);
     setAllSwiped(false);
-    setCurrentIndex(0);
+
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -300,10 +299,11 @@ export default function ExploreScreen() {
     };
 
     getDeviceLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSwiped = () => {
-    setCurrentIndex(prev => prev + 1);
+
   };
 
   const checkQuota = async (type: 'like' | 'reject' | 'skip') => {
@@ -325,7 +325,7 @@ export default function ExploreScreen() {
       quotas[type] += 1;
       await AsyncStorage.setItem(QUOTA_KEY, JSON.stringify(quotas));
       return true;
-    } catch (error) {
+    } catch {
       return true; // Fail gracefully
     }
   };

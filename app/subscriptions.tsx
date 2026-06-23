@@ -3,7 +3,7 @@ import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SubscriptionsScreen() {
@@ -21,7 +21,7 @@ export default function SubscriptionsScreen() {
       if (stored !== null) {
         setIsPremium(stored === 'true');
       }
-    } catch (e) {
+    } catch {
       // error reading value
     }
     setLoading(false);

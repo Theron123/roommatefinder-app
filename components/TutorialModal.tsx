@@ -149,6 +149,7 @@ export default function TutorialModal() {
         window.removeEventListener('keydown', handleKeyDown);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -177,6 +178,7 @@ export default function TutorialModal() {
     } else {
       fadeAnim.setValue(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, currentIndex]);
 
   const getStorageKey = async () => {
@@ -196,7 +198,7 @@ export default function TutorialModal() {
       if (savedVersion !== TUTORIAL_VERSION) {
         setVisible(true);
       }
-    } catch (e) {
+    } catch {
       // Error reading value
     }
   };
@@ -234,7 +236,7 @@ export default function TutorialModal() {
       await AsyncStorage.setItem(storageKey, TUTORIAL_VERSION);
       router.push('/(tabs)');
       setVisible(false);
-    } catch (e) {
+    } catch {
       setVisible(false);
     }
   };

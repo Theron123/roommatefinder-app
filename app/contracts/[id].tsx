@@ -74,6 +74,7 @@ export default function ContractDetailScreen() {
     return configs[status] || configs.draft;
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) fetchContract(); }, [id]);
 
   const fetchContract = async () => {

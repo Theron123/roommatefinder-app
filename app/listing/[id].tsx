@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Pressable, ScrollView, StyleSheet, Text, View, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -8,7 +8,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -31,6 +30,7 @@ export default function ListingDetailScreen() {
 
   useEffect(() => {
     fetchListingDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchListingDetails = async () => {
@@ -43,7 +43,7 @@ export default function ListingDetailScreen() {
     }
 
     // Fetch listing
-    const { data: listingData, error: listingError } = await supabase
+    const { data: listingData } = await supabase
       .from('listings')
       .select('*')
       .eq('id', id)

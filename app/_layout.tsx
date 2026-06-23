@@ -96,7 +96,7 @@ export default function RootLayout() {
       }
       authSubscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   return (
     <LanguageProvider>

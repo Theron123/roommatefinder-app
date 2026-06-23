@@ -42,6 +42,7 @@ export default function InboxScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
@@ -72,6 +73,7 @@ export default function InboxScreen() {
         supabase.removeChannel(inboxChannel);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

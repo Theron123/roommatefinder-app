@@ -46,6 +46,7 @@ export default function AgreementsHubScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchContracts();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 

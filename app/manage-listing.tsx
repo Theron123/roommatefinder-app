@@ -10,7 +10,7 @@ import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ManageListingScreen() {
-  const { id } = useLocalSearchParams();
+  useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [listingId, setListingId] = useState<string | null>(null);
