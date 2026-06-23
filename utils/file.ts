@@ -77,7 +77,7 @@ export async function uploadToSupabase(
   } else {
     // On iOS/Android, read locally using Expo FileSystem and convert to ArrayBuffer
     const base64 = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.Base64,
+      encoding: 'base64',
     });
     const arrayBuffer = base64ToArrayBuffer(base64);
 

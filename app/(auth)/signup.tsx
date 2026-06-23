@@ -11,9 +11,37 @@ import {
     Text,
     TextInput,
     View,
+    Modal,
+    TouchableOpacity,
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { validateNationalId } from 'idnumbers';
+
+const COUNTRIES = [
+  { code: 'CRI', flag: '🇨🇷', name: 'Costa Rica', placeholder: '9 digits' },
+  { code: 'COL', flag: '🇨🇴', name: 'Colombia', placeholder: 'Cedula (6-10 digits)' },
+  { code: 'MEX', flag: '🇲🇽', name: 'Mexico', placeholder: 'CURP (18 chars)' },
+  { code: 'USA', flag: '🇺🇸', name: 'USA', placeholder: 'SSN / ID' },
+  { code: 'CAN', flag: '🇨🇦', name: 'Canada', placeholder: 'SIN / ID' },
+  { code: 'PAN', flag: '🇵🇦', name: 'Panama', placeholder: 'Cedula' },
+  { code: 'ESP', flag: '🇪🇸', name: 'España', placeholder: 'DNI / NIE' },
+  { code: 'ARG', flag: '🇦🇷', name: 'Argentina', placeholder: 'DNI' },
+  { code: 'CHL', flag: '🇨🇱', name: 'Chile', placeholder: 'RUT' },
+  { code: 'PER', flag: '🇵🇪', name: 'Perú', placeholder: 'DNI' },
+  { code: 'ECU', flag: '🇪🇨', name: 'Ecuador', placeholder: 'Cédula' },
+  { code: 'BRA', flag: '🇧🇷', name: 'Brasil', placeholder: 'CPF' },
+  { code: 'URY', flag: '🇺🇾', name: 'Uruguay', placeholder: 'Cédula' },
+  { code: 'VEN', flag: '🇻🇪', name: 'Venezuela', placeholder: 'Cédula' },
+  { code: 'DOM', flag: '🇩🇴', name: 'Rep. Dominicana', placeholder: 'Cédula' },
+  { code: 'GTM', flag: '🇬🇹', name: 'Guatemala', placeholder: 'DPI' },
+  { code: 'HND', flag: '🇭🇳', name: 'Honduras', placeholder: 'DNI' },
+  { code: 'SLV', flag: '🇸🇻', name: 'El Salvador', placeholder: 'DUI' },
+  { code: 'NIC', flag: '🇳🇮', name: 'Nicaragua', placeholder: 'Cédula' },
+  { code: 'GBR', flag: '🇬🇧', name: 'UK', placeholder: 'NINO / ID' },
+  { code: 'FRA', flag: '🇫🇷', name: 'France', placeholder: 'ID' },
+  { code: 'DEU', flag: '🇩🇪', name: 'Germany', placeholder: 'ID' },
+  { code: 'ITA', flag: '🇮🇹', name: 'Italy', placeholder: 'ID' },
+];
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -24,6 +52,9 @@ export default function SignUpScreen() {
   const [nationalId, setNationalId] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  const selectedCountry = COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0];
 
   const checkProfileAndRedirect = async (userId: string) => {
     const { data, error } = await supabase
@@ -159,23 +190,50 @@ export default function SignUpScreen() {
         />
 
         <View style={styles.idRow}>
+          <Pressable 
+            style={[styles.input, styles.countrySelector]} 
+            onPress={() => setShowCountryPicker(true)}
+          >
+            <Text style={styles.countrySelectorText}>{selectedCountry.flag}</Text>
+            <IconSymbol name="chevron.down" size={14} color="#999" />
+          </Pressable>
           <TextInput
-            placeholder="Country (e.g. CRI, USA)"
-            placeholderTextColor="#999"
-            autoCapitalize="characters"
-            maxLength={3}
-            value={countryCode}
-            onChangeText={setCountryCode}
-            style={[styles.input, styles.countryInput]}
-          />
-          <TextInput
-            placeholder="National ID / Passport"
+            placeholder={`ID / ${selectedCountry.placeholder}`}
             placeholderTextColor="#999"
             value={nationalId}
             onChangeText={setNationalId}
             style={[styles.input, styles.idInput]}
           />
         </View>
+
+        <Modal visible={showCountryPicker} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Country</Text>
+              <ScrollView>
+                {COUNTRIES.map((c) => (
+                  <TouchableOpacity 
+                    key={c.code} 
+                    style={styles.countryOption}
+                    onPress={() => {
+                      setCountryCode(c.code);
+                      setShowCountryPicker(false);
+                    }}
+                  >
+                    <Text style={styles.countryOptionFlag}>{c.flag}</Text>
+                    <Text style={styles.countryOptionName}>{c.name}</Text>
+                    {countryCode === c.code && (
+                      <IconSymbol name="checkmark" size={18} color="#49C788" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <Pressable style={styles.modalCloseBtn} onPress={() => setShowCountryPicker(false)}>
+                <Text style={styles.modalCloseText}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
 
         <TextInput
           placeholder="Email address"
@@ -257,11 +315,66 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  countryInput: {
-    flex: 1,
+  countrySelector: {
+    flex: 0.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  countrySelectorText: {
+    fontSize: 22,
   },
   idInput: {
-    flex: 2,
+    flex: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: '#111',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    maxHeight: '70%',
+    padding: 20,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  countryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
+  },
+  countryOptionFlag: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  countryOptionName: {
+    color: '#fff',
+    fontSize: 16,
+    flex: 1,
+  },
+  modalCloseBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#222',
+    borderRadius: 8,
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   passwordContainer: {
     flexDirection: 'row',

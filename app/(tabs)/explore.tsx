@@ -31,6 +31,8 @@ type Profile = {
   role?: 'landlord' | 'host' | 'seeker';
   latitude?: number;
   longitude?: number;
+  latOffset?: number;
+  lngOffset?: number;
   availability_status?: string;
 };
 
@@ -50,6 +52,7 @@ export default function ExploreScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
+  const [matchedProfiles, setMatchedProfiles] = useState<Profile[]>([]);
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
@@ -180,12 +183,16 @@ export default function ExploreScreen() {
           Image.prefetch(urlsToPrefetch);
         }
         
-        // Define base coordinates (fallback or user location if already fetched)
-        const baseLat = userLocation?.latitude || 19.4326;
-        const baseLng = userLocation?.longitude || -99.1332;
+        // Base coordinates: Try saved manual location first, then GPS, then fallback to CDMX
+        const baseLat = currentUserData?.latOffset || userLocation?.latitude || 19.4326;
+        const baseLng = currentUserData?.lngOffset || userLocation?.longitude || -99.1332;
 
         const mapReadyProfiles = shuffledProfiles.map((p) => {
-          // If they don't have lat/lon, randomly scatter them within ~10km of base
+          // If profile has exact manually set coordinates, use them!
+          if (p.latOffset && p.lngOffset) {
+            return { ...p, latitude: p.latOffset, longitude: p.lngOffset };
+          }
+          // Otherwise fall back to a random scatter around the base location
           if (!p.latitude || !p.longitude) {
             const latOffset = (Math.random() - 0.5) * 0.1;
             const lngOffset = (Math.random() - 0.5) * 0.1;
@@ -203,8 +210,59 @@ export default function ExploreScreen() {
     }
   };
 
+  const fetchMatchedProfiles = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const myId = session.user.id;
+      const { data: matchesData } = await supabase
+        .from('matches')
+        .select('*')
+        .or(`user1.eq.${myId},user2.eq.${myId}`);
+
+      if (!matchesData || matchesData.length === 0) {
+        setMatchedProfiles([]);
+        return;
+      }
+
+      const userIds = matchesData.map(m => m.user1 === myId ? m.user2 : m.user1);
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl, role, latOffset, lngOffset, latitude, longitude, likes, preferences, dealbreakers')
+        .in('id', userIds);
+
+      if (profilesData) {
+        // Base coordinates: Try saved manual location first, then GPS, then fallback to CDMX
+        const baseLat = currentUser?.latOffset || userLocation?.latitude || 19.4326;
+        const baseLng = currentUser?.lngOffset || userLocation?.longitude || -99.1332;
+        
+        const mapReadyProfiles = profilesData.map((p) => {
+          // If profile has exact manually set coordinates, use them!
+          if (p.latOffset && p.lngOffset) {
+            return { ...p, latitude: p.latOffset, longitude: p.lngOffset };
+          }
+          // Otherwise fall back
+          if (!p.latitude || !p.longitude) {
+            const latOffset = (Math.random() - 0.5) * 0.1;
+            const lngOffset = (Math.random() - 0.5) * 0.1;
+            return { ...p, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
+          }
+          return p;
+        });
+
+        setMatchedProfiles(mapReadyProfiles);
+      }
+    } catch (e) {
+      console.error('Error fetching matched profiles:', e);
+    }
+  };
+
+
   useEffect(() => {
     fetchProfiles();
+    fetchMatchedProfiles();
 
     // Fetch device location in the background without blocking the profiles load
     const getDeviceLocation = async () => {
@@ -618,15 +676,15 @@ export default function ExploreScreen() {
             style={styles.map}
             provider={PROVIDER_GOOGLE}
             initialRegion={{
-              latitude: userLocation?.latitude || 19.4326,
-              longitude: userLocation?.longitude || -99.1332,
-              latitudeDelta: 0.1,
+              latitude: currentUser?.latOffset || userLocation?.latitude || 19.4326,
+              longitude: currentUser?.lngOffset || userLocation?.longitude || -99.1332,
+              latitudeDelta: 0.1, // Zoom in closer, dynamically centered on User
               longitudeDelta: 0.1,
             }}
             showsUserLocation={true}
             userInterfaceStyle="dark"
           >
-            {profiles.map(profile => {
+            {matchedProfiles.map(profile => {
               if (!profile.latitude || !profile.longitude) return null;
               return (
                 <Marker
