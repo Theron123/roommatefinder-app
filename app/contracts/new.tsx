@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
+import { useMatches } from '@/hooks/useMatches';
 
 type Match = { user_id: string; name: string };
 
@@ -62,28 +63,20 @@ export default function NewContractScreen() {
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
 
+  const { fetchMatches } = useMatches();
+
   useEffect(() => {
     if (step === 1 && matches.length === 0) loadMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, matches.length]);
 
   const loadMatches = async () => {
     setLoadingMatches(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLoadingMatches(false); return; }
-    const uid = session.user.id;
-
-    const { data } = await supabase
-      .from('matches')
-      .select('user1, user2')
-      .or(`user1.eq.${uid},user2.eq.${uid}`);
-
-    if (data && data.length > 0) {
-      const otherIds = data.map((m: any) => m.user1 === uid ? m.user2 : m.user1);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', otherIds);
-      if (profiles) setMatches(profiles.map((p: any) => ({ user_id: p.id, name: p.name })));
+    const loaded = await fetchMatches();
+    if (loaded && loaded.length > 0) {
+      setMatches(loaded.map((p: any) => ({ user_id: p.id, name: p.name })));
+    } else {
+      setMatches([]);
     }
     setLoadingMatches(false);
   };

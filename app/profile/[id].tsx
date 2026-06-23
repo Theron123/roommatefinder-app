@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getSimilarityScore, getDistanceFromLatLonInKm } from '@/utils/mathHelpers';
 import MapComponent from '@/components/ui/MapComponent';
 import { LinearGradient } from 'expo-linear-gradient';

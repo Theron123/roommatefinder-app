@@ -55,6 +55,8 @@ export default function ChatScreen() {
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [micVolume, setMicVolume] = useState<number>(0);
   // Web MediaRecorder support
   const webMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const webChunksRef = useRef<Blob[]>([]);

@@ -8,7 +8,9 @@ export type Profile = {
   preferences: string;
   dealbreakers: string;
   latOffset: number;
-  lngOffset: number;
+  lngOffset?: number;
+  latitude?: number;
+  longitude?: number;
   created_at?: string;
   updated_at?: string;
 };

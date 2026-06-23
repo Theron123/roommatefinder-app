@@ -10,7 +10,9 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import Swiper from 'react-native-deck-swiper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { Marker, Callout, PROVIDER_GOOGLE } from '@/components/MapViewWrapper';
-import * as Location from 'expo-location';
+import { calculateCompatibility } from '@/utils/compatibility';
+import { useDeviceLocation } from '@/hooks/useDeviceLocation';
+import { useMatches } from '@/hooks/useMatches';
 import { getActiveFilters } from '@/app/explore/filters';
 import { LinearGradient } from 'expo-linear-gradient';
 import { notifyNewMatch } from '@/lib/notifications';
@@ -53,6 +55,8 @@ export default function ExploreScreen() {
   const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
   const [matchedProfiles, setMatchedProfiles] = useState<Profile[]>([]);
+  const { fetchMatches } = useMatches();
+  const { requestLocation } = useDeviceLocation();
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
@@ -211,33 +215,14 @@ export default function ExploreScreen() {
 
   const fetchMatchedProfiles = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const loadedProfiles = await fetchMatches();
 
-      const myId = session.user.id;
-      const { data: matchesData } = await supabase
-        .from('matches')
-        .select('*')
-        .or(`user1.eq.${myId},user2.eq.${myId}`);
-
-      if (!matchesData || matchesData.length === 0) {
-        setMatchedProfiles([]);
-        return;
-      }
-
-      const userIds = matchesData.map(m => m.user1 === myId ? m.user2 : m.user1);
-
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, name, age, photoUrl, role, latOffset, lngOffset, latitude, longitude, likes, preferences, dealbreakers')
-        .in('id', userIds);
-
-      if (profilesData) {
+      if (loadedProfiles && loadedProfiles.length > 0) {
         // Base coordinates: Try saved manual location first, then GPS, then fallback to CDMX
         const baseLat = currentUser?.latOffset || userLocation?.latitude || 19.4326;
         const baseLng = currentUser?.lngOffset || userLocation?.longitude || -99.1332;
         
-        const mapReadyProfiles = profilesData.map((p) => {
+        const mapReadyProfiles = loadedProfiles.map((p) => {
           // If profile has exact manually set coordinates, use them!
           if (p.latOffset && p.lngOffset) {
             return { ...p, latitude: p.latOffset, longitude: p.lngOffset };
@@ -252,6 +237,8 @@ export default function ExploreScreen() {
         });
 
         setMatchedProfiles(mapReadyProfiles);
+      } else {
+        setMatchedProfiles([]);
       }
     } catch (e) {
       console.error('Error fetching matched profiles:', e);
@@ -264,41 +251,25 @@ export default function ExploreScreen() {
     fetchMatchedProfiles();
 
     // Fetch device location in the background without blocking the profiles load
-    const getDeviceLocation = async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          // Try to get last known location first (very fast, no permission pop-up hang)
-          let location = await Location.getLastKnownPositionAsync({});
-          if (!location) {
-            // Fallback to getCurrentPositionAsync with accuracy set to balanced
-            location = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.Balanced,
-            });
-          }
-          if (location) {
-            const loc = { latitude: location.coords.latitude, longitude: location.coords.longitude };
-            setUserLocation(loc);
+    const fetchLocation = async () => {
+      const loc = await requestLocation();
+      if (loc) {
+        setUserLocation(loc);
 
-            // Update any profiles that don't have static coordinates to center around the new userLocation
-            setProfiles(prevProfiles => 
-              prevProfiles.map(p => {
-                if (!p.latitude || !p.longitude) {
-                  const latOffset = (Math.random() - 0.5) * 0.1;
-                  const lngOffset = (Math.random() - 0.5) * 0.1;
-                  return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
-                }
-                return p;
-              })
-            );
-          }
-        }
-      } catch (e) {
-        console.log('Location error in background fetch:', e);
+        // Update any profiles that don't have static coordinates to center around the new userLocation
+        setProfiles(prevProfiles => 
+          prevProfiles.map(p => {
+            if (!p.latitude || !p.longitude) {
+              const latOffset = (Math.random() - 0.5) * 0.1;
+              const lngOffset = (Math.random() - 0.5) * 0.1;
+              return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
+            }
+            return p;
+          })
+        );
       }
     };
-
-    getDeviceLocation();
+    fetchLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -429,32 +400,6 @@ export default function ExploreScreen() {
 
   const onSwipedAll = () => {
     setAllSwiped(true);
-  };
-
-  const calculateCompatibility = (user1: any, user2: any) => {
-    if (!user1?.lifestyle || !user2?.lifestyle) return null;
-    
-    const l1 = typeof user1.lifestyle === 'string' ? JSON.parse(user1.lifestyle) : user1.lifestyle;
-    const l2 = typeof user2.lifestyle === 'string' ? JSON.parse(user2.lifestyle) : user2.lifestyle;
-    
-    if (!l1 || !l2) return null;
-
-    let score = 0;
-    let totalFields = 0;
-
-    const keysToCompare = ['sleep', 'cleanliness', 'social', 'parties', 'pets', 'smoking', 'music', 'work', 'occupation', 'cooking'];
-    
-    for (const key of keysToCompare) {
-      if (l1[key] && l2[key]) {
-        totalFields++;
-        if (l1[key] === l2[key]) score += 1;
-      }
-    }
-
-    if (totalFields === 0) return null;
-    
-    let percentage = 40 + Math.round((score / totalFields) * 60);
-    return percentage;
   };
 
   const renderCard = (card: Profile | null) => {
