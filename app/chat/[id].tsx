@@ -24,7 +24,8 @@ import ChatActionMenu from '@/components/chat/modals/ChatActionMenu';
 import ImageViewerModal from '@/components/chat/modals/ImageViewerModal';
 
 export default function ChatScreen() {
-  const { id } = useLocalSearchParams();
+  const { id: rawId } = useLocalSearchParams();
+  const id = Array.isArray(rawId) ? rawId[0] : (rawId || '');
   const router = useRouter();
 
   const [messages, setMessages] = useState<any[]>([]);

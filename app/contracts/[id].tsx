@@ -19,13 +19,13 @@ type Contract = {
   type: string;
   status: string;
   clauses: any;
-  selected_custom_clauses: string[];
+  selected_custom_clauses: string[] | null;
   effective_date: string | null;
   termination_date: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   pdf_url: string | null;
-  initiator_id: string;
+  initiator_id: string | null;
   initiator: { name: string } | null;
   contract_participants?: { user_id: string; profiles: { name: string } }[];
 };
@@ -637,7 +637,7 @@ export default function ContractDetailScreen() {
         <MaterialCommunityIcons name={st.icon as any} size={18} color={st.color} />
         <Text style={[s.statusText, { color: st.color }]}>{st.label}</Text>
         <Text style={s.statusDate}>
-          {t('contracts.updated')}: {new Date(contract.updated_at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US')}
+          {t('contracts.updated')}: {new Date(contract.updated_at || '').toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US')}
         </Text>
       </View>
 
@@ -690,9 +690,9 @@ export default function ContractDetailScreen() {
           <Row label={t('contracts.labels.move_out_insp')} value={c.move_out?.inspection_required ? t('contracts.labels.required_check') : t('contracts.labels.not_required')} />
         </Section>
 
-        {contract.selected_custom_clauses?.length > 0 && (
+        {(contract.selected_custom_clauses?.length ?? 0) > 0 && (
           <Section title={t('contracts.sec_additional')}>
-            {contract.selected_custom_clauses.map((key: string) => (
+            {contract.selected_custom_clauses?.map((key: string) => (
               <Row key={key} label="•" value={getOptionalClauseLabel(key)} />
             ))}
           </Section>

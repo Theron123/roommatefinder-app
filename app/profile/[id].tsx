@@ -14,7 +14,8 @@ import { useMyProfile, useUserProfile } from '@/hooks/useProfileQueries';
 
 export default function ProfileDetailScreen() {
   const { t, locale, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
-  const { id } = useLocalSearchParams();
+  const { id: rawId } = useLocalSearchParams();
+  const id = Array.isArray(rawId) ? rawId[0] : (rawId || '');
   const router = useRouter();
 
   const { data: targetData, isLoading: isTargetLoading } = useUserProfile(id as string);
@@ -128,8 +129,8 @@ export default function ProfileDetailScreen() {
 
   const photosList = profile
     ? (Array.isArray(profile.photos) && profile.photos.length > 0
-      ? profile.photos.filter(Boolean)
-      : [profile.photoUrl].filter(Boolean))
+      ? (profile.photos.filter(Boolean) as string[])
+      : ([profile.photoUrl].filter(Boolean) as string[]))
     : [];
 
   const lifestyleObj = profile?.lifestyle 
@@ -142,7 +143,7 @@ export default function ProfileDetailScreen() {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Header Image */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: photosList[activePhotoIdx] || profile.photoUrl }} style={styles.headerImage} contentFit="cover" transition={200} />
+          <Image source={{ uri: photosList[activePhotoIdx] || profile.photoUrl || undefined }} style={styles.headerImage} contentFit="cover" transition={200} />
           <LinearGradient
             colors={['rgba(0,0,0,0.5)', 'transparent', 'transparent', 'rgba(0,0,0,0.8)']}
             style={StyleSheet.absoluteFillObject}
@@ -250,10 +251,10 @@ export default function ProfileDetailScreen() {
           <View style={styles.divider} />
  
           <Text style={styles.sectionTitle}>{t('myprofile.interests')}</Text>
-          <Text style={styles.tagsText}>{translateHobbiesList(profile.likes) || t('explore.no_pref')}</Text>
+          <Text style={styles.tagsText}>{translateHobbiesList(profile.likes || '') || t('explore.no_pref')}</Text>
  
           <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
-          <Text style={styles.tagsText}>{translatePreferencesList(profile.preferences) || t('explore.no_pref')}</Text>
+          <Text style={styles.tagsText}>{translatePreferencesList(profile.preferences || '') || t('explore.no_pref')}</Text>
  
           {languagesArr.length > 0 && (
             <>
@@ -265,7 +266,7 @@ export default function ProfileDetailScreen() {
           )}
 
           <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
-          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{translateDealbreakersList(profile.dealbreakers) || t('explore.no_pref')}</Text>
+          <Text style={[styles.tagsText, { color: '#FF4B4B' }]}>{translateDealbreakersList(profile.dealbreakers || '') || t('explore.no_pref')}</Text>
           
           {profile.latOffset && profile.lngOffset && (
             <>
