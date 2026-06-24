@@ -6,13 +6,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { uploadToSupabase } from '@/utils/file';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { Audio, Video, ResizeMode } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
+import { BlurView } from 'expo-blur';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
+const TypedFlashList = FlashList as any;
+import { ChatMessageItem } from '@/components/chat/ChatMessageItem';
 import { setActiveChatUserId } from '@/lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,7 +36,7 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [otherUser, setOtherUser] = useState<any>(null);
   const [myId, setMyId] = useState<string | null>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlashListRef<any> | null>(null);
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageScale, setImageScale] = useState(1);
@@ -612,132 +616,31 @@ export default function ChatScreen() {
     Alert.alert('✅ Forwarded!', 'Message forwarded successfully.');
   };
 
-  const handleLongPress = (item: any) => {
+  const handleLongPress = useCallback((item: any) => {
     setActiveMessage(item);
     setShowDeleteOptions(false);
     setShowActionMenu(true);
-  };
+  }, []);
 
-  const getReplyPreview = (replyId: string) => {
+  const getReplyPreview = useCallback((replyId: string) => {
     return messages.find(m => m.id === replyId);
-  };
+  }, [messages]);
 
   const renderMessage = ({ item }: { item: any }) => {
-    const isMine = item.sender_id === myId;
-    const repliedMsg = item.reply_to_id ? getReplyPreview(item.reply_to_id) : null;
-
-    const date = new Date(item.created_at);
-    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-
     return (
-      <Pressable
-        onLongPress={() => handleLongPress(item)}
-        delayLongPress={400}
-      >
-        <View style={[styles.msgBubble, isMine ? styles.myMsg : styles.theirMsg]}>
-          <Pressable 
-            style={styles.msgChevron} 
-            onPress={() => handleLongPress(item)}
-          >
-            <MaterialCommunityIcons name="chevron-down" size={16} color="rgba(255,255,255,0.5)" />
-          </Pressable>
-
-          {repliedMsg && (
-            <View style={styles.replyPreview}>
-              <Text style={styles.replyPreviewText} numberOfLines={1}>
-                ↩ {repliedMsg.content}
-              </Text>
-            </View>
-          )}
-          {item.media_type === 'video' && item.media_url ? (
-            <Video
-              source={{ uri: item.media_url }}
-              style={styles.messageVideo}
-              useNativeControls
-              resizeMode={ResizeMode.COVER}
-              isLooping={false}
-            />
-          ) : item.media_type === 'file' && item.media_url ? (
-            <Pressable onPress={() => downloadImage(item.media_url)} style={styles.audioContainer}>
-              <IconSymbol name="doc.fill" size={24} color={isMine ? '#fff' : '#49C788'} />
-              <Text style={[styles.audioText, isMine ? {color: '#fff'} : {color: '#ccc'}]}>Archivo Adjunto</Text>
-            </Pressable>
-          ) : item.media_type === 'audio' && item.media_url ? (
-            (() => {
-              const getMessageWaveform = (msgId: string) => {
-                const wave: number[] = [];
-                const idStr = msgId || 'default';
-                for (let i = 0; i < 16; i++) {
-                  const charCode = idStr.charCodeAt(i % idStr.length) || 60;
-                  const h = 6 + ((charCode * (i + 1)) % 22);
-                  wave.push(h);
-                }
-                return wave;
-              };
-              const waveHeights = getMessageWaveform(item.id);
-
-              return (
-                <View style={styles.voiceNoteContainer}>
-                  <Pressable onPress={() => playAudio(item.media_url, item.id)} style={[styles.voicePlayBtn, isMine ? styles.voicePlayBtnMine : styles.voicePlayBtnTheirs]}>
-                    <MaterialCommunityIcons
-                      name={playingId === item.id ? 'pause' : 'play'}
-                      size={22}
-                      color={isMine ? '#005c4b' : '#49C788'}
-                    />
-                  </Pressable>
-                  
-                  <View style={styles.waveformContainer}>
-                    {waveHeights.map((h, i) => {
-                      const isPlayed = playingId === item.id && (i / waveHeights.length) <= playbackProgress;
-                      return (
-                        <View
-                          key={i}
-                          style={[
-                            styles.waveBar,
-                            {
-                              height: h,
-                              backgroundColor: isPlayed 
-                                ? '#49C788'
-                                : (playingId === item.id 
-                                    ? (isMine ? 'rgba(255,255,255,0.7)' : 'rgba(73,199,136,0.6)')
-                                    : (isMine ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.25)')
-                                  )
-                            }
-                          ]}
-                        />
-                      );
-                    })}
-                  </View>
-
-                  <View style={styles.voiceNoteMeta}>
-                    <MaterialCommunityIcons name="microphone" size={18} color={isMine ? 'rgba(255,255,255,0.6)' : '#49C788'} />
-                  </View>
-                </View>
-              );
-            })()
-          ) : item.media_type === 'image' && item.media_url ? (
-            <Pressable onPress={() => { setSelectedImage(item.media_url); setImageScale(1); setZoomOffset({ x: 0, y: 0 }); }}>
-              <Image source={{ uri: item.media_url }} style={styles.messageImage} />
-            </Pressable>
-          ) : null}
-          {!(item.media_url && (item.content === '📸 Image' || item.content === '🎥 Video' || item.content === '🎵 Audio' || item.content === '📄 Archivo' || item.content === '🎙️ Mensaje de voz')) && (
-            <Text style={[styles.msgText, isMine ? styles.myMsgText : styles.theirMsgText]}>
-              {item.content}
-            </Text>
-          )}
-          <View style={styles.bubbleMeta}>
-            <Text style={[styles.msgTime, !isMine && styles.theirMsgTime]}>{timeStr}</Text>
-            {isMine && (
-              <View style={styles.statusContainer}>
-                {item.status === 'pending' && <MaterialCommunityIcons name="clock-outline" size={12} color="rgba(255,255,255,0.4)" />}
-                {item.status === 'sent' && !item.is_read && <MaterialCommunityIcons name="check-all" size={14} color="rgba(255,255,255,0.4)" />}
-                {item.is_read && <MaterialCommunityIcons name="check-all" size={14} color="#34B7F1" />}
-                {item.status === 'error' && <MaterialCommunityIcons name="alert-circle-outline" size={12} color="#ff4444" />}
-              </View>
-            )}
-          </View>
-        </View>
-      </Pressable>
+      <ChatMessageItem
+        item={item}
+        myId={myId}
+        playingId={playingId}
+        playbackProgress={playbackProgress}
+        getReplyPreview={getReplyPreview}
+        handleLongPress={handleLongPress}
+        downloadImage={downloadImage}
+        playAudio={playAudio}
+        setSelectedImage={setSelectedImage}
+        setImageScale={setImageScale}
+        setZoomOffset={setZoomOffset}
+      />
     );
   };
 
@@ -782,11 +685,12 @@ export default function ChatScreen() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <FlatList
+        <TypedFlashList
           ref={flatListRef}
           data={[...visibleMessages].reverse()}
           inverted
-          keyExtractor={item => item.id}
+          estimatedItemSize={80}
+          keyExtractor={(item: any) => item.id}
           renderItem={renderMessage}
           contentContainerStyle={styles.list}
           ListEmptyComponent={() => (

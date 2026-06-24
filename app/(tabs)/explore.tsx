@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, TouchableOpacity, Alert, Platform, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -554,6 +554,110 @@ export default function ExploreScreen() {
     );
   };
 
+  const mapContent = useMemo(() => {
+    return (
+      <MapView
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={{
+          latitude: currentUser?.latOffset || userLocation?.latitude || 19.4326,
+          longitude: currentUser?.lngOffset || userLocation?.longitude || -99.1332,
+          latitudeDelta: 0.1, // Zoom in closer, dynamically centered on User
+          longitudeDelta: 0.1,
+        }}
+        showsUserLocation={true}
+        userInterfaceStyle="dark"
+      >
+        {/* Marcador del Usuario Actual (Bandera Verde) */}
+        {currentUser && (
+          <Marker
+            key="current_user_marker"
+            coordinate={{
+              latitude: currentUser.latOffset || userLocation?.latitude || 19.4326,
+              longitude: currentUser.lngOffset || userLocation?.longitude || -99.1332
+            }}
+          >
+            <View style={styles.currentUserMarkerContainer}>
+              <Image 
+                source={{ uri: currentUser.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=100&w=200&auto=format&fit=crop' }} 
+                style={styles.currentUserMarkerImage} 
+              />
+              <View style={styles.currentUserMarkerBadge}>
+                <MaterialCommunityIcons name="flag" size={10} color="#fff" />
+              </View>
+            </View>
+            <Callout>
+              <View style={styles.calloutContainer}>
+                <Text style={styles.calloutName}>{currentUser.name || 'Tú'} (Tú)</Text>
+                <Text style={styles.calloutRole}>
+                  {currentUser.availability_status 
+                    ? (STATUS_MAP[currentUser.availability_status]?.label || currentUser.availability_status) 
+                    : 'Disponible'}
+                </Text>
+              </View>
+            </Callout>
+          </Marker>
+        )}
+
+        {/* Perfiles de Candidatos de Explore */}
+        {profiles.map(profile => {
+          if (!profile.latitude || !profile.longitude) return null;
+          return (
+            <Marker
+              key={`explore_${profile.id}`}
+              coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
+            >
+              <View style={styles.markerContainer}>
+                <Image 
+                  source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
+                  style={styles.markerImage} 
+                />
+                <View style={styles.markerBadge}>
+                  <MaterialCommunityIcons name="account-search" size={10} color="#000" />
+                </View>
+              </View>
+              <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
+                <View style={styles.calloutContainer}>
+                  <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
+                  <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
+                  <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
+                </View>
+              </Callout>
+            </Marker>
+          );
+        })}
+
+        {/* Perfiles de Matches */}
+        {matchedProfiles.map(profile => {
+          if (!profile.latitude || !profile.longitude) return null;
+          return (
+            <Marker
+              key={`match_${profile.id}`}
+              coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
+            >
+              <View style={[styles.markerContainer, { borderColor: '#FFCC00' }]}>
+                <Image 
+                  source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
+                  style={styles.markerImage} 
+                />
+                <View style={[styles.markerBadge, { backgroundColor: '#FFCC00' }]}>
+                  <MaterialCommunityIcons name="heart" size={10} color="#000" />
+                </View>
+              </View>
+              <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
+                <View style={styles.calloutContainer}>
+                  <Text style={styles.calloutName}>{profile.name}, {profile.age} (Match!)</Text>
+                  <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
+                  <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
+                </View>
+              </Callout>
+            </Marker>
+          );
+        })}
+      </MapView>
+    );
+  }, [currentUser, userLocation, profiles, matchedProfiles, t, router]);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -617,105 +721,7 @@ export default function ExploreScreen() {
             <Text style={styles.loadingText}>{t('explore.finding_people')}</Text>
           </View>
         ) : viewMode === 'map' ? (
-          <MapView
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            initialRegion={{
-              latitude: currentUser?.latOffset || userLocation?.latitude || 19.4326,
-              longitude: currentUser?.lngOffset || userLocation?.longitude || -99.1332,
-              latitudeDelta: 0.1, // Zoom in closer, dynamically centered on User
-              longitudeDelta: 0.1,
-            }}
-            showsUserLocation={true}
-            userInterfaceStyle="dark"
-          >
-            {/* Marcador del Usuario Actual (Bandera Verde) */}
-            {currentUser && (
-              <Marker
-                key="current_user_marker"
-                coordinate={{
-                  latitude: currentUser.latOffset || userLocation?.latitude || 19.4326,
-                  longitude: currentUser.lngOffset || userLocation?.longitude || -99.1332
-                }}
-              >
-                <View style={styles.currentUserMarkerContainer}>
-                  <Image 
-                    source={{ uri: currentUser.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=100&w=200&auto=format&fit=crop' }} 
-                    style={styles.currentUserMarkerImage} 
-                  />
-                  <View style={styles.currentUserMarkerBadge}>
-                    <MaterialCommunityIcons name="flag" size={10} color="#fff" />
-                  </View>
-                </View>
-                <Callout>
-                  <View style={styles.calloutContainer}>
-                    <Text style={styles.calloutName}>{currentUser.name || 'Tú'} (Tú)</Text>
-                    <Text style={styles.calloutRole}>
-                      {currentUser.availability_status 
-                        ? (STATUS_MAP[currentUser.availability_status]?.label || currentUser.availability_status) 
-                        : 'Disponible'}
-                    </Text>
-                  </View>
-                </Callout>
-              </Marker>
-            )}
-
-            {/* Perfiles de Candidatos de Explore */}
-            {profiles.map(profile => {
-              if (!profile.latitude || !profile.longitude) return null;
-              return (
-                <Marker
-                  key={`explore_${profile.id}`}
-                  coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
-                >
-                  <View style={styles.markerContainer}>
-                    <Image 
-                      source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
-                      style={styles.markerImage} 
-                    />
-                    <View style={styles.markerBadge}>
-                      <MaterialCommunityIcons name="account-search" size={10} color="#000" />
-                    </View>
-                  </View>
-                  <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
-                    <View style={styles.calloutContainer}>
-                      <Text style={styles.calloutName}>{profile.name}, {profile.age}</Text>
-                      <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
-                      <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
-                    </View>
-                  </Callout>
-                </Marker>
-              );
-            })}
-
-            {/* Perfiles de Matches */}
-            {matchedProfiles.map(profile => {
-              if (!profile.latitude || !profile.longitude) return null;
-              return (
-                <Marker
-                  key={`match_${profile.id}`}
-                  coordinate={{ latitude: profile.latitude, longitude: profile.longitude }}
-                >
-                  <View style={[styles.markerContainer, { borderColor: '#FFCC00' }]}>
-                    <Image 
-                      source={{ uri: profile.photoUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop' }} 
-                      style={styles.markerImage} 
-                    />
-                    <View style={[styles.markerBadge, { backgroundColor: '#FFCC00' }]}>
-                      <MaterialCommunityIcons name="heart" size={10} color="#000" />
-                    </View>
-                  </View>
-                  <Callout onPress={() => router.push(`/profile/${profile.id}`)}>
-                    <View style={styles.calloutContainer}>
-                      <Text style={styles.calloutName}>{profile.name}, {profile.age} (Match!)</Text>
-                      <Text style={styles.calloutRole}>{profile.role === 'host' ? t('explore.role_host') : t('explore.role_seeker')}</Text>
-                      <Text style={styles.calloutAction}>{t('explore.view_profile')}</Text>
-                    </View>
-                  </Callout>
-                </Marker>
-              );
-            })}
-          </MapView>
+          mapContent
         ) : allSwiped || profiles.length === 0 ? (
           <View style={styles.center}>
             <MaterialCommunityIcons name="account-search-outline" size={60} color="#555" />

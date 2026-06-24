@@ -3,14 +3,16 @@ import { Pressable, StyleSheet, Text, View, ActivityIndicator, TextInput } from 
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { FlashList } from '@shopify/flash-list';
+const TypedFlashList = FlashList as any;
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTranslation } from '../../context/LanguageContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useInboxData } from '@/hooks/useInboxQueries';
+import { InboxConversationItem } from '@/components/inbox/InboxConversationItem';
+import { InboxMatchItem } from '@/components/inbox/InboxMatchItem';
 
 export default function InboxScreen() {
   const { t } = useTranslation();
@@ -34,13 +36,13 @@ export default function InboxScreen() {
   }, [searchQuery]);
 
   const searchProfiles = async (query: string) => {
-    const { data } = await supabase
+    const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name, age, photoUrl')
       .ilike('name', `%${query}%`)
       .limit(15);
-    if (data) {
-      setSearchResults(data);
+    if (profiles) {
+      setSearchResults(profiles);
     }
   };
 
@@ -61,7 +63,7 @@ export default function InboxScreen() {
 
       inboxChannel = supabase
         .channel('public:messages_inbox')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
           const newMsg = payload.new;
           if (newMsg.sender_id === myId || newMsg.receiver_id === myId) {
             queryClient.invalidateQueries({ queryKey: ['inbox'] });
@@ -79,53 +81,22 @@ export default function InboxScreen() {
     };
   }, [queryClient]);
 
+  const handleConversationPress = useCallback((id: string) => {
+    router.push(`/chat/${id}` as any);
+  }, [router]);
+
   const renderConversation = useCallback(({ item }: { item: any }) => {
-    const isUnread = item.unreadCount > 0;
-    const sentByMe = item.lastMsgSenderId === currentUserId;
-
     return (
-      <Pressable
-        onPress={() => router.push(`/chat/${item.id}`)}
-        style={[styles.row, isUnread && styles.rowUnread]}
-      >
-        <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
-        
-        {isUnread && <View style={styles.unreadDot} />}
-
-        <View style={styles.content}>
-          <View style={styles.topRow}>
-            <Text style={[styles.name, isUnread && styles.nameUnread]}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
-            <Text style={[styles.time, isUnread && styles.timeUnread]}>{item.time}</Text>
-          </View>
-          <View style={styles.messageRow}>
-            {sentByMe && (
-              <MaterialCommunityIcons 
-                name={item.lastMsgIsRead ? "check-all" : "check"} 
-                size={16} 
-                color={item.lastMsgIsRead ? "#49C788" : "#888"} 
-                style={{ marginRight: 4 }} 
-              />
-            )}
-            <Text
-              numberOfLines={1}
-              style={[styles.lastMessage, isUnread && styles.lastMessageUnread]}
-            >
-              {item.lastMessage}
-            </Text>
-          </View>
-        </View>
-
-        {isUnread && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadBadgeText}>{item.unreadCount}</Text>
-          </View>
-        )}
-      </Pressable>
+      <InboxConversationItem
+        item={item}
+        currentUserId={currentUserId}
+        onPress={handleConversationPress}
+      />
     );
-  }, [router, currentUserId]);
+  }, [currentUserId, handleConversationPress]);
 
   const renderSearchItem = useCallback(({ item }: { item: any }) => (
-    <Pressable onPress={() => router.push(`/profile/${item.id}`)} style={styles.row}>
+    <Pressable onPress={() => router.push(`/profile/${item.id}` as any)} style={styles.row}>
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       <View style={styles.content}>
          <Text style={styles.name}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
@@ -134,14 +105,13 @@ export default function InboxScreen() {
     </Pressable>
   ), [router, t]);
 
+  const handleMatchPress = useCallback((id: string) => {
+    router.push(`/chat/${id}` as any);
+  }, [router]);
+
   const renderMatchItem = useCallback(({ item }: { item: any }) => (
-    <Pressable style={styles.matchItem} onPress={() => router.push(`/chat/${item.id}`)}>
-      <View style={styles.matchAvatarContainer}>
-        <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" cachePolicy="memory-disk" />
-      </View>
-      <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
-    </Pressable>
-  ), [router]);
+    <InboxMatchItem item={item} onPress={handleMatchPress} />
+  ), [handleMatchPress]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -151,10 +121,10 @@ export default function InboxScreen() {
             <View>
               <Text style={styles.title}>{t('inbox.messages_title')}</Text>
               <Text style={styles.subtitle}>
-                {conversations.filter(c => c.unreadCount > 0).length} {conversations.filter(c => c.unreadCount > 0).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
+                {conversations.filter((c: any) => c.unreadCount > 0).length} {conversations.filter((c: any) => c.unreadCount > 0).length === 1 ? t('inbox.unread_conversation') : t('inbox.unread_conversations')}
               </Text>
             </View>
-            <Pressable onPress={() => router.push('/activity')} style={styles.activityIcon}>
+            <Pressable onPress={() => router.push('/activity' as any)} style={styles.activityIcon}>
                <MaterialCommunityIcons name="bell-outline" size={24} color="#49C788" />
                {matches.length > 0 && <View style={styles.activityDot} />}
             </Pressable>
@@ -174,10 +144,11 @@ export default function InboxScreen() {
         </LinearGradient>
 
         {searchQuery.trim().length > 1 ? (
-          <FlashList
+          <TypedFlashList
             data={searchResults}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item: any) => item.id}
             renderItem={renderSearchItem}
+            estimatedItemSize={80 as any}
             ListEmptyComponent={<Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>{t('inbox.no_users')}</Text>}
             contentContainerStyle={styles.list}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -191,11 +162,12 @@ export default function InboxScreen() {
             {matches.length > 0 && (
               <View style={styles.matchesSection}>
                 <Text style={styles.matchesTitle}>{t('explore.new_matches')}</Text>
-                <FlashList
+                <TypedFlashList
                   data={matches}
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item) => item.id}
+                  estimatedItemSize={70 as any}
+                  keyExtractor={(item: any) => item.id}
                   contentContainerStyle={styles.matchesScroll}
                   renderItem={renderMatchItem}
                 />
@@ -210,10 +182,11 @@ export default function InboxScreen() {
               </View>
             ) : (
               <View style={{ flex: 1 }}>
-                <FlashList
+                <TypedFlashList
                   data={conversations}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item: any) => item.id}
                   renderItem={renderConversation}
+                  estimatedItemSize={90 as any}
                   contentContainerStyle={styles.list}
                   ItemSeparatorComponent={() => <View style={styles.separator} />}
                 />
