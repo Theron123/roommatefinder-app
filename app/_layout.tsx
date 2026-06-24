@@ -46,15 +46,20 @@ export default function RootLayout() {
     // Realtime global messages subscriber for notifications
     let globalMsgChannel: any = null;
     
-    const setupGlobalMsgListener = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
-      const myId = session.user.id;
+    const setupGlobalMsgListener = () => {
+      if (globalMsgChannel) {
+        supabase.removeChannel(globalMsgChannel);
+        globalMsgChannel = null;
+      }
 
       globalMsgChannel = supabase
         .channel('global:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
           const newMsg = payload.new;
+          const { data: { session } } = await supabase.auth.getSession();
+          const myId = session?.user?.id;
+          if (!myId) return;
+
           if (newMsg.receiver_id === myId) {
             // Check if we are currently chatting with this sender
             if (newMsg.sender_id === getActiveChatUserId()) {
@@ -76,8 +81,6 @@ export default function RootLayout() {
         })
         .subscribe();
     };
-
-    setupGlobalMsgListener();
 
     // Re-subscribe if user logs in/out
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {

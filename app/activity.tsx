@@ -50,8 +50,14 @@ export default function ActivityScreen() {
     const messages = msgsRes.data || [];
 
     const userIds = new Set<string>();
-    matches.forEach(m => userIds.add(m.user1 === myId ? m.user2 : m.user1));
-    messages.forEach(m => userIds.add(m.sender_id === myId ? m.receiver_id : m.sender_id));
+    matches.forEach(m => {
+      const otherId = m.user1 === myId ? m.user2 : m.user1;
+      if (otherId) userIds.add(otherId);
+    });
+    messages.forEach(m => {
+      const otherId = m.sender_id === myId ? m.receiver_id : m.sender_id;
+      if (otherId) userIds.add(otherId);
+    });
 
     if (userIds.size === 0) {
       setActivities([]);
@@ -72,17 +78,19 @@ export default function ActivityScreen() {
     // Process Matches
     matches.forEach(m => {
       const otherId = m.user1 === myId ? m.user2 : m.user1;
-      const profile = profileMap.get(otherId);
-      if (profile) {
-        newActivities.push({
-          id: `match_${m.id}`,
-          type: 'match',
-          userId: otherId,
-          name: profile.name,
-          photoUrl: profile.photoUrl,
-          text: `You and ${profile.name} matched!`,
-          timestamp: new Date(m.created_at)
-        });
+      if (otherId) {
+        const profile = profileMap.get(otherId);
+        if (profile) {
+          newActivities.push({
+            id: `match_${m.id}`,
+            type: 'match',
+            userId: otherId,
+            name: profile.name,
+            photoUrl: profile.photoUrl || undefined,
+            text: `You and ${profile.name} matched!`,
+            timestamp: new Date(m.created_at || '')
+          });
+        }
       }
     });
 
@@ -90,7 +98,7 @@ export default function ActivityScreen() {
     const processedMsgUsers = new Set<string>();
     messages.forEach(m => {
       const otherId = m.sender_id === myId ? m.receiver_id : m.sender_id;
-      if (!processedMsgUsers.has(otherId)) {
+      if (otherId && !processedMsgUsers.has(otherId)) {
         processedMsgUsers.add(otherId);
         const profile = profileMap.get(otherId);
         if (profile) {
@@ -100,9 +108,9 @@ export default function ActivityScreen() {
             type: 'message',
             userId: otherId,
             name: profile.name,
-            photoUrl: profile.photoUrl,
+            photoUrl: profile.photoUrl || undefined,
             text: actionText,
-            timestamp: new Date(m.created_at)
+            timestamp: new Date(m.created_at || '')
           });
         }
       }

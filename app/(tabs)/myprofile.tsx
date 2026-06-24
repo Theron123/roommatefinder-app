@@ -239,9 +239,9 @@ export default function MyProfileScreen() {
             <View style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
               <Pressable onPress={() => setEditing(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
-                {profile?.trust_score >= 80 ? (
+                {(profile?.trust_score ?? 0) >= 80 ? (
                   <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
-                ) : profile?.trust_score >= 40 ? (
+                ) : (profile?.trust_score ?? 0) >= 40 ? (
                   <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
                 ) : null}
                 <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
@@ -523,7 +523,7 @@ export default function MyProfileScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.trustTitle}>{t('myprofile.trust_center')}</Text>
-            <Text style={s.trustSub}>{t('myprofile.trust_sub')} <Text style={{fontWeight: '800', color: profile?.trust_score > 75 ? '#34C759' : '#FFD60A'}}>{profile?.trust_score || 20}/100</Text></Text>
+            <Text style={s.trustSub}>{t('myprofile.trust_sub')} <Text style={{fontWeight: '800', color: (profile?.trust_score ?? 0) > 75 ? '#34C759' : '#FFD60A'}}>{profile?.trust_score || 20}/100</Text></Text>
             <Text style={s.trustHint}>{t('myprofile.trust_hint')}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#444" />

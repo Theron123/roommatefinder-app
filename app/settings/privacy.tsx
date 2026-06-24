@@ -44,9 +44,10 @@ export default function PrivacyScreen() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
+        const payload: any = { [key]: val };
         await supabase
           .from('profiles')
-          .update({ [key]: val })
+          .update(payload)
           .eq('id', session.user.id);
       }
     } catch (e) {

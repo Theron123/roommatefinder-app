@@ -47,17 +47,21 @@ export function useInboxData() {
 
       validMsgs.forEach(msg => {
         const otherId = msg.sender_id === myId ? msg.receiver_id : msg.sender_id;
-        if (!uniqueUserIdsWithMsgs.has(otherId)) {
-          uniqueUserIdsWithMsgs.add(otherId);
-          lastMsgs.set(otherId, msg);
-        }
-        if (msg.receiver_id === myId && !msg.is_read) {
-          unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
+        if (otherId) {
+          if (!uniqueUserIdsWithMsgs.has(otherId)) {
+            uniqueUserIdsWithMsgs.add(otherId);
+            lastMsgs.set(otherId, msg);
+          }
+          if (msg.receiver_id === myId && !msg.is_read) {
+            unreadCounts.set(otherId, (unreadCounts.get(otherId) || 0) + 1);
+          }
         }
       });
 
       // Match logic
-      const allMatchIds = matchData ? matchData.map(m => m.user1 === myId ? m.user2 : m.user1) : [];
+      const allMatchIds = matchData
+        ? (matchData.map(m => m.user1 === myId ? m.user2 : m.user1).filter(Boolean) as string[])
+        : [];
       
       // Collect all user IDs we need profiles for (msgs + matches)
       const allUserIdsToFetch = new Set([...Array.from(uniqueUserIdsWithMsgs), ...allMatchIds]);
@@ -103,7 +107,7 @@ export function useInboxData() {
               if (isViewed) {
                 // Viewed but no messages -> goes to conversations
                 const matchObj = matchData?.find(m => (m.user1 === p.id && m.user2 === myId) || (m.user2 === p.id && m.user1 === myId));
-                const matchDate = matchObj ? new Date(matchObj.created_at) : new Date();
+                const matchDate = matchObj ? new Date(matchObj.created_at || '') : new Date();
                 const timeStr = matchDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 formattedConvos.push({

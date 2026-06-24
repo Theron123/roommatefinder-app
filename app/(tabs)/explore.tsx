@@ -22,20 +22,20 @@ import { useTranslation } from '../../context/LanguageContext';
 
 type Profile = {
   id: string;
-  likes: string;
-  preferences: string;
-  dealbreakers: string;
-  photoUrl?: string;
-  photos?: string[];
+  likes: string | null;
+  preferences: string | null;
+  dealbreakers: string | null;
+  photoUrl?: string | null;
+  photos?: string[] | null;
   name?: string;
-  age?: number;
+  age?: number | null;
   lifestyle?: any;
-  role?: 'landlord' | 'host' | 'seeker';
-  latitude?: number;
-  longitude?: number;
-  latOffset?: number;
-  lngOffset?: number;
-  availability_status?: string;
+  role?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  latOffset?: number | null;
+  lngOffset?: number | null;
+  availability_status?: string | null;
 };
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
@@ -526,7 +526,7 @@ export default function ExploreScreen() {
                 <Text style={styles.subtitle}>{t('explore.likes_hobbies')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="thumb-up-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.likes) || t('explore.open_anything', 'Open to anything')}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translateHobbiesList(card.likes || '') || t('explore.open_anything', 'Open to anything')}</Text>
                 </View>
               </View>
 
@@ -534,7 +534,7 @@ export default function ExploreScreen() {
                 <Text style={styles.subtitle}>{t('explore.preferences')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="home-search-outline" size={16} color="#ccc" />
-                  <Text style={styles.infoText} numberOfLines={2}>{translatePreferencesList(card.preferences) || t('explore.flexible', 'Flexible')}</Text>
+                  <Text style={styles.infoText} numberOfLines={2}>{translatePreferencesList(card.preferences || '') || t('explore.flexible', 'Flexible')}</Text>
                 </View>
               </View>
             </View>
@@ -544,7 +544,7 @@ export default function ExploreScreen() {
                 <Text style={styles.subtitleDealbreaker}>{t('myprofile.dealbreakers')}</Text>
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="alert-circle-outline" size={16} color="#FF4B4B" />
-                  <Text style={styles.dealbreakerText} numberOfLines={2}>{translateDealbreakersList(card.dealbreakers)}</Text>
+                  <Text style={styles.dealbreakerText} numberOfLines={2}>{translateDealbreakersList(card.dealbreakers || '')}</Text>
                 </View>
               </View>
             ) : null}

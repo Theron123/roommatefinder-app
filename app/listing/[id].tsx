@@ -10,7 +10,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 
 export default function ListingDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id: rawId } = useLocalSearchParams();
+  const id = Array.isArray(rawId) ? rawId[0] : (rawId || '');
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -56,7 +57,7 @@ export default function ListingDetailScreen() {
       const { data: hostData } = await supabase
         .from('profiles')
         .select('id, name, photoUrl, bio, role')
-        .eq('id', listingData.user_id)
+        .eq('id', listingData.user_id || '')
         .single();
       
       if (hostData) {

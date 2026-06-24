@@ -35,7 +35,9 @@ export function useMatches() {
         return [];
       }
 
-      const userIds = matchesData.map(m => m.user1 === myId ? m.user2 : m.user1);
+      const userIds = matchesData
+        .map(m => m.user1 === myId ? m.user2 : m.user1)
+        .filter(Boolean) as string[];
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
