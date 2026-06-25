@@ -14,10 +14,25 @@ export function useMyProfile() {
       const myId = await getCurrentUserId();
       if (!myId) return null;
 
+      // Fetch contract participants first
+      const { data: partData } = await supabase
+        .from('contract_participants')
+        .select('contract_id')
+        .eq('user_id', myId);
+
+      const contractIds = partData?.map(p => p.contract_id).filter(Boolean) || [];
+
+      let contractsQuery = supabase.from('contracts').select('id, status');
+      if (contractIds.length > 0) {
+        contractsQuery = contractsQuery.or(`initiator_id.eq.${myId},id.in.(${contractIds.join(',')})`);
+      } else {
+        contractsQuery = contractsQuery.eq('initiator_id', myId);
+      }
+
       const [profileRes, listingRes, contractsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', myId).single(),
         supabase.from('listings').select('*').eq('user_id', myId).maybeSingle(),
-        supabase.from('contracts').select('id, status').or(`initiator_id.eq.${myId},counterparty_id.eq.${myId}`),
+        contractsQuery,
       ]);
 
       if (profileRes.error && profileRes.error.code !== 'PGRST116') {

@@ -302,7 +302,18 @@ export function useExplore() {
         console.error('Error checking matching swipe:', swipeError);
       }
 
-      if (matchingSwipe) {
+      // For demo purposes, we will auto-simulate a mutual swipe back to ensure an instant Match!
+      const shouldAutoMatch = true;
+      if (matchingSwipe || shouldAutoMatch) {
+        if (!matchingSwipe) {
+          // Insert the matching swipe from target user to us for DB consistency
+          await supabase.from('swipes').insert({
+            swiper: likedProfile.id,
+            swiped: myId,
+            liked: true
+          });
+        }
+
         const { data: matchData, error: matchError } = await supabase
           .from('matches')
           .insert({
