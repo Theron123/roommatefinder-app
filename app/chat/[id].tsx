@@ -1,31 +1,30 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
-  View, Text, StyleSheet, TextInput, Pressable, FlatList,
-  KeyboardAvoidingView, Platform, Image, Modal, Alert, Dimensions
+  View, Text, StyleSheet,
+  KeyboardAvoidingView, Platform, Image, Alert, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { uploadToSupabase } from '@/utils/file';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
-import { Audio, Video, ResizeMode } from 'expo-av';
+import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
-import { BlurView } from 'expo-blur';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 const TypedFlashList = FlashList as any;
 import { ChatMessageItem } from '@/components/chat/ChatMessageItem';
 import { setActiveChatUserId } from '@/lib/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import ChatSettingsModal, { PRESET_WALLPAPERS } from '@/components/chat/modals/ChatSettingsModal';
+import ChatSettingsModal from '@/components/chat/modals/ChatSettingsModal';
 import ChatAttachMenu from '@/components/chat/modals/ChatAttachMenu';
 import ChatForwardModal from '@/components/chat/modals/ChatForwardModal';
 import ChatActionMenu from '@/components/chat/modals/ChatActionMenu';
 import ImageViewerModal from '@/components/chat/modals/ImageViewerModal';
+import ChatHeader from '@/components/chat/ChatHeader';
+import ChatInputBar from '@/components/chat/ChatInputBar';
 
 export default function ChatScreen() {
   const { id: rawId } = useLocalSearchParams();
@@ -664,26 +663,12 @@ export default function ChatScreen() {
         </View>
       )}
 
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color="#49C788" />
-        </Pressable>
-        
-        <Pressable style={styles.headerUserContainer} onPress={() => router.push(`/profile/${id}`)}>
-          {otherUser?.photoUrl ? (
-            <Image source={{ uri: otherUser.photoUrl }} style={styles.headerAvatar} />
-          ) : (
-            <View style={[styles.headerAvatar, { backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' }]}>
-              <Text style={{ color: '#fff', fontSize: 16 }}>{otherUser?.name?.[0] || '?'}</Text>
-            </View>
-          )}
-          <Text style={styles.headerName}>{otherUser ? otherUser.name : 'Loading...'}</Text>
-        </Pressable>
-
-        <Pressable onPress={() => setShowSettingsModal(true)} style={styles.paletteBtn}>
-          <MaterialCommunityIcons name="palette-outline" size={22} color="#49C788" />
-        </Pressable>
-      </View>
+      <ChatHeader
+        otherUser={otherUser}
+        onBack={() => router.back()}
+        onPressUser={() => router.push(`/profile/${id}`)}
+        onPressSettings={() => setShowSettingsModal(true)}
+      />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <TypedFlashList
@@ -701,79 +686,19 @@ export default function ChatScreen() {
           )}
         />
 
-        {replyingTo && (
-          <View style={styles.replyBanner}>
-            <Text style={styles.replyBannerText} numberOfLines={1}>
-              ↩ Replying: {replyingTo.content}
-            </Text>
-            <Pressable onPress={() => setReplyingTo(null)}>
-              <Text style={styles.replyBannerCancel}>✕</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <View style={styles.inputRow}>
-          <Pressable onPress={() => setShowAttachMenu(true)} style={styles.attachBtn}>
-            <MaterialCommunityIcons name="plus" size={26} color="#49C788" />
-          </Pressable>
-          {isRecording ? (
-            <View style={styles.recordingBar}>
-              <View style={styles.recordingDot} />
-              <Text style={styles.recordingText}>Grabando... {recordingDuration}s</Text>
-              
-              <View style={styles.recordingWaveform}>
-                {liveWaveform.map((activeHeight, i) => {
-                  return (
-                    <View
-                      key={i}
-                      style={[
-                        styles.recordingWaveBar,
-                        {
-                          height: activeHeight,
-                          backgroundColor: '#ff4444',
-                        }
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-
-              <Pressable onPress={stopRecording} style={styles.stopBtn}>
-                <MaterialCommunityIcons name="stop" size={18} color="#fff" />
-              </Pressable>
-            </View>
-          ) : (
-            <TextInput
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Escribe un mensaje..."
-              placeholderTextColor="#888"
-              style={styles.input}
-              multiline
-              blurOnSubmit={false}
-              onSubmitEditing={() => {
-                if (Platform.OS !== 'web') {
-                  sendMessage();
-                }
-              }}
-              onKeyPress={(e: any) => {
-                if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-            />
-          )}
-          {!isRecording && inputText.trim() === '' ? (
-            <Pressable onPress={startRecording} style={styles.micBtn}>
-              <MaterialCommunityIcons name="microphone" size={20} color="#fff" />
-            </Pressable>
-          ) : !isRecording ? (
-            <Pressable onPress={sendMessage} style={styles.sendBtn}>
-              <MaterialCommunityIcons name="send" size={18} color="#fff" style={{ marginLeft: 2 }} />
-            </Pressable>
-          ) : null}
-        </View>
+        <ChatInputBar
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
+          onPressAttach={() => setShowAttachMenu(true)}
+          isRecording={isRecording}
+          recordingDuration={recordingDuration}
+          liveWaveform={liveWaveform}
+          onStopRecording={stopRecording}
+          inputText={inputText}
+          onChangeInputText={setInputText}
+          onSendMessage={sendMessage}
+          onStartRecording={startRecording}
+        />
       </KeyboardAvoidingView>
 
       {/* ─── Image Viewer Modal ─── */}

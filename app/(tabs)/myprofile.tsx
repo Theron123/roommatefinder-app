@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { uploadToSupabase, getCleanExtension } from '@/utils/file';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -12,6 +12,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMyProfile, useUpdateProfileMutation } from '@/hooks/useProfileQueries';
+import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileLifestyleDetails from '@/components/profile/ProfileLifestyleDetails';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 
 export default function MyProfileScreen() {
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
@@ -192,87 +195,20 @@ export default function MyProfileScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         
         {/* Header with avatar */}
-        <LinearGradient colors={['#1a1a24', '#000']} style={[styles.heroSection, { paddingTop: insets.top + 20 }]}>
-          <View style={styles.avatarWrapper}>
-            <Pressable onPress={() => pickImage(0)} disabled={uploading}>
-              {uploading ? (
-                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
-                  <ActivityIndicator color="#49C788" />
-                </View>
-              ) : profile?.photoUrl ? (
-                <Image source={{ uri: profile.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-              ) : (
-                <View style={[styles.avatar, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' }]}>
-                  <IconSymbol name="person.crop.circle.fill" size={60} color="#666" />
-                </View>
-              )}
-              <View style={styles.onlineDot} />
-            </Pressable>
-
-          </View>
-
-          {editing ? (
-            <View style={styles.editInfoContainer}>
-              <View style={styles.editNameRow}>
-                <TextInput
-                  value={name}
-                  onChangeText={setName}
-                  style={styles.nameInput}
-                  placeholder="Name"
-                  placeholderTextColor="#666"
-                />
-                <TextInput
-                  value={age}
-                  onChangeText={setAge}
-                  style={[styles.nameInput, { minWidth: 60, marginLeft: 10 }]}
-                  placeholder="Age"
-                  placeholderTextColor="#666"
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
-              </View>
-              <Pressable onPress={handleSaveProfile} style={styles.saveBtn}>
-                <Text style={styles.saveBtnText}>{t('general.save')}</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={[styles.nameRow, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}>
-              <Pressable onPress={() => setEditing(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
-                {(profile?.trust_score ?? 0) >= 80 ? (
-                  <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
-                ) : (profile?.trust_score ?? 0) >= 40 ? (
-                  <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
-                ) : null}
-                <IconSymbol name="pencil" size={18} color="#888" style={{marginLeft: 4}} />
-              </Pressable>
-              
-              <Pressable 
-                onPress={() => router.push('/settings')}
-                style={{ marginLeft: 6 }}
-              >
-                <MaterialCommunityIcons name="cog" size={24} color="#49C788" />
-              </Pressable>
-            </View>
-          )}
-
-          <View style={styles.statusChipsContainer}>
-            {STATUS_OPTIONS.map(opt => (
-              <Pressable
-                key={opt.id}
-                onPress={() => updateStatus(opt.id)}
-                style={[styles.statusChip, status === opt.id && { backgroundColor: opt.color + '22', borderColor: opt.color }]}
-              >
-                <MaterialCommunityIcons name={opt.icon as any} size={14} color={status === opt.id ? opt.color : '#666'} />
-                <Text style={[styles.statusChipText, { color: status === opt.id ? opt.color : '#666' }]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.profileSub}>{t('myprofile.visible_sub')}</Text>
-        </LinearGradient>
+        <ProfileHeader
+          profile={profile}
+          insets={insets}
+          uploading={uploading}
+          name={name}
+          age={age}
+          status={status}
+          STATUS_OPTIONS={STATUS_OPTIONS}
+          onPickImage={pickImage}
+          onEditPress={() => setEditing(true)}
+          onSettingsPress={() => router.push('/settings')}
+          onUpdateStatus={updateStatus}
+          t={t}
+        />
 
         {/* Stats strip */}
         <View style={styles.statsRow}>
@@ -340,29 +276,16 @@ export default function MyProfileScreen() {
         {/* Sobre Mí / Bio */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>{t('myprofile.about_me')}</Text>
-          {!editing && (
-            <Pressable onPress={() => setEditing(true)}>
-              <IconSymbol name="pencil" size={20} color="#888" />
-            </Pressable>
-          )}
+          <Pressable onPress={() => setEditing(true)}>
+            <IconSymbol name="pencil" size={20} color="#888" />
+          </Pressable>
         </View>
         <View style={styles.bioContainer}>
-          {editing ? (
-            <TextInput
-              style={styles.bioInput}
-              multiline
-              placeholder={t('myprofile.write_bio')}
-              placeholderTextColor="#666"
-              value={bio}
-              onChangeText={setBio}
-            />
-          ) : (
-            <Pressable onPress={() => setEditing(true)}>
-              <Text style={profile.bio ? styles.bioText : styles.emptySection}>
-                {profile.bio || t('myprofile.tap_bio')}
-              </Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => setEditing(true)}>
+            <Text style={profile.bio ? styles.bioText : styles.emptySection}>
+              {profile.bio || t('myprofile.tap_bio')}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={styles.divider} />
@@ -399,109 +322,21 @@ export default function MyProfileScreen() {
           )}
         </View>
 
-        <View style={styles.divider} />
-
-        {/* Hobbies */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('myprofile.interests')}</Text>
-          <Pressable onPress={() => router.push('/preferences?focus=hobbies')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#49C788" />
-          </Pressable>
-        </View>
-        <View style={styles.chipWrap}>
-          {likesArr.length > 0 ? likesArr.map((tag: string, idx: number) => (
-            <View key={`${tag}-${idx}`} style={styles.chip}>
-              <Text style={styles.chipText}>{translateHobby(tag)}</Text>
-            </View>
-          )) : (
-            <Pressable onPress={() => router.push('/preferences?focus=hobbies')} style={styles.addChip}>
-              <IconSymbol name="plus" size={16} color="#49C788" />
-              <Text style={styles.addChipText}>{t('myprofile.add_hobbies')}</Text>
-            </Pressable>
-          )}
-        </View>
-
-        {/* Lifestyle */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('myprofile.lifestyle')}</Text>
-          <Pressable onPress={() => router.push('/preferences?focus=lifestyle')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#00C9A7" />
-          </Pressable>
-        </View>
-
-        {lifestyleEntries.length > 0 || prefsArr.length > 0 || languagesArr.length > 0 ? (
-          <View style={styles.lifestyleSection}>
-            {/* Categorized lifestyle entries */}
-            {lifestyleEntries.map(([key, val]: any) => {
-              const meta = LIFESTYLE_LABELS[key] || { label: key, emoji: '📌' };
-              return (
-                <View key={key} style={styles.lifestyleCategoryRow}>
-                  <Text style={styles.lifestyleCategoryLabel}>{meta.emoji} {translateLifestyleKey(key)}</Text>
-                  <View style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                    <Text style={[styles.chipText, { color: '#00C9A7', fontWeight: 'bold' }]}>{translateLifestyleVal(val)}</Text>
-                  </View>
-                </View>
-              );
-            })}
-
-            {/* Languages */}
-            {languagesArr.length > 0 && (
-              <View style={styles.lifestyleCategoryRow}>
-                <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.languages')}</Text>
-                <View style={styles.chipWrapInline}>
-                  {languagesArr.map((lang: string, idx: number) => (
-                    <View key={`lang-${lang}-${idx}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{translateLanguage(lang)}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Legacy preferences array (if any) */}
-            {prefsArr.length > 0 && (
-              <View style={styles.lifestyleCategoryRow}>
-                <Text style={styles.lifestyleCategoryLabel}>{t('myprofile.other')}</Text>
-                <View style={styles.chipWrapInline}>
-                  {prefsArr.map((tag: string, idx: number) => (
-                    <View key={`${tag}-${idx}`} style={[styles.chip, { backgroundColor: '#071916', borderColor: '#00C9A7' }]}>
-                      <Text style={[styles.chipText, { color: '#00C9A7' }]}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.chipWrap}>
-            <Pressable onPress={() => router.push('/preferences?focus=lifestyle')} style={[styles.addChip, { borderColor: '#00C9A7' }]}>
-              <IconSymbol name="plus" size={16} color="#00C9A7" />
-              <Text style={[styles.addChipText, { color: '#00C9A7' }]}>{t('myprofile.add_lifestyle')}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Dealbreakers */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>{t('myprofile.dealbreakers')}</Text>
-          <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')}>
-            <IconSymbol name="plus.circle.fill" size={24} color="#FF4B4B" />
-          </Pressable>
-        </View>
-        <View style={styles.chipWrap}>
-          {dealsArr.length > 0 ? (<>{dealsArr.map((tag: string, idx: number) => (
-            <View key={`${tag}-${idx}`} style={[styles.chip, { backgroundColor: '#1a0a0a', borderColor: '#FF4B4B' }]}>
-              <Text style={[styles.chipText, { color: '#FF4B4B' }]}>{translateDealbreaker(tag)}</Text>
-            </View>
-          ))}</>) : (
-            <Pressable onPress={() => router.push('/preferences?focus=dealbreakers')} style={[styles.addChip, { borderColor: '#FF4B4B' }]}>
-              <IconSymbol name="plus" size={16} color="#FF4B4B" />
-              <Text style={[styles.addChipText, { color: '#FF4B4B' }]}>{t('myprofile.add_dealbreakers')}</Text>
-            </Pressable>
-          )}
-        </View>
-
-
+              <ProfileLifestyleDetails
+          likesArr={likesArr}
+          prefsArr={prefsArr}
+          dealsArr={dealsArr}
+          lifestyleEntries={lifestyleEntries}
+          languagesArr={languagesArr}
+          LIFESTYLE_LABELS={LIFESTYLE_LABELS}
+          translateHobby={translateHobby}
+          translateDealbreaker={translateDealbreaker}
+          translateLifestyleKey={translateLifestyleKey}
+          translateLifestyleVal={translateLifestyleVal}
+          translateLanguage={translateLanguage}
+          router={router}
+          t={t}
+        />
 
         {/* Edit Preferences CTA */}
         <Pressable onPress={() => router.replace('/preferences')} style={styles.editBtn}>
@@ -569,6 +404,19 @@ export default function MyProfileScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <EditProfileModal
+        visible={editing}
+        onClose={() => setEditing(false)}
+        name={name}
+        onChangeName={setName}
+        age={age}
+        onChangeAge={setAge}
+        bio={bio}
+        onChangeBio={setBio}
+        onSave={handleSaveProfile}
+        t={t}
+      />
     </View>
   );
 }

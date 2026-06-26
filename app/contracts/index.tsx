@@ -89,11 +89,14 @@ export default function AgreementsHubScreen() {
   const getDisputeStatusConfig = (status: string) => {
     switch (status) {
       case 'pending':
+      case 'open':
         return { label: locale === 'es' ? 'Pendiente' : 'Pending', color: '#FFB800' };
       case 'resolved':
         return { label: locale === 'es' ? 'Resuelto' : 'Resolved', color: '#49C788' };
       case 'investigating':
         return { label: locale === 'es' ? 'Investigando' : 'Investigating', color: '#0A84FF' };
+      case 'dismissed':
+        return { label: locale === 'es' ? 'Desestimado' : 'Dismissed', color: '#888' };
       default:
         return { label: locale === 'es' ? 'Pendiente' : 'Pending', color: '#888' };
     }
