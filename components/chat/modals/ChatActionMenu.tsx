@@ -1,5 +1,6 @@
 import { Modal, Pressable, View, Text, StyleSheet, Platform } from 'react-native';
 import { useState, useEffect } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface ChatActionMenuProps {
   visible: boolean;
@@ -33,49 +34,90 @@ export default function ChatActionMenu({
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.actionMenuOverlay} onPress={onClose}>
-        <View style={styles.actionMenu}>
-          <Text style={styles.actionMenuTitle} numberOfLines={1}>
-            &quot;{activeMessage?.content || 'Message'}&quot;
-          </Text>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <View style={styles.bottomSheet} onStartShouldSetResponder={() => true}>
+          {/* Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle} numberOfLines={1}>
+              {showDeleteOptions ? 'Eliminar Mensaje' : 'Opciones de Mensaje'}
+            </Text>
+            <Pressable onPress={onClose} style={styles.sheetCloseBtn}>
+              <MaterialCommunityIcons name="close" size={20} color="#fff" />
+            </Pressable>
+          </View>
+
+          {/* Active Message Preview text */}
+          {!showDeleteOptions && activeMessage?.content && (
+            <Text style={styles.messagePreview} numberOfLines={1}>
+              &quot;{activeMessage.content}&quot;
+            </Text>
+          )}
 
           {showDeleteOptions ? (
-            <>
+            <View style={styles.optionsContainer}>
               <Text style={styles.deleteSubText}>¿Deseas eliminar este mensaje para ti o para todos?</Text>
-              <Pressable style={styles.actionMenuItem} onPress={() => { onDeleteForMe(activeMessage!.id); onClose(); }}>
-                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para mí</Text>
+              
+              <Pressable style={styles.optionRow} onPress={() => { onDeleteForMe(activeMessage!.id); onClose(); }}>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color="#FF453A" />
+                  <Text style={[styles.optionText, { color: '#FF453A' }]}>Eliminar para mí</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </Pressable>
-              <Pressable style={styles.actionMenuItem} onPress={() => { onDeleteForEveryone(activeMessage!.id); onClose(); }}>
-                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑 Eliminar para todos</Text>
+
+              <Pressable style={[styles.optionRow, styles.lastOptionRow]} onPress={() => { onDeleteForEveryone(activeMessage!.id); onClose(); }}>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color="#FF453A" />
+                  <Text style={[styles.optionText, { color: '#FF453A' }]}>Eliminar para todos</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </Pressable>
-              <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={() => setShowDeleteOptions(false)}>
-                <Text style={[styles.actionMenuItemText, { color: '#fff' }]}>Cancelar</Text>
+
+              <Pressable style={styles.backBtn} onPress={() => setShowDeleteOptions(false)}>
+                <Text style={styles.backBtnText}>Volver</Text>
               </Pressable>
-            </>
+            </View>
           ) : (
-            <>
-              <Pressable style={styles.actionMenuItem} onPress={() => { onReply(activeMessage); onClose(); }}>
-                <Text style={styles.actionMenuItemText}>↩  Reply</Text>
+            <View style={styles.optionsContainer}>
+              <Pressable style={styles.optionRow} onPress={() => { onReply(activeMessage); onClose(); }}>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="reply" size={22} color="#49C788" />
+                  <Text style={styles.optionText}>Responder</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </Pressable>
-              <Pressable style={styles.actionMenuItem} onPress={() => {
+
+              <Pressable style={styles.optionRow} onPress={() => {
                 onForward(activeMessage?.media_url ? { url: activeMessage.media_url } : { text: activeMessage?.content });
                 onClose();
               }}>
-                <Text style={styles.actionMenuItemText}>➡  Forward</Text>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="share-outline" size={22} color="#49C788" />
+                  <Text style={styles.optionText}>Reenviar</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </Pressable>
               
-              <Pressable style={styles.actionMenuItem} onPress={() => { onCopy(activeMessage?.content || ''); onClose(); }}>
-                <Text style={styles.actionMenuItemText}>📄  Copy</Text>
-              </Pressable>
-
-              {activeMessage?.sender_id === myId && (
-                <Pressable style={styles.actionMenuItem} onPress={() => { onInfo(activeMessage); onClose(); }}>
-                  <Text style={styles.actionMenuItemText}>ℹ️  Info</Text>
+              {activeMessage?.content && (
+                <Pressable style={styles.optionRow} onPress={() => { onCopy(activeMessage?.content || ''); onClose(); }}>
+                  <View style={styles.optionLeft}>
+                    <MaterialCommunityIcons name="content-copy" size={22} color="#49C788" />
+                    <Text style={styles.optionText}>Copiar texto</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
                 </Pressable>
               )}
 
-              <Pressable style={styles.actionMenuItem} onPress={() => {
+              <Pressable style={styles.optionRow} onPress={() => { onInfo(activeMessage); onClose(); }}>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="information-outline" size={22} color="#34B7F1" />
+                  <Text style={styles.optionText}>Info del mensaje</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
+              </Pressable>
+
+              <Pressable style={[styles.optionRow, styles.lastOptionRow]} onPress={() => {
                 if (activeMessage) {
                   if (myId === activeMessage.sender_id) {
                     setShowDeleteOptions(true);
@@ -88,20 +130,19 @@ export default function ChatActionMenu({
                         onClose();
                       }
                     } else {
-                      // Platform alert logic handles delete natively, so we just trigger it and let the callback handle UI
                       onDeleteForMe(activeMessage.id);
                       onClose();
                     }
                   }
                 }
               }}>
-                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>🗑  Delete</Text>
+                <View style={styles.optionLeft}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color="#FF453A" />
+                  <Text style={[styles.optionText, { color: '#FF453A' }]}>Eliminar</Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={20} color="#666" />
               </Pressable>
-
-              <Pressable style={[styles.actionMenuItem, styles.actionMenuCancel]} onPress={onClose}>
-                <Text style={[styles.actionMenuItemText, { color: '#ff4444' }]}>Cancel</Text>
-              </Pressable>
-            </>
+            </View>
           )}
         </View>
       </Pressable>
@@ -110,13 +151,88 @@ export default function ChatActionMenu({
 }
 
 const styles = StyleSheet.create({
-  actionMenuOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20,
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
   },
-  actionMenu: { backgroundColor: '#2A2A2A', borderRadius: 12, width: '100%', padding: 16 },
-  actionMenuTitle: { color: '#aaa', fontSize: 14, marginBottom: 12, textAlign: 'center' },
-  deleteSubText: { color: '#888', textAlign: 'center', marginBottom: 10, fontSize: 13, paddingHorizontal: 10 },
-  actionMenuItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#333' },
-  actionMenuItemText: { color: '#fff', fontSize: 16, textAlign: 'center' },
-  actionMenuCancel: { borderBottomWidth: 0, marginTop: 8 },
+  bottomSheet: {
+    backgroundColor: '#1C2530',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sheetTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sheetCloseBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 20,
+  },
+  messagePreview: {
+    color: '#888',
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  deleteSubText: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  optionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  lastOptionRow: {
+    borderBottomWidth: 0,
+  },
+  optionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  optionText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  backBtn: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
 });

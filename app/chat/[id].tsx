@@ -23,6 +23,7 @@ import ChatAttachMenu from '@/components/chat/modals/ChatAttachMenu';
 import ChatForwardModal from '@/components/chat/modals/ChatForwardModal';
 import ChatActionMenu from '@/components/chat/modals/ChatActionMenu';
 import ImageViewerModal from '@/components/chat/modals/ImageViewerModal';
+import MessageInfoModal from '@/components/chat/modals/MessageInfoModal';
 import ChatHeader from '@/components/chat/ChatHeader';
 import ChatInputBar from '@/components/chat/ChatInputBar';
 
@@ -72,6 +73,8 @@ export default function ChatScreen() {
 
   const [wallpaper, setWallpaper] = useState<string>('default');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoMessage, setInfoMessage] = useState<any>(null);
 
   const [playbackProgress, setPlaybackProgress] = useState<number>(0);
   const webAudioCtxRef = useRef<AudioContext | null>(null);
@@ -728,9 +731,8 @@ export default function ChatScreen() {
           Alert.alert('Copiado', 'Mensaje copiado al portapapeles');
         }}
         onInfo={(msg) => {
-          const isRead = msg.is_read;
-          const timeStr = new Date(msg.created_at).toLocaleString();
-          Alert.alert('Message Info', `Enviado: ${timeStr}\nEstado: ${isRead ? 'Leído' : 'Entregado'}`);
+          setInfoMessage(msg);
+          setShowInfoModal(true);
         }}
         onDeleteForMe={(id) => {
           if (Platform.OS === 'web') {
@@ -768,6 +770,16 @@ export default function ChatScreen() {
         onClose={() => setShowSettingsModal(false)}
         onPickCustom={pickCustomWallpaper}
         onSelectPreset={selectPresetWallpaper}
+      />
+      {/* ─── Message Info Modal ─── */}
+      <MessageInfoModal
+        visible={showInfoModal}
+        message={infoMessage}
+        myId={myId}
+        onClose={() => {
+          setShowInfoModal(false);
+          setInfoMessage(null);
+        }}
       />
     </SafeAreaView>
   );
