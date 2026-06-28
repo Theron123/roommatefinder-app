@@ -28,7 +28,9 @@ export default function LoginScreen() {
       .eq('id', userId)
       .single();
 
-    if (data && data.role) {
+    if (data?.role === 'admin') {
+      router.replace('/(admin)' as any);
+    } else if (data && data.role) {
       router.replace('/(tabs)');
     } else {
       router.replace('/role-select');

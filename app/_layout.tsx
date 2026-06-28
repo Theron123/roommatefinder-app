@@ -111,6 +111,7 @@ export default function RootLayout() {
             <Stack.Screen name="onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(admin)" options={{ headerShown: false }} />
             <Stack.Screen name="profile/[id]" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="chat/[id]" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="role-select" options={{ headerShown: false }} />
