@@ -8,6 +8,7 @@ let MapContainer: any = () => null;
 let TileLayer: any = () => null;
 let RMarker: any = () => null;
 let Popup: any = () => null;
+let useMap: any = () => null;
 let L: any = null;
 
 if (typeof window !== 'undefined') {
@@ -17,6 +18,7 @@ if (typeof window !== 'undefined') {
   TileLayer = RL.TileLayer;
   RMarker = RL.Marker;
   Popup = RL.Popup;
+  useMap = RL.useMap;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   L = require('leaflet');
 
@@ -48,8 +50,18 @@ export function Callout(props: any) {
   );
 }
 
+function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && map) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
+  return null;
+}
+
 export default function MapView(props: any) {
-  const { style, children, region } = props;
+  const { style, children, region, initialRegion } = props;
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,8 +72,9 @@ export default function MapView(props: any) {
     return <View style={[styles.container, style]} />;
   }
 
-  const center = region ? [region.latitude, region.longitude] : [19.4326, -99.1332];
-  const zoom = region && region.latitudeDelta ? Math.round(Math.log(360 / region.latitudeDelta) / Math.LN2) : 12;
+  const activeRegion = region || initialRegion;
+  const center = activeRegion ? [activeRegion.latitude, activeRegion.longitude] : [19.4326, -99.1332];
+  const zoom = activeRegion && activeRegion.latitudeDelta ? Math.round(Math.log(360 / activeRegion.latitudeDelta) / Math.LN2) : 12;
 
   return (
     <View style={[styles.container, style]}>
@@ -75,6 +88,7 @@ export default function MapView(props: any) {
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       
       <MapContainer center={center} zoom={zoom} scrollWheelZoom={true}>
+        <ChangeView center={center as [number, number]} zoom={zoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

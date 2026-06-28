@@ -25,8 +25,14 @@ export default function ExploreMapView({
 }: ExploreMapViewProps) {
   const router = useRouter();
 
+  // A dynamic key based on whether we have coordinates for the user.
+  // This forces MapView to remount and center on the user's location once it is resolved.
+  const hasLocation = !!(currentUser?.latOffset || userLocation?.latitude);
+  const mapKey = hasLocation ? 'map-located' : 'map-default';
+
   return (
     <MapView
+      key={mapKey}
       style={styles.map}
       provider={PROVIDER_GOOGLE}
       initialRegion={{
