@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ScrollView, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { locale, setLocale, t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   const handleLanguageChange = async (newLocale: Locale) => {
     if (locale === newLocale) return;
@@ -23,6 +24,10 @@ export default function SettingsScreen() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login');
+  };
+
+  const handleDeleteAccount = () => {
+    setDeleteModalVisible(true);
   };
 
   const SettingsItem = ({ 
@@ -53,7 +58,7 @@ export default function SettingsScreen() {
         </View>
         <Text style={[styles.itemText, { color }]}>{title}</Text>
       </View>
-      {title !== t('settings.logout') && (
+      {title !== t('settings.logout') && title !== t('settings.delete_account') && (
         <MaterialCommunityIcons name="chevron-right" size={20} color="#555" />
       )}
     </Pressable>
@@ -206,6 +211,15 @@ export default function SettingsScreen() {
               iconColor="#FF453A" 
               onPress={handleLogout} 
             />
+            <View style={styles.cardDivider} />
+            <SettingsItem 
+              icon="delete-forever-outline" 
+              title={t('settings.delete_account')} 
+              color="#FF453A" 
+              bgColor="rgba(255,59,48,0.1)" 
+              iconColor="#FF453A" 
+              onPress={handleDeleteAccount} 
+            />
           </View>
 
           <View style={styles.footer}>
@@ -214,6 +228,85 @@ export default function SettingsScreen() {
 
         </ScrollView>
       )}
+
+      <Modal
+        visible={deleteModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconWrap, { backgroundColor: 'rgba(255,69,58,0.1)' }]}>
+              <MaterialCommunityIcons name="alert-decagram-outline" size={32} color="#FF453A" />
+            </View>
+            <Text style={styles.modalTitle}>
+              {locale === 'es' ? "Eliminar Cuenta" : "Delete Account"}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {locale === 'es' 
+                ? "¿Estás completamente seguro de que deseas eliminar tu cuenta? Esta acción es irreversible y borrará todos tus datos, mensajes y contratos de forma permanente."
+                : "Are you absolutely sure you want to delete your account? This action is irreversible and will permanently delete all your data, messages, and contracts."}
+            </Text>
+            <View style={styles.modalButtonsStack}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnDestructive,
+                  pressed && { opacity: 0.8 }
+                ]}
+                onPress={async () => {
+                  setDeleteModalVisible(false);
+                  setLoading(true);
+                  try {
+                    const { error } = await supabase.rpc('delete_user');
+                    if (error) throw error;
+                    
+                    await supabase.auth.signOut();
+                    if (Platform.OS === 'web') {
+                      alert(locale === 'es' ? "Tu cuenta ha sido eliminada exitosamente." : "Your account has been successfully deleted.");
+                      router.replace('/(auth)/login');
+                    } else {
+                      Alert.alert(
+                        locale === 'es' ? "Cuenta Eliminada" : "Account Deleted",
+                        locale === 'es' ? "Tu cuenta ha sido eliminada exitosamente." : "Your account has been successfully deleted.",
+                        [{ text: "OK", onPress: () => router.replace('/(auth)/login') }]
+                      );
+                    }
+                  } catch (err: any) {
+                    const errMsg = err.message || err;
+                    if (Platform.OS === 'web') {
+                      alert(locale === 'es' ? `No se pudo eliminar la cuenta: ${errMsg}` : `Failed to delete account: ${errMsg}`);
+                    } else {
+                      Alert.alert(
+                        locale === 'es' ? "Error" : "Error",
+                        locale === 'es' ? `No se pudo eliminar la cuenta: ${errMsg}` : `Failed to delete account: ${errMsg}`
+                      );
+                    }
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.modalBtnTextDestructive}>
+                  {locale === 'es' ? "Eliminar Definitivamente" : "Delete Permanently"}
+                </Text>
+              </Pressable>
+              
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  pressed && { opacity: 0.8 }
+                ]}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalBtnTextCancel}>
+                  {locale === 'es' ? "Cancelar" : "Cancel"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -351,6 +444,82 @@ const styles = StyleSheet.create({
   footerVersion: {
     color: '#444',
     fontSize: 12,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  },
+  modalCard: {
+    width: '85%',
+    maxWidth: 340,
+    backgroundColor: '#10141e',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  modalIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  modalMessage: {
+    color: '#aaa',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButtonsStack: {
+    width: '100%',
+    gap: 8,
+  },
+  modalBtnDestructive: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#FF453A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnCancel: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnTextDestructive: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalBtnTextCancel: {
+    color: '#888',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
