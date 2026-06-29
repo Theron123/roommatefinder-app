@@ -71,7 +71,11 @@ export default function OnboardingScreen() {
             .single();
           
           if (profile?.role) {
-            router.replace('/(tabs)');
+            if (profile.role === 'admin') {
+              router.replace('/(admin)' as any);
+            } else {
+              router.replace('/(tabs)');
+            }
           }
         }
       } catch (err) {
@@ -101,7 +105,11 @@ export default function OnboardingScreen() {
           .single();
         
         if (profile?.role) {
-          router.replace('/(tabs)');
+          if (profile.role === 'admin') {
+            router.replace('/(admin)' as any);
+          } else {
+            router.replace('/(tabs)');
+          }
         } else {
           router.replace('/role-select');
         }

@@ -94,13 +94,6 @@ export default function HomeScreen() {
     }
     if (isRefresh) setRefreshing(true);
 
-    try {
-      const stored = await AsyncStorage.getItem('mock_premium');
-      setIsPremium(stored === 'true');
-    } catch {
-      // error reading value
-    }
-
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       setLoading(false);
@@ -109,7 +102,7 @@ export default function HomeScreen() {
 
     const { data: currentUserProfile } = await supabase
       .from('profiles')
-      .select('id, latOffset, lngOffset, likes, preferences, photoUrl')
+      .select('id, latOffset, lngOffset, likes, preferences, photoUrl, share_badges_enabled')
       .eq('id', session.user.id)
       .single();
     
@@ -118,6 +111,8 @@ export default function HomeScreen() {
       setRefreshing(false);
       return;
     }
+
+    setIsPremium(currentUserProfile.share_badges_enabled === true);
 
     if (currentUserProfile.photoUrl) {
       setCurrentUserPhoto(currentUserProfile.photoUrl);

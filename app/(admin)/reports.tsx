@@ -5,7 +5,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+const adminSupabase = serviceRoleKey
+  ? createClient(process.env.EXPO_PUBLIC_SUPABASE_URL as string, serviceRoleKey, {
+      auth: { persistSession: false },
+    })
+  : supabase;
 
 type Report = {
   id: string;
@@ -50,7 +58,7 @@ export default function AdminReports() {
       {
         text: 'Confirm',
         onPress: async () => {
-          await supabase.from('user_reports').update({ status: newStatus }).eq('id', id);
+          await adminSupabase.from('user_reports').update({ status: newStatus }).eq('id', id);
           fetchReports();
         },
       },

@@ -1,11 +1,57 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { supabase } from '@/lib/supabase';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import TutorialModal from '@/components/TutorialModal';
 
 export default function TabLayout() {
+  const [checking, setChecking] = useState(true);
+  const [allowed, setAllowed] = useState(false);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          router.replace('/(auth)/login' as any);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role === 'admin') {
+          // Administrators are strictly prohibited from viewing the user tabs
+          router.replace('/(admin)' as any);
+          return;
+        }
+
+        setAllowed(true);
+      } catch (err) {
+        router.replace('/(auth)/login' as any);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAccess();
+  }, []);
+
+  if (checking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#49C788" />
+      </View>
+    );
+  }
+
+  if (!allowed) return null;
 
   return (
     <>
