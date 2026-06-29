@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from '../../context/LanguageContext';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 type Report = {
   id: string;
@@ -18,15 +19,19 @@ type Report = {
 };
 
 const STATUSES = ['pending', 'reviewed', 'resolved', 'dismissed'];
-const STATUS_COLOR: Record<string, string> = {
-  pending: '#f97316', reviewed: '#3b82f6', resolved: '#49C788', dismissed: '#555',
-};
 
 export default function AdminReports() {
   const [reports, setReports]       = useState<Report[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('pending');
+
+  const { locale, t } = useTranslation();
+  const { accentColor } = useAdminTheme();
+
+  const STATUS_COLOR: Record<string, string> = {
+    pending: '#f97316', reviewed: '#3b82f6', resolved: accentColor, dismissed: '#555',
+  };
 
   const fetchReports = useCallback(async () => {
     const { data, error } = await supabase
@@ -45,20 +50,24 @@ export default function AdminReports() {
   const onRefresh = () => { setRefreshing(true); fetchReports(); };
 
   const updateStatus = (id: string, newStatus: string) => {
-    Alert.alert('Update Status', `Mark as "${newStatus}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Confirm',
-        onPress: async () => {
-          await supabase.from('user_reports').update({ status: newStatus }).eq('id', id);
-          fetchReports();
+    Alert.alert(
+      t('general.confirm', 'Confirm'), 
+      t('admin.reports.update_msg', 'Mark as "{status}"?').replace('{status}', newStatus), 
+      [
+        { text: t('general.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('general.confirm', 'Confirm'),
+          onPress: async () => {
+            await supabase.from('user_reports').update({ status: newStatus }).eq('id', id);
+            fetchReports();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', {
+    new Date(iso).toLocaleDateString(t('settings.locale', 'en-US'), {
       month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
@@ -69,7 +78,7 @@ export default function AdminReports() {
         <View style={styles.cardHeaderLeft}>
           <Text style={styles.reason}>{item.reason}</Text>
           <Text style={styles.meta}>
-            Reporter: {item.reporter_id.slice(0, 8)}... → Reported: {item.reported_id.slice(0, 8)}...
+            {t('admin.reports.reporter', 'Reporter')}: {item.reporter_id.slice(0, 8)}... → {t('admin.reports.reported', 'Reported')}: {item.reported_id.slice(0, 8)}...
           </Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[item.status] + '22' }]}>
@@ -82,7 +91,7 @@ export default function AdminReports() {
       {item.description ? (
         <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
       ) : (
-        <Text style={styles.noDesc}>No description provided.</Text>
+        <Text style={styles.noDesc}>{locale === 'es' ? 'Sin descripción proporcionada.' : 'No description provided.'}</Text>
       )}
 
       <View style={styles.cardFooter}>
@@ -108,7 +117,7 @@ export default function AdminReports() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>Reports & Support</Text>
+        <Text style={styles.pageTitle}>{t('admin.reports.title', 'User Reports')}</Text>
       </View>
 
       {/* Filter tabs */}
@@ -134,7 +143,7 @@ export default function AdminReports() {
 
       {loading && !refreshing ? (
         <View style={styles.centerLoader}>
-          <ActivityIndicator size="large" color="#49C788" />
+          <ActivityIndicator size="large" color={accentColor} />
         </View>
       ) : (
         <FlatList
@@ -142,8 +151,12 @@ export default function AdminReports() {
           keyExtractor={(r) => r.id}
           renderItem={renderReport}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#49C788" />}
-          ListEmptyComponent={<Text style={styles.emptyText}>No {filterStatus} reports.</Text>}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentColor} />}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              {locale === 'es' ? `No hay reportes pendientes.` : `No pending reports.`}
+            </Text>
+          }
         />
       )}
     </SafeAreaView>

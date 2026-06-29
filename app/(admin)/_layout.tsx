@@ -12,22 +12,35 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from '../../context/LanguageContext';
+import { AdminThemeProvider, useAdminTheme } from '../../context/AdminThemeContext';
 
 const SIDEBAR_WIDTH = 220;
 
 const NAV_ITEMS = [
-  { label: 'Overview',      icon: 'view-dashboard-outline' as const, path: '/(admin)' },
-  { label: 'Users',         icon: 'account-group-outline'  as const, path: '/(admin)/users' },
-  { label: 'Listings',      icon: 'home-city-outline'      as const, path: '/(admin)/listings' },
-  { label: 'Payments',      icon: 'credit-card-outline'    as const, path: '/(admin)/payments' },
-  { label: 'Reports',       icon: 'alert-circle-outline'   as const, path: '/(admin)/reports' },
-  { label: 'Verifications', icon: 'shield-check-outline'   as const, path: '/(admin)/verifications' },
+  { key: 'overview',      icon: 'view-dashboard-outline' as const, path: '/(admin)' },
+  { key: 'users',         icon: 'account-group-outline'  as const, path: '/(admin)/users' },
+  { key: 'listings',      icon: 'home-city-outline'      as const, path: '/(admin)/listings' },
+  { key: 'payments',      icon: 'credit-card-outline'    as const, path: '/(admin)/payments' },
+  { key: 'reports',       icon: 'alert-circle-outline'   as const, path: '/(admin)/reports' },
+  { key: 'verifications', icon: 'shield-check-outline'   as const, path: '/(admin)/verifications' },
+  { key: 'settings',      icon: 'cog-outline'            as const, path: '/(admin)/settings' },
 ];
 
 export default function AdminLayout() {
+  return (
+    <AdminThemeProvider>
+      <AdminLayoutContent />
+    </AdminThemeProvider>
+  );
+}
+
+function AdminLayoutContent() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin]   = useState(false);
   const pathname = usePathname();
+  const { t } = useTranslation();
+  const { accentColor } = useAdminTheme();
 
   useEffect(() => { verifyAdmin(); }, []);
 
@@ -60,8 +73,8 @@ export default function AdminLayout() {
   if (checking) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#49C788" />
-        <Text style={styles.loadingText}>Verifying access...</Text>
+        <ActivityIndicator size="large" color={accentColor} />
+        <Text style={styles.loadingText}>{t('general.loading', 'Loading...')}</Text>
       </View>
     );
   }
@@ -77,8 +90,8 @@ export default function AdminLayout() {
         <View style={[styles.sidebar, isExpanded && styles.sidebarExpanded]}>
           {/* Brand */}
           <View style={[styles.brand, isExpanded && styles.brandExpanded]}>
-            <MaterialCommunityIcons name="shield-crown" size={26} color="#49C788" />
-            {isExpanded && <Text style={styles.brandText}>Admin Panel</Text>}
+            <MaterialCommunityIcons name="shield-crown" size={26} color={accentColor} />
+            {isExpanded && <Text style={styles.brandText}>{t('admin.title', 'Admin Panel')}</Text>}
           </View>
 
           {/* Nav items */}
@@ -90,17 +103,21 @@ export default function AdminLayout() {
               return (
                 <TouchableOpacity
                   key={item.path}
-                  style={[styles.navItem, active && styles.navItemActive, isExpanded && styles.navItemExpanded]}
+                  style={[
+                    styles.navItem, 
+                    active && { backgroundColor: `${accentColor}15` }, 
+                    isExpanded && styles.navItemExpanded
+                  ]}
                   onPress={() => router.push(item.path as any)}
                 >
                   <MaterialCommunityIcons
                     name={item.icon}
                     size={22}
-                    color={active ? '#49C788' : '#888'}
+                    color={active ? accentColor : '#888'}
                   />
                   {isExpanded && (
-                    <Text style={[styles.navLabel, active && styles.navLabelActive]}>
-                      {item.label}
+                    <Text style={[styles.navLabel, active && { color: accentColor, fontWeight: '600' }]}>
+                      {t(`admin.nav.${item.key}`)}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -114,7 +131,7 @@ export default function AdminLayout() {
             onPress={handleLogout}
           >
             <MaterialCommunityIcons name="logout" size={22} color="#ff4444" />
-            {isExpanded && <Text style={styles.logoutText}>Log out</Text>}
+            {isExpanded && <Text style={styles.logoutText}>{t('admin.nav.logout', 'Log out')}</Text>}
           </TouchableOpacity>
         </View>
 
@@ -167,9 +184,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   navItemExpanded:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  navItemActive:    { backgroundColor: 'rgba(73,199,136,0.1)' },
   navLabel:         { color: '#888', fontSize: 14, fontWeight: '500' },
-  navLabelActive:   { color: '#49C788', fontWeight: '600' },
   logoutBtn: {
     alignItems: 'center',
     paddingVertical: 13,

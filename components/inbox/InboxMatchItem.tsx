@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface InboxMatchItemProps {
   item: any;
@@ -13,7 +14,12 @@ const InboxMatchItemComponent = ({ item, onPress }: InboxMatchItemProps) => {
       <View style={styles.matchAvatarContainer}>
         <Image source={{ uri: item.photoUrl }} style={styles.matchAvatar} contentFit="cover" cachePolicy="memory-disk" />
       </View>
-      <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', width: '100%' }}>
+        <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
+        {item.is_identity_verified && (
+          <MaterialCommunityIcons name="check-decagram" size={12} color="#49C788" style={{ flexShrink: 0 }} />
+        )}
+      </View>
     </Pressable>
   );
 };

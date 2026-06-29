@@ -70,7 +70,9 @@ export default function OnboardingScreen() {
             .eq('id', session.user.id)
             .single();
           
-          if (profile?.role) {
+          if (profile?.role === 'admin') {
+            router.replace('/(admin)');
+          } else if (profile?.role) {
             router.replace('/(tabs)');
           }
         }
@@ -86,6 +88,19 @@ export default function OnboardingScreen() {
       if (router.canGoBack()) {
         router.back();
       } else {
+        // Double check admin role before redirecting force home
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          if (profile?.role === 'admin') {
+            router.replace('/(admin)');
+            return;
+          }
+        }
         router.replace('/(tabs)');
       }
       return;
@@ -100,7 +115,9 @@ export default function OnboardingScreen() {
           .eq('id', session.user.id)
           .single();
         
-        if (profile?.role) {
+        if (profile?.role === 'admin') {
+          router.replace('/(admin)');
+        } else if (profile?.role) {
           router.replace('/(tabs)');
         } else {
           router.replace('/role-select');

@@ -140,9 +140,14 @@ export default function ExploreCard({
               </View>
             )}
           </View>
-          <Text style={styles.cardTitle}>
-            {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <Text style={[styles.cardTitle, { marginBottom: 0 }]}>
+              {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
+            </Text>
+            {card.is_identity_verified && (
+              <MaterialCommunityIcons name="check-decagram" size={20} color="#49C788" />
+            )}
+          </View>
           
           <View style={styles.rowContainer}>
             <View style={[styles.infoSection, { flex: 1, marginRight: 8 }]}>

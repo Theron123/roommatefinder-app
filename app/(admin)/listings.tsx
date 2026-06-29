@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, ActivityIndicator, RefreshControl, Alert,
-  ScrollView, Platform,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from '../../context/LanguageContext';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 type Listing = {
   id: string;
@@ -20,9 +30,6 @@ type Listing = {
 };
 
 const STATUSES = ['all', 'active', 'inactive', 'pending'];
-const STATUS_COLOR: Record<string, string> = {
-  active: '#49C788', inactive: '#888', pending: '#f97316',
-};
 
 const BULK_PLACEHOLDER = `[
   {
@@ -50,6 +57,13 @@ export default function AdminListings() {
   const [importing, setImporting]   = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; errors: string[] } | null>(null);
 
+  const { locale, t } = useTranslation();
+  const { accentColor } = useAdminTheme();
+
+  const STATUS_COLOR: Record<string, string> = {
+    active: accentColor, inactive: '#888', pending: '#f97316',
+  };
+
   const fetchListings = useCallback(async () => {
     let query = supabase
       .from('listings')
@@ -74,16 +88,20 @@ export default function AdminListings() {
   };
 
   const deleteListing = (id: string) => {
-    Alert.alert('Delete Listing', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          await supabase.from('listings').delete().eq('id', id);
-          fetchListings();
+    Alert.alert(
+      t('admin.listings.delete_confirm', 'Delete Listing'), 
+      t('admin.listings.delete_message', 'Are you sure you want to delete this listing? This action cannot be undone.'), 
+      [
+        { text: t('general.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('admin.listings.delete_btn', 'Delete'), style: 'destructive',
+          onPress: async () => {
+            await supabase.from('listings').delete().eq('id', id);
+            fetchListings();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   // ── Bulk Import ────────────────────────────────────────────────
@@ -132,7 +150,7 @@ export default function AdminListings() {
   };
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(iso).toLocaleDateString(t('settings.locale', 'en-US'), { month: 'short', day: 'numeric', year: 'numeric' });
 
   const renderListing = ({ item }: { item: Listing }) => (
     <View style={styles.row}>
@@ -140,10 +158,12 @@ export default function AdminListings() {
         <View style={styles.rowTop}>
           <Text style={styles.listingTitle} numberOfLines={1}>{item.title}</Text>
           {item.is_property_verified && (
-            <MaterialCommunityIcons name="check-decagram" size={13} color="#49C788" />
+            <MaterialCommunityIcons name="check-decagram" size={13} color={accentColor} />
           )}
         </View>
-        <Text style={styles.listingMeta} numberOfLines={1}>{item.address} · ₡{item.price.toLocaleString()}/mo</Text>
+        <Text style={styles.listingMeta} numberOfLines={1}>
+          {item.address} · {t('admin.listings.price', '${price}/mo').replace('{price}', item.price.toLocaleString())}
+        </Text>
         <Text style={styles.listingDate}>{formatDate(item.created_at)}</Text>
       </View>
       <View style={styles.rowActions}>
@@ -169,20 +189,24 @@ export default function AdminListings() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header */}
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>Listings</Text>
+        <Text style={styles.pageTitle}>{t('admin.listings.title', 'Listings Moderation')}</Text>
         <View style={styles.tabToggle}>
           <TouchableOpacity
             style={[styles.tabBtn, tab === 'list' && styles.tabBtnActive]}
             onPress={() => setTab('list')}
           >
-            <Text style={[styles.tabBtnText, tab === 'list' && styles.tabBtnTextActive]}>Manage</Text>
+            <Text style={[styles.tabBtnText, tab === 'list' && { color: accentColor }]}>
+              {locale === 'es' ? 'Gestionar' : 'Manage'}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabBtn, tab === 'import' && styles.tabBtnActive]}
             onPress={() => setTab('import')}
           >
-            <MaterialCommunityIcons name="upload" size={14} color={tab === 'import' ? '#49C788' : '#888'} />
-            <Text style={[styles.tabBtnText, tab === 'import' && styles.tabBtnTextActive]}>Bulk Import</Text>
+            <MaterialCommunityIcons name="upload" size={14} color={tab === 'import' ? accentColor : '#888'} />
+            <Text style={[styles.tabBtnText, tab === 'import' && { color: accentColor }]}>
+              {locale === 'es' ? 'Importación' : 'Bulk Import'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -194,15 +218,16 @@ export default function AdminListings() {
             {STATUSES.map(s => (
               <TouchableOpacity
                 key={s}
-                style={[styles.filterChip,
+                style={[
+                  styles.filterChip,
                   filterStatus === s && {
-                    borderColor: (STATUS_COLOR[s] || '#49C788'),
-                    backgroundColor: (STATUS_COLOR[s] || '#49C788') + '18',
+                    borderColor: (STATUS_COLOR[s] || accentColor),
+                    backgroundColor: (STATUS_COLOR[s] || accentColor) + '18',
                   },
                 ]}
                 onPress={() => setFilterStatus(s)}
               >
-                <Text style={[styles.filterText, filterStatus === s && { color: STATUS_COLOR[s] || '#49C788' }]}>
+                <Text style={[styles.filterText, filterStatus === s && { color: STATUS_COLOR[s] || accentColor }]}>
                   {s}
                 </Text>
               </TouchableOpacity>
@@ -211,16 +236,16 @@ export default function AdminListings() {
 
           {loading && !refreshing ? (
             <View style={styles.centerLoader}>
-              <ActivityIndicator size="large" color="#49C788" />
+              <ActivityIndicator size="large" color={accentColor} />
             </View>
           ) : (
             <FlatList
               data={listings}
               keyExtractor={(l) => l.id}
               renderItem={renderListing}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#49C788" />}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentColor} />}
               ItemSeparatorComponent={() => <View style={styles.separator} />}
-              ListEmptyComponent={<Text style={styles.emptyText}>No listings found.</Text>}
+              ListEmptyComponent={<Text style={styles.emptyText}>{t('admin.listings.no_listings', 'No listings found.')}</Text>}
             />
           )}
         </>
@@ -230,20 +255,23 @@ export default function AdminListings() {
           <View style={styles.importInfo}>
             <MaterialCommunityIcons name="information-outline" size={18} color="#3b82f6" />
             <Text style={styles.importInfoText}>
-              Paste a JSON array of listing objects. Required:{' '}
-              <Text style={styles.code}>title</Text>,{' '}
-              <Text style={styles.code}>address</Text>,{' '}
-              <Text style={styles.code}>price</Text>.{'\n'}
-              Optional: <Text style={styles.code}>latitude</Text>,{' '}
-              <Text style={styles.code}>longitude</Text>,{' '}
-              <Text style={styles.code}>utilities_included</Text>,{' '}
-              <Text style={styles.code}>status</Text>,{' '}
-              <Text style={styles.code}>images</Text>.
+              {locale === 'es' 
+                ? "Pega un arreglo JSON de objetos de alojamiento. Requerido: "
+                : "Paste a JSON array of listing objects. Required: "}
+              <Text style={[styles.code, { color: accentColor }]}>title</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>address</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>price</Text>.{'\n'}
+              {locale === 'es' ? "Opcional: " : "Optional: "}
+              <Text style={[styles.code, { color: accentColor }]}>latitude</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>longitude</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>utilities_included</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>status</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>images</Text>.
             </Text>
           </View>
 
           <TextInput
-            style={styles.jsonInput}
+            style={[styles.jsonInput, { color: accentColor }]}
             multiline
             placeholder={BULK_PLACEHOLDER}
             placeholderTextColor="#333"
@@ -256,7 +284,7 @@ export default function AdminListings() {
           />
 
           <TouchableOpacity
-            style={[styles.importBtn, (importing || !jsonInput.trim()) && { opacity: 0.5 }]}
+            style={[styles.importBtn, { backgroundColor: accentColor }, (importing || !jsonInput.trim()) && { opacity: 0.5 }]}
             onPress={handleBulkImport}
             disabled={importing || !jsonInput.trim()}
           >
@@ -265,15 +293,15 @@ export default function AdminListings() {
             ) : (
               <>
                 <MaterialCommunityIcons name="upload" size={18} color="#000" />
-                <Text style={styles.importBtnText}>Import Listings</Text>
+                <Text style={styles.importBtnText}>{locale === 'es' ? "Importar Alojamientos" : "Import Listings"}</Text>
               </>
             )}
           </TouchableOpacity>
 
           {importResult && (
             <View style={styles.resultBox}>
-              <Text style={styles.resultSuccess}>
-                ✓ {importResult.success} listing{importResult.success !== 1 ? 's' : ''} imported successfully.
+              <Text style={[styles.resultSuccess, { color: accentColor }]}>
+                ✓ {importResult.success} {locale === 'es' ? `alojamiento${importResult.success !== 1 ? 's' : ''} importado${importResult.success !== 1 ? 's' : ''} correctamente.` : `listing${importResult.success !== 1 ? 's' : ''} imported successfully.`}
               </Text>
               {importResult.errors.map((e, i) => (
                 <Text key={i} style={styles.resultError}>✗ {e}</Text>
@@ -294,7 +322,6 @@ const styles = StyleSheet.create({
   tabBtn:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, gap: 5 },
   tabBtnActive:    { backgroundColor: '#1a1a1a' },
   tabBtnText:      { color: '#888', fontSize: 13, fontWeight: '500' },
-  tabBtnTextActive:{ color: '#49C788' },
   filterRow:       { flexDirection: 'row', padding: 12, gap: 8, borderBottomWidth: 1, borderBottomColor: '#1a1a1a', flexWrap: 'wrap' },
   filterChip:      { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: '#222', backgroundColor: '#111' },
   filterText:      { color: '#888', fontSize: 12, fontWeight: '500', textTransform: 'capitalize' },
@@ -314,11 +341,11 @@ const styles = StyleSheet.create({
   importContent:   { padding: 20, gap: 16 },
   importInfo:      { flexDirection: 'row', gap: 10, backgroundColor: '#0d1825', borderRadius: 10, padding: 14, borderWidth: 1, borderColor: '#1e3a5f', alignItems: 'flex-start' },
   importInfoText:  { color: '#aaa', fontSize: 13, lineHeight: 20, flex: 1 },
-  code:            { color: '#49C788', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-  jsonInput:       { backgroundColor: '#0e0e0e', borderRadius: 10, borderWidth: 1, borderColor: '#222', color: '#49C788', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 12, padding: 14, minHeight: 200 },
-  importBtn:       { backgroundColor: '#49C788', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
+  code:            { fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  jsonInput:       { backgroundColor: '#0e0e0e', borderRadius: 10, borderWidth: 1, borderColor: '#222', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 12, padding: 14, minHeight: 200 },
+  importBtn:       { borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 8 },
   importBtnText:   { color: '#000', fontSize: 15, fontWeight: '700' },
   resultBox:       { backgroundColor: '#111', borderRadius: 10, padding: 16, gap: 6, borderWidth: 1, borderColor: '#1a1a1a' },
-  resultSuccess:   { color: '#49C788', fontSize: 13, fontWeight: '600' },
+  resultSuccess:   { fontSize: 13, fontWeight: '600' },
   resultError:     { color: '#ff4444', fontSize: 12 },
 });

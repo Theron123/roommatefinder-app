@@ -226,7 +226,12 @@ export default function ProfileDetailScreen() {
         <View style={styles.content}>
           <View style={styles.titleRow}>
             <View>
-              <Text style={styles.name}>{profile.name}{profile.age ? `, ${profile.age}` : ''}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.name}>{profile.name}{profile.age ? `, ${profile.age}` : ''}</Text>
+                {profile.is_identity_verified && (
+                  <MaterialCommunityIcons name="check-decagram" size={20} color="#49C788" />
+                )}
+              </View>
               <Text style={styles.distanceBadge}>{distanceText}</Text>
               {statusConfig && (
                 <View style={[styles.statusBadge, { backgroundColor: statusConfig.color + '22', borderColor: statusConfig.color }]}>

@@ -222,7 +222,7 @@ export default function ChatScreen() {
     if (!session) return;
     setMyId(session.user.id);
 
-    const { data: profile } = await supabase.from('profiles').select('name, photoUrl').eq('id', id).single();
+    const { data: profile } = await supabase.from('profiles').select('name, photoUrl, is_identity_verified').eq('id', id).single();
     if (profile) setOtherUser(profile);
 
     const { data: history } = await supabase

@@ -1,11 +1,30 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import TutorialModal from '@/components/TutorialModal';
 
 export default function TabLayout() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        if (profile?.role === 'admin') {
+          router.replace('/(admin)');
+        }
+      }
+    };
+    checkAdmin();
+  }, [router]);
 
   return (
     <>

@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from '../../context/LanguageContext';
+import { useAdminTheme } from '../../context/AdminThemeContext';
 
 type Stats = {
   totalUsers: number;
@@ -25,6 +27,8 @@ export default function AdminOverview() {
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const { t } = useTranslation();
+  const { accentColor } = useAdminTheme();
 
   const fetchData = useCallback(async () => {
     const today = new Date();
@@ -69,37 +73,37 @@ export default function AdminOverview() {
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   const CARDS = stats ? [
-    { label: 'Total Users',     value: stats.totalUsers,           sub: `+${stats.newUsersToday} today`,  icon: 'account-group'  as const, color: '#49C788', route: '/(admin)/users' },
-    { label: 'Active Listings', value: stats.activeListings,       sub: 'live right now',                  icon: 'home-city'      as const, color: '#3b82f6', route: '/(admin)/listings' },
-    { label: 'Total Matches',   value: stats.totalMatches,         sub: 'all time',                        icon: 'heart'          as const, color: '#f43f5e', route: null },
-    { label: 'Messages Sent',   value: stats.totalMessages,        sub: 'all time',                        icon: 'message-text'   as const, color: '#a855f7', route: null },
-    { label: 'Pending Reports', value: stats.pendingReports,       sub: 'need attention',                  icon: 'alert-circle'   as const, color: '#f97316', route: '/(admin)/reports' },
-    { label: 'Verifications',   value: stats.pendingVerifications, sub: 'pending review',                  icon: 'shield-check'   as const, color: '#06b6d4', route: '/(admin)/verifications' },
+    { key: 'total_users',       value: stats.totalUsers,           sub: `+${stats.newUsersToday} ${t('admin.overview.today')}`,  icon: 'account-group'  as const, color: accentColor, route: '/(admin)/users' },
+    { key: 'active_listings',   value: stats.activeListings,       sub: t('admin.overview.live'),                                icon: 'home-city'      as const, color: '#3b82f6', route: '/(admin)/listings' },
+    { key: 'total_matches',     value: stats.totalMatches,         sub: t('admin.overview.all_time'),                            icon: 'heart'          as const, color: '#f43f5e', route: null },
+    { key: 'messages_sent',     value: stats.totalMessages,        sub: t('admin.overview.all_time'),                            icon: 'message-text'   as const, color: '#a855f7', route: null },
+    { key: 'pending_reports',   value: stats.pendingReports,       sub: t('admin.overview.need_attention'),                      icon: 'alert-circle'   as const, color: '#f97316', route: '/(admin)/reports' },
+    { key: 'verifications',     value: stats.pendingVerifications, sub: t('admin.overview.pending_review'),                      icon: 'shield-check'   as const, color: '#06b6d4', route: '/(admin)/verifications' },
   ] : [];
 
   const ROLE_COLOR: Record<string, string> = {
-    admin: '#f97316', seeker: '#49C788', host: '#3b82f6', landlord: '#a855f7',
+    admin: '#f97316', seeker: accentColor, host: '#3b82f6', landlord: '#a855f7',
   };
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    new Date(iso).toLocaleDateString(t('settings.locale', 'en-US'), { month: 'short', day: 'numeric' });
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#49C788" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={accentColor} />}
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.pageTitle}>Overview</Text>
-          <Text style={styles.pageSubtitle}>Welcome back, Administrator</Text>
+          <Text style={styles.pageTitle}>{t('admin.overview.title')}</Text>
+          <Text style={styles.pageSubtitle}>{t('admin.overview.welcome')}</Text>
         </View>
 
         {loading ? (
           <View style={styles.centerLoader}>
-            <ActivityIndicator size="large" color="#49C788" />
+            <ActivityIndicator size="large" color={accentColor} />
           </View>
         ) : (
           <>
@@ -107,7 +111,7 @@ export default function AdminOverview() {
             <View style={styles.cardsGrid}>
               {CARDS.map((card) => (
                 <TouchableOpacity
-                  key={card.label}
+                  key={card.key}
                   style={styles.card}
                   onPress={() => card.route && router.push(card.route as any)}
                   activeOpacity={card.route ? 0.7 : 1}
@@ -116,7 +120,7 @@ export default function AdminOverview() {
                     <MaterialCommunityIcons name={card.icon} size={24} color={card.color} />
                   </View>
                   <Text style={styles.cardValue}>{card.value.toLocaleString()}</Text>
-                  <Text style={styles.cardLabel}>{card.label}</Text>
+                  <Text style={styles.cardLabel}>{t(`admin.overview.${card.key}`)}</Text>
                   <Text style={styles.cardSub}>{card.sub}</Text>
                 </TouchableOpacity>
               ))}
@@ -125,15 +129,15 @@ export default function AdminOverview() {
             {/* Recent Users */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Sign-ups</Text>
+                <Text style={styles.sectionTitle}>{t('admin.overview.recent_signups')}</Text>
                 <TouchableOpacity onPress={() => router.push('/(admin)/users' as any)}>
-                  <Text style={styles.seeAll}>See all →</Text>
+                  <Text style={[styles.seeAll, { color: accentColor }]}>{t('admin.overview.see_all')}</Text>
                 </TouchableOpacity>
               </View>
               {recentUsers.map((u) => (
                 <View key={u.id} style={styles.userRow}>
                   <View style={styles.userAvatar}>
-                    <Text style={styles.userAvatarText}>{(u.name || '?')[0].toUpperCase()}</Text>
+                    <Text style={[styles.userAvatarText, { color: accentColor }]}>{(u.name || '?')[0].toUpperCase()}</Text>
                   </View>
                   <View style={styles.userInfo}>
                     <Text style={styles.userName}>{u.name || 'Unknown'}</Text>
@@ -147,19 +151,19 @@ export default function AdminOverview() {
                 </View>
               ))}
               {recentUsers.length === 0 && (
-                <Text style={styles.emptyText}>No users yet.</Text>
+                <Text style={styles.emptyText}>{t('admin.overview.no_users')}</Text>
               )}
             </View>
 
             {/* Quick Actions */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Quick Actions</Text>
+              <Text style={styles.sectionTitle}>{t('admin.overview.quick_actions', 'Quick Actions')}</Text>
               <View style={styles.actionsRow}>
                 {[
-                  { label: 'Bulk Import Listings', icon: 'upload'       as const, color: '#3b82f6', route: '/(admin)/listings' },
-                  { label: 'Review Reports',        icon: 'alert-circle' as const, color: '#f97316', route: '/(admin)/reports' },
-                  { label: 'Verify Users',           icon: 'shield-check' as const, color: '#06b6d4', route: '/(admin)/verifications' },
-                  { label: 'Manage Payments',        icon: 'credit-card'  as const, color: '#a855f7', route: '/(admin)/payments' },
+                  { key: 'bulk_import', label: 'Bulk Import Listings', icon: 'upload'       as const, color: '#3b82f6', route: '/(admin)/listings' },
+                  { key: 'review_reports', label: 'Review Reports',        icon: 'alert-circle' as const, color: '#f97316', route: '/(admin)/reports' },
+                  { key: 'verify_users', label: 'Verify Users',           icon: 'shield-check' as const, color: '#06b6d4', route: '/(admin)/verifications' },
+                  { key: 'manage_payments', label: 'Manage Payments',        icon: 'credit-card'  as const, color: '#a855f7', route: '/(admin)/payments' },
                 ].map((a) => (
                   <TouchableOpacity
                     key={a.label}
@@ -167,7 +171,7 @@ export default function AdminOverview() {
                     onPress={() => router.push(a.route as any)}
                   >
                     <MaterialCommunityIcons name={a.icon} size={20} color={a.color} />
-                    <Text style={styles.actionLabel}>{a.label}</Text>
+                    <Text style={styles.actionLabel}>{t(`admin.overview.action_${a.key}`, a.label)}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -204,10 +208,10 @@ const styles = StyleSheet.create({
   section:       { backgroundColor: '#111', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: '#1a1a1a', gap: 14 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle:  { fontSize: 16, fontWeight: '600', color: '#fff' },
-  seeAll:        { fontSize: 13, color: '#49C788' },
+  seeAll:        { fontSize: 13 },
   userRow:       { flexDirection: 'row', alignItems: 'center', gap: 12 },
   userAvatar:    { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
-  userAvatarText:{ color: '#49C788', fontWeight: '700', fontSize: 16 },
+  userAvatarText:{ fontWeight: '700', fontSize: 16 },
   userInfo:      { flex: 1, gap: 2 },
   userName:      { color: '#fff', fontSize: 14, fontWeight: '500' },
   userDate:      { color: '#555', fontSize: 12 },

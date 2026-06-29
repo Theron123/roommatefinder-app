@@ -24,7 +24,14 @@ const InboxConversationItemComponent = ({ item, currentUserId, onPress }: InboxC
 
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={[styles.name, isUnread && styles.nameUnread]}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, marginRight: 8 }}>
+            <Text style={[styles.name, isUnread && styles.nameUnread]} numberOfLines={1}>
+              {item.name}{item.age ? `, ${item.age}` : ''}
+            </Text>
+            {item.is_identity_verified && (
+              <MaterialCommunityIcons name="check-decagram" size={16} color="#49C788" style={{ flexShrink: 0 }} />
+            )}
+          </View>
           <Text style={[styles.time, isUnread && styles.timeUnread]}>{item.time}</Text>
         </View>
         <View style={styles.messageRow}>

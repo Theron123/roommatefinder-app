@@ -38,7 +38,7 @@ export default function InboxScreen() {
   const searchProfiles = async (query: string) => {
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, age, photoUrl')
+      .select('id, name, age, photoUrl, is_identity_verified')
       .ilike('name', `%${query}%`)
       .limit(15);
     if (profiles) {
@@ -99,7 +99,12 @@ export default function InboxScreen() {
     <Pressable onPress={() => router.push(`/profile/${item.id}` as any)} style={styles.row}>
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
       <View style={styles.content}>
-         <Text style={styles.name}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
+         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Text style={styles.name}>{item.name}{item.age ? `, ${item.age}` : ''}</Text>
+            {item.is_identity_verified && (
+              <MaterialCommunityIcons name="check-decagram" size={14} color="#49C788" />
+            )}
+         </View>
          <Text style={styles.lastMessage}>{t('explore.tap_view')}</Text>
       </View>
     </Pressable>

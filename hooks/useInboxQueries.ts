@@ -72,7 +72,7 @@ export function useInboxData() {
       if (allUserIdsToFetch.size > 0) {
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, name, age, photoUrl')
+          .select('id, name, age, photoUrl, is_identity_verified')
           .in('id', Array.from(allUserIdsToFetch));
 
         if (profilesError) {
@@ -96,6 +96,7 @@ export function useInboxData() {
                 name: p.name || 'Roommate',
                 age: p.age,
                 photoUrl: p.photoUrl || '',
+                is_identity_verified: p.is_identity_verified,
                 lastMessage: lastMsg.content || lastMsg.media_type || 'Message',
                 time: timeStr,
                 unreadCount: unreadCounts.get(p.id) || 0,
@@ -115,6 +116,7 @@ export function useInboxData() {
                   name: p.name || 'Roommate',
                   age: p.age,
                   photoUrl: p.photoUrl || '',
+                  is_identity_verified: p.is_identity_verified,
                   lastMessage: 'Tap to chat',
                   time: timeStr,
                   unreadCount: 0,

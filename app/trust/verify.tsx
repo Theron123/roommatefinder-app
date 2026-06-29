@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import TrustAlertModal from '@/components/trust/TrustAlertModal';
 import TrustInstagramModal from '@/components/trust/TrustInstagramModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Custom string tag helper components to render raw HTML elements on Web
 // without causing compilation or runtime crashes on native (iOS/Android)
@@ -271,46 +272,80 @@ export default function VerificationWizard() {
         meta = { name: inputValue, idNumber: bgIdNumber };
       }
 
-      // Create verification request record
-      await supabase.from('verifications').insert({
-        user_id: session.user.id,
-        type: type,
-        status: 'pending',
-        metadata: meta
-      });
+      // Read autoVerify setting from admin configuration
+      const cached = await AsyncStorage.getItem('@admin_system_configs');
+      let autoVerify = false; // default to false (requires manual admin approval)
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        autoVerify = parsed.autoVerify ?? false;
+      }
 
-      // Simulate auto-approval for demo purposes
-      const updateData: any = {};
-      if (type === 'identity') updateData.is_identity_verified = true;
-      if (type === 'background') updateData.is_background_verified = true;
-      if (type === 'social') updateData.is_social_verified = true;
-      if (type === 'phone') updateData.is_phone_verified = true;
+      if (autoVerify) {
+        // Create verification request record (approved)
+        await supabase.from('verifications').insert({
+          user_id: session.user.id,
+          type: type,
+          status: 'approved',
+          metadata: meta
+        });
 
-      // Calculate score dynamically to keep database in sync
-      const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      let count = 0;
-      if (type === 'identity' || currentProfile?.is_identity_verified) count++;
-      if (type === 'background' || currentProfile?.is_background_verified) count++;
-      if (type === 'social' || currentProfile?.is_social_verified) count++;
-      if (type === 'phone' || currentProfile?.is_phone_verified) count++;
-      const newScore = 20 + count * 20;
-      updateData.trust_score = newScore;
+        // Simulate auto-approval
+        const updateData: any = {};
+        if (type === 'identity') updateData.is_identity_verified = true;
+        if (type === 'background') updateData.is_background_verified = true;
+        if (type === 'social') updateData.is_social_verified = true;
+        if (type === 'phone') updateData.is_phone_verified = true;
 
-      await supabase.from('profiles').update(updateData).eq('id', session.user.id);
+        // Calculate score dynamically to keep database in sync
+        const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        let count = 0;
+        if (type === 'identity' || currentProfile?.is_identity_verified) count++;
+        if (type === 'background' || currentProfile?.is_background_verified) count++;
+        if (type === 'social' || currentProfile?.is_social_verified) count++;
+        if (type === 'phone' || currentProfile?.is_phone_verified) count++;
+        const newScore = 20 + count * 20;
+        updateData.trust_score = newScore;
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await supabase.from('profiles').update(updateData).eq('id', session.user.id);
 
-      triggerAlert(
-        t('trust.req_sent'),
-        t('trust.demo_approved'),
-        [{ 
-          text: locale === 'es' ? 'Genial' : 'Awesome', 
-          onPress: () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          } 
-        }]
-      );
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        triggerAlert(
+          t('trust.req_sent'),
+          locale === 'es' ? '¡Tu verificación ha sido aprobada automáticamente!' : t('trust.demo_approved'),
+          [{ 
+            text: locale === 'es' ? 'Genial' : 'Awesome', 
+            onPress: () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            } 
+          }]
+        );
+      } else {
+        // Create verification request record (pending)
+        await supabase.from('verifications').insert({
+          user_id: session.user.id,
+          type: type,
+          status: 'pending',
+          metadata: meta
+        });
+
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        triggerAlert(
+          locale === 'es' ? 'Solicitud Enviada' : 'Request Submitted',
+          locale === 'es' 
+            ? 'Tu solicitud ha sido enviada para revisión. Un administrador la revisará pronto.' 
+            : 'Your request has been submitted for review. An administrator will review it shortly.',
+          [{ 
+            text: locale === 'es' ? 'Entendido' : 'Got it', 
+            onPress: () => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            } 
+          }]
+        );
+      }
 
     } catch {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
