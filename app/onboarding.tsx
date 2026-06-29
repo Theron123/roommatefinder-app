@@ -77,7 +77,6 @@ export default function OnboardingScreen() {
               router.replace('/(tabs)');
             }
           }
-          }
         }
       } catch (err) {
         console.log('Error al comprobar sesión al iniciar onboarding:', err);
@@ -124,7 +123,6 @@ export default function OnboardingScreen() {
           } else {
             router.replace('/(tabs)');
           }
-        }
         } else {
           router.replace('/role-select');
         }

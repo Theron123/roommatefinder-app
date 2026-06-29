@@ -25,11 +25,6 @@ export default function TabLayout() {
           .select('role')
           .eq('id', session.user.id)
           .single();
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
 
         if (profile?.role === 'admin') {
           router.replace('/(admin)');

@@ -62,38 +62,30 @@ export default function AdminUsers() {
     if (search.trim())        query = query.ilike('name', `%${search.trim()}%`);
 
     const { data, error } = await query;
-    if (!error) setUsers(data || []);
+    if (!error) setUsers((data as unknown as Profile[]) || []);
     setLoading(false);
     setRefreshing(false);
   }, [filterRole, search]);
-
+ 
   useEffect(() => { setLoading(true); fetchUsers(); }, [fetchUsers]);
-
+ 
   const onRefresh = () => { setRefreshing(true); fetchUsers(); };
-
-  const changeRole = (userId: string, currentRole: string) => {
-    const options = ROLES
-      .filter(r => r !== 'all' && r !== currentRole)
-      .map(r => ({ 
-        text: translateRole(r), 
-        onPress: () => confirmRoleChange(userId, r) 
-      }));
-    
-    Alert.alert(
-      t('admin.users.change_role', 'Change Role'), 
-      t('admin.users.current_role', `Current: ${currentRole}`).replace('{role}', translateRole(currentRole)), 
-      [
-        ...options,
-        { text: t('general.cancel', 'Cancel'), style: 'cancel' as const },
-      ]
-    );
+ 
+  const openRoleSelector = (user: Profile) => {
+    setSelectedUser(user);
+    setModalVisible(true);
   };
-
-  const confirmRoleChange = async (userId: string, newRole: string) => {
-    const { error } = await supabaseAdmin.from('profiles').update({ role: newRole }).eq('id', userId);
-    if (!error) fetchUsers();
-    else Alert.alert(t('general.error', 'Error'), t('admin.users.error_change', 'Failed to change role') + ': ' + error.message);
-  };
+ 
+  const confirmRoleChange = async (newRole: string) => {
+    if (!selectedUser) return;
+    const { error } = await supabaseAdmin.from('profiles').update({ role: newRole }).eq('id', selectedUser.id);
+    if (!error) {
+      setModalVisible(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } else {
+      Alert.alert(t('general.error', 'Error'), t('admin.users.error_change', 'Failed to change role') + ': ' + error.message);
+    }
   };
 
   const formatDate = (iso: string) =>

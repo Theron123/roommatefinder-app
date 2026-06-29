@@ -249,7 +249,7 @@ export default function PrivacyScreen() {
                 onPress={async () => {
                   setDeleteModalVisible(false);
                   try {
-                    const { error } = await supabase.rpc('delete_user');
+                    const { error } = await (supabase.rpc as any)('delete_user');
                     if (error) throw error;
                     
                     await supabase.auth.signOut();

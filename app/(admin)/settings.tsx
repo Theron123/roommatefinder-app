@@ -161,7 +161,7 @@ export default function AdminSettings() {
                     key={color.name}
                     style={({ pressed }) => [
                       styles.colorBubbleWrap,
-                      pressed && { scale: 0.95 },
+                      pressed && { transform: [{ scale: 0.95 }] },
                     ]}
                     onPress={() => changeAccentColor(color.value)}
                   >
@@ -425,6 +425,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#000',
     fontSize: 16,
-    fontWeight: '850',
+    fontWeight: '800',
   },
 });

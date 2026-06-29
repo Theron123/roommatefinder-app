@@ -42,7 +42,7 @@ export default function AdminReports() {
       .eq('status', filterStatus)
       .order('created_at', { ascending: false });
 
-    if (!error) setReports(data || []);
+    if (!error) setReports((data as unknown as Report[]) || []);
     setLoading(false);
     setRefreshing(false);
   }, [filterStatus]);
@@ -63,9 +63,6 @@ export default function AdminReports() {
             await supabaseAdmin.from('user_reports').update({ status: newStatus }).eq('id', id);
             fetchReports();
           },
-        },
-      ]
-    );
         },
       ]
     );

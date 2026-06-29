@@ -63,7 +63,7 @@ export default function AdminOverview() {
       pendingVerifications: pendingVerifications || 0,
       totalMessages: totalMessages || 0,
     });
-    setRecentUsers(recent || []);
+    setRecentUsers((recent as unknown as RecentUser[]) || []);
     setLoading(false);
     setRefreshing(false);
   }, []);

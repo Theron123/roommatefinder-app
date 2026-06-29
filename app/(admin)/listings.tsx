@@ -73,7 +73,7 @@ export default function AdminListings() {
       .limit(80);
     if (filterStatus !== 'all') query = query.eq('status', filterStatus);
     const { data, error } = await query;
-    if (!error) setListings(data || []);
+    if (!error) setListings((data as unknown as Listing[]) || []);
     setLoading(false);
     setRefreshing(false);
   }, [filterStatus]);
@@ -100,9 +100,6 @@ export default function AdminListings() {
             await supabaseAdmin.from('listings').delete().eq('id', id);
             fetchListings();
           },
-        },
-      ]
-    );
         },
       ]
     );
