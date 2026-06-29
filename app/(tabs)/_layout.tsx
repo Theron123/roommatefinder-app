@@ -1,5 +1,6 @@
 import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,23 +9,47 @@ import TutorialModal from '@/components/TutorialModal';
 
 export default function TabLayout() {
   const router = useRouter();
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
+      setChecking(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          router.replace('/(auth)/login');
+          return;
+        }
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .single();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
         if (profile?.role === 'admin') {
           router.replace('/(admin)');
         }
+      } catch (err) {
+        router.replace('/(auth)/login');
+      } finally {
+        setChecking(false);
       }
     };
     checkAdmin();
   }, [router]);
+
+  if (checking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#49C788" />
+      </View>
+    );
+  }
 
   return (
     <>

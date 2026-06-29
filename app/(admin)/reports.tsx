@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type Report = {
   id: string;
@@ -58,9 +60,12 @@ export default function AdminReports() {
         {
           text: t('general.confirm', 'Confirm'),
           onPress: async () => {
-            await supabase.from('user_reports').update({ status: newStatus }).eq('id', id);
+            await supabaseAdmin.from('user_reports').update({ status: newStatus }).eq('id', id);
             fetchReports();
           },
+        },
+      ]
+    );
         },
       ]
     );

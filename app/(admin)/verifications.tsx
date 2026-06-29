@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
@@ -121,7 +122,7 @@ export default function AdminVerifications() {
     const handleAction = async () => {
       setModalVisible(false);
       try {
-        const { error: verifyErr } = await supabase
+        const { error: verifyErr } = await supabaseAdmin
           .from('verifications')
           .update({ status: decision })
           .eq('id', id);
@@ -132,34 +133,10 @@ export default function AdminVerifications() {
         }
 
         const flag = PROFILE_FLAG[type];
-        if (flag) {
-          const { data: currentProfile, error: profileGetErr } = await supabase
+        if (flag && decision === 'approved') {
+          const { error: profileUpdateErr } = await supabaseAdmin
             .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-          if (profileGetErr) {
-            showCustomAlert('Error', profileGetErr.message);
-            return;
-          }
-
-          let count = 0;
-          const isApproved = decision === 'approved';
-          
-          if (type === 'identity' ? isApproved : !!currentProfile?.is_identity_verified) count++;
-          if (type === 'background' ? isApproved : !!currentProfile?.is_background_verified) count++;
-          if (type === 'social' ? isApproved : !!currentProfile?.is_social_verified) count++;
-          if (type === 'phone' ? isApproved : !!currentProfile?.is_phone_verified) count++;
-          
-          const newScore = 20 + count * 20;
-
-          const { error: profileUpdateErr } = await supabase
-            .from('profiles')
-            .update({ 
-              [flag]: isApproved,
-              trust_score: newScore
-            })
+            .update({ [flag]: true })
             .eq('id', userId);
 
           if (profileUpdateErr) {

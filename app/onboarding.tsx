@@ -70,10 +70,13 @@ export default function OnboardingScreen() {
             .eq('id', session.user.id)
             .single();
           
-          if (profile?.role === 'admin') {
-            router.replace('/(admin)');
-          } else if (profile?.role) {
-            router.replace('/(tabs)');
+          if (profile?.role) {
+            if (profile.role === 'admin') {
+              router.replace('/(admin)');
+            } else {
+              router.replace('/(tabs)');
+            }
+          }
           }
         }
       } catch (err) {
@@ -115,10 +118,13 @@ export default function OnboardingScreen() {
           .eq('id', session.user.id)
           .single();
         
-        if (profile?.role === 'admin') {
-          router.replace('/(admin)');
-        } else if (profile?.role) {
-          router.replace('/(tabs)');
+        if (profile?.role) {
+          if (profile.role === 'admin') {
+            router.replace('/(admin)');
+          } else {
+            router.replace('/(tabs)');
+          }
+        }
         } else {
           router.replace('/role-select');
         }

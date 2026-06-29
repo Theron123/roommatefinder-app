@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
@@ -83,7 +84,7 @@ export default function AdminListings() {
 
   const toggleStatus = async (id: string, current: string) => {
     const next = current === 'active' ? 'inactive' : 'active';
-    await supabase.from('listings').update({ status: next }).eq('id', id);
+    await supabaseAdmin.from('listings').update({ status: next }).eq('id', id);
     fetchListings();
   };
 
@@ -96,9 +97,12 @@ export default function AdminListings() {
         {
           text: t('admin.listings.delete_btn', 'Delete'), style: 'destructive',
           onPress: async () => {
-            await supabase.from('listings').delete().eq('id', id);
+            await supabaseAdmin.from('listings').delete().eq('id', id);
             fetchListings();
           },
+        },
+      ]
+    );
         },
       ]
     );
@@ -129,7 +133,7 @@ export default function AdminListings() {
         errors.push(`Item ${i + 1}: Missing required fields (title, address, price).`);
         continue;
       }
-      const { error } = await supabase.from('listings').insert({
+      const { error } = await supabaseAdmin.from('listings').insert({
         title:              item.title,
         address:            item.address,
         price:              Number(item.price),

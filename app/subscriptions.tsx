@@ -3,8 +3,7 @@ import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
-
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 export default function SubscriptionsScreen() {
   const router = useRouter();
@@ -17,9 +16,14 @@ export default function SubscriptionsScreen() {
 
   const fetchSubscriptionStatus = async () => {
     try {
-      const stored = await AsyncStorage.getItem('mock_premium');
-      if (stored !== null) {
-        setIsPremium(stored === 'true');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('share_badges_enabled')
+          .eq('id', session.user.id)
+          .single();
+        setIsPremium(data?.share_badges_enabled === true);
       }
     } catch {
       // error reading value
@@ -30,9 +34,15 @@ export default function SubscriptionsScreen() {
   const toggleSubscription = async (value: boolean) => {
     setIsPremium(value);
     try {
-      await AsyncStorage.setItem('mock_premium', value ? 'true' : 'false');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await supabase
+          .from('profiles')
+          .update({ share_badges_enabled: value })
+          .eq('id', session.user.id);
+      }
     } catch (e) {
-      console.error('Failed to save mock premium status', e);
+      console.error('Failed to save premium status', e);
     }
   };
 
