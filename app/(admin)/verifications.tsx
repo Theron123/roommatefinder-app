@@ -5,15 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-const adminSupabase = serviceRoleKey
-  ? createClient(process.env.EXPO_PUBLIC_SUPABASE_URL as string, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
-  : supabase;
 
 type Verification = {
   id: string;
@@ -82,10 +75,10 @@ export default function AdminVerifications() {
           text: 'Confirm',
           style: decision === 'rejected' ? 'destructive' : 'default',
           onPress: async () => {
-            await adminSupabase.from('verifications').update({ status: decision }).eq('id', id);
+            await supabaseAdmin.from('verifications').update({ status: decision }).eq('id', id);
             if (decision === 'approved') {
               const flag = PROFILE_FLAG[type];
-              if (flag) await adminSupabase.from('profiles').update({ [flag]: true }).eq('id', userId);
+              if (flag) await supabaseAdmin.from('profiles').update({ [flag]: true }).eq('id', userId);
             }
             fetchData();
           },

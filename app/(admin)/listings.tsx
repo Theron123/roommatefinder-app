@@ -6,15 +6,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-const adminSupabase = serviceRoleKey
-  ? createClient(process.env.EXPO_PUBLIC_SUPABASE_URL as string, serviceRoleKey, {
-      auth: { persistSession: false },
-    })
-  : supabase;
 
 type Listing = {
   id: string;
@@ -77,7 +70,7 @@ export default function AdminListings() {
 
   const toggleStatus = async (id: string, current: string) => {
     const next = current === 'active' ? 'inactive' : 'active';
-    await adminSupabase.from('listings').update({ status: next }).eq('id', id);
+    await supabaseAdmin.from('listings').update({ status: next }).eq('id', id);
     fetchListings();
   };
 
@@ -87,7 +80,7 @@ export default function AdminListings() {
       {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
-          await adminSupabase.from('listings').delete().eq('id', id);
+          await supabaseAdmin.from('listings').delete().eq('id', id);
           fetchListings();
         },
       },
@@ -119,7 +112,7 @@ export default function AdminListings() {
         errors.push(`Item ${i + 1}: Missing required fields (title, address, price).`);
         continue;
       }
-      const { error } = await adminSupabase.from('listings').insert({
+      const { error } = await supabaseAdmin.from('listings').insert({
         title:              item.title,
         address:            item.address,
         price:              Number(item.price),
