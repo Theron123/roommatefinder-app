@@ -122,7 +122,7 @@ export default function AdminVerifications() {
     const handleAction = async () => {
       setModalVisible(false);
       try {
-        const { error: verifyErr } = await supabaseAdmin
+        const { error: verifyErr } = await supabase
           .from('verifications')
           .update({ status: decision })
           .eq('id', id);
@@ -134,7 +134,7 @@ export default function AdminVerifications() {
 
         const flag = PROFILE_FLAG[type];
         if (flag && decision === 'approved') {
-          const { error: profileUpdateErr } = await supabaseAdmin
+          const { error: profileUpdateErr } = await supabase
             .from('profiles')
             .update({ [flag]: true } as any)
             .eq('id', userId);

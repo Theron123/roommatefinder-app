@@ -28,6 +28,14 @@ type Contract = {
   initiator_id: string | null;
   initiator: { name: string } | null;
   contract_participants?: { user_id: string; profiles: { name: string } }[];
+  listings?: {
+    id: string;
+    title: string | null;
+    address: string | null;
+    price: number | null;
+    user_id: string | null;
+    profiles: { name: string } | null;
+  } | null;
 };
 
 export default function ContractDetailScreen() {
@@ -84,7 +92,7 @@ export default function ContractDetailScreen() {
 
     const { data } = await supabase
       .from('contracts')
-      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name))')
+      .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name)), listings:listing_id(id, title, address, price, user_id, profiles(name))')
       .eq('id', id)
       .single();
 
@@ -663,6 +671,30 @@ export default function ContractDetailScreen() {
           )}
         </View>
 
+        {/* Tarjeta de Alojamiento Solicitado */}
+        {contract.listings && (
+          <View style={s.accommodationCard}>
+            <View style={s.accommodationCardHeader}>
+              <MaterialCommunityIcons name="home-city" size={18} color="#49C788" />
+              <Text style={s.accommodationCardLabel}>{locale === 'es' ? 'Propiedad Relacionada' : 'Associated Property'}</Text>
+            </View>
+            <View style={s.accommodationCardBody}>
+              <Text style={s.accommodationCardTitle}>{contract.listings.title}</Text>
+              <Text style={s.accommodationCardAddress}>{contract.listings.address}</Text>
+              <View style={s.accommodationCardFooter}>
+                <Text style={s.accommodationCardPrice}>
+                  ${contract.listings.price?.toLocaleString()}/{locale === 'es' ? 'mes' : 'mo'}
+                </Text>
+                {contract.listings.profiles?.name && (
+                  <Text style={s.accommodationCardOwner}>
+                    {locale === 'es' ? 'Arrendador: ' : 'Host: '}{contract.listings.profiles.name}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Clauses */}
         <Section title={t('contracts.sec_financial')}>
           <Row label={t('contracts.labels.rent')}      value={c.rent ? `$${c.rent.amount}/${locale === 'es' ? 'mes' : 'mo'}` : '—'} />
@@ -793,4 +825,13 @@ const s = StyleSheet.create({
   openUrlText:    { color: '#555', fontSize: 13 },
   terminateBtn:   { backgroundColor: 'rgba(255,75,75,0.08)', borderRadius: 30, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: 'rgba(255,75,75,0.3)' },
   terminateBtnText:{ color: '#FF4B4B', fontWeight: '700', fontSize: 15 },
+  accommodationCard: { backgroundColor: '#0d1117', borderRadius: 14, borderWidth: 1, borderColor: '#1a1a2e', padding: 14, marginBottom: 16, gap: 10 },
+  accommodationCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  accommodationCardLabel: { color: '#555', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  accommodationCardBody: { gap: 4 },
+  accommodationCardTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  accommodationCardAddress: { color: '#888', fontSize: 12 },
+  accommodationCardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  accommodationCardPrice: { color: '#49C788', fontSize: 13, fontWeight: '700' },
+  accommodationCardOwner: { color: '#555', fontSize: 11, fontWeight: '500' },
 });

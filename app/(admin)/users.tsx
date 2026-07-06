@@ -160,7 +160,7 @@ export default function AdminUsers() {
 
       // Si el nombre cambió en el campo de edición, lo actualizamos también en Supabase
       if (editName.trim() && editName !== selectedUser.name) {
-        const { error } = await supabaseAdmin
+        const { error } = await supabase
           .from('profiles')
           .update({ name: editName.trim() })
           .eq('id', selectedUser.id);
@@ -327,7 +327,7 @@ export default function AdminUsers() {
     if (!selectedUser) return;
     try {
       const updateData = { [field]: value };
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('profiles')
         .update(updateData as any)
         .eq('id', selectedUser.id);

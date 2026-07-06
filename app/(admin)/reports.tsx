@@ -60,7 +60,7 @@ export default function AdminReports() {
         {
           text: t('general.confirm', 'Confirm'),
           onPress: async () => {
-            await supabaseAdmin.from('user_reports').update({ status: newStatus }).eq('id', id);
+            await supabase.from('user_reports').update({ status: newStatus }).eq('id', id);
             fetchReports();
           },
         },

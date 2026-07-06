@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView,
-  StyleSheet, Switch, Text, TextInput, View, KeyboardAvoidingView, Platform
+  StyleSheet, Switch, Text, TextInput, View, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +14,15 @@ import ContractStepMatches from '@/components/contracts/ContractStepMatches';
 import Constants from 'expo-constants';
 
 type Match = { user_id: string; name: string };
+type ListingItem = {
+  id: string;
+  title: string | null;
+  address: string | null;
+  price: number | null;
+  user_id: string | null;
+  images: string[] | null;
+  profiles: { name: string } | null;
+};
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
@@ -23,14 +32,25 @@ export default function NewContractScreen() {
   const [matches, setMatches]       = useState<Match[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
 
-  // Step 1
+  // Step 0: Tipo
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
-  // Step 2
+  
+  // Step 1: Alojamiento (Nuevo)
+  const [listings, setListings] = useState<ListingItem[]>([]);
+  const [selectedListing, setSelectedListing] = useState<ListingItem | null>(null);
+  const [loadingListings, setLoadingListings] = useState(false);
+  const [listingsSearchQuery, setListingsSearchQuery] = useState('');
+
+  // Step 2: Roommates/Participantes
   const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggleUser = (user: Match) => {
     setSelectedUsers(prev => {
+      // Si el usuario es el dueño de la propiedad, no permitimos desmarcarlo ya que debe estar obligado
+      if (selectedListing && user.user_id === selectedListing.user_id) {
+        return prev;
+      }
       if (prev.some(u => u.user_id === user.user_id)) {
         return prev.filter(u => u.user_id !== user.user_id);
       } else {
@@ -38,7 +58,8 @@ export default function NewContractScreen() {
       }
     });
   };
-  // Step 3
+
+  // Step 3: Finanzas
   const [rent, setRent]                 = useState('');
   const [dueDay, setDueDay]             = useState('1');
   const [deposit, setDeposit]           = useState('');
@@ -58,19 +79,44 @@ export default function NewContractScreen() {
     
     setEffectiveDate(formatted);
   };
-  // Step 4
+
+  // Step 4: Reglas
   const [petsAllowed, setPetsAllowed]   = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [visitorsAllowed, setVisitorsAllowed] = useState(true);
   const [cleaningSchedule, setCleaningSchedule] = useState<'daily' | 'weekly' | 'biweekly'>('weekly');
-  // Step 5
+  
+  // Step 5: Cláusulas opcionales
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
 
   const { fetchMatches } = useMatches();
+  const { t, locale } = useTranslation();
+
+  // Carga de alojamientos disponibles en el sistema
+  const loadListings = async () => {
+    setLoadingListings(true);
+    try {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, title, address, price, user_id, images, profiles(name)')
+        .in('status', ['active', 'available']);
+      if (!error && data) {
+        setListings(data as unknown as ListingItem[]);
+      }
+    } catch (e) {
+      console.error('Error cargando propiedades:', e);
+    } finally {
+      setLoadingListings(false);
+    }
+  };
 
   useEffect(() => {
-    if (step === 1 && matches.length === 0) loadMatches();
+    loadListings();
+  }, []);
+
+  useEffect(() => {
+    if (step === 2 && matches.length === 0) loadMatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, matches.length]);
 
@@ -91,10 +137,9 @@ export default function NewContractScreen() {
     );
   };
 
-  const { t, locale } = useTranslation();
-
   const steps = [
     { title: t('contracts.steps.type'), icon: 'file-document-edit-outline' },
+    { title: locale === 'es' ? 'Seleccionar Alojamiento' : 'Select Accommodation', icon: 'home-city-outline' },
     { title: t('contracts.steps.roommate'), icon: 'account-search-outline' },
     { title: t('contracts.steps.finance'), icon: 'cash-multiple' },
     { title: t('contracts.steps.rules'), icon: 'home-heart' },
@@ -119,7 +164,28 @@ export default function NewContractScreen() {
     }, 1200);
   };
 
+  const selectProperty = (item: ListingItem) => {
+    setSelectedListing(item);
+    
+    // Auto-rellenar renta en base al precio de la propiedad
+    if (item.price) {
+      setRent(String(item.price));
+      // Depósito sugerido (por defecto el equivalente a una mensualidad)
+      setDeposit(String(item.price));
+    }
+
+    // Auto-vincular propietario como participante obligatorio
+    if (item.user_id) {
+      const ownerName = item.profiles?.name || (locale === 'es' ? 'Propietario' : 'Landlord');
+      setSelectedUsers([{ user_id: item.user_id, name: ownerName }]);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!selectedListing) {
+      Alert.alert(locale === 'es' ? 'Propiedad requerida' : 'Property required', locale === 'es' ? 'Por favor, selecciona un alojamiento.' : 'Please select an accommodation first.');
+      return;
+    }
     if (selectedUsers.length === 0) return;
     if (!rent || !deposit || !effectiveDate) {
       Alert.alert(t('contracts.missing_fields'), t('contracts.missing_fields_desc'));
@@ -157,14 +223,16 @@ export default function NewContractScreen() {
       cleaning:         { schedule: cleaningSchedule },
     };
 
+    // Cambiamos el estado inicial a pending_authorization para requerir aprobación administrativa
     const { data: newContract, error } = await supabase.from('contracts').insert({
       initiator_id:           session.user.id,
       type:                   contractType,
-      status:                 'draft',
+      status:                 'pending_authorization',
       template_version:       'v2.0',
       clauses,
       selected_custom_clauses: selectedOptional,
       effective_date:         formattedIsoDate,
+      listing_id:             selectedListing.id,
     }).select().single();
 
     if (error || !newContract) {
@@ -194,10 +262,20 @@ export default function NewContractScreen() {
 
   const canNext = () => {
     if (step === 0) return !!contractType;
-    if (step === 1) return selectedUsers.length > 0;
-    if (step === 2) return !!rent && !!deposit && effectiveDate.length === 10;
+    if (step === 1) return !!selectedListing;
+    if (step === 2) return selectedUsers.length > 0;
+    if (step === 3) return !!rent && !!deposit && effectiveDate.length === 10;
     return true;
   };
+
+  const filteredListings = listings.filter(l => {
+    if (!listingsSearchQuery.trim()) return true;
+    const query = listingsSearchQuery.toLowerCase();
+    const titleMatch = l.title?.toLowerCase().includes(query);
+    const addrMatch = l.address?.toLowerCase().includes(query);
+    const hostMatch = l.profiles?.name?.toLowerCase().includes(query);
+    return titleMatch || addrMatch || hostMatch;
+  });
 
   return (
     <SafeAreaView style={s.container}>
@@ -239,6 +317,8 @@ export default function NewContractScreen() {
                   <LinearGradient 
                     colors={contractType === type ? ['rgba(73,199,136,0.15)', 'transparent'] : ['transparent', 'transparent']} 
                     style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]} 
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
                   />
                   <MaterialCommunityIcons
                     name={type === 'roommate_agreement' ? 'account-group' : 'home-city-outline'}
@@ -265,8 +345,85 @@ export default function NewContractScreen() {
             </View>
           )}
 
-          {/* ── STEP 1: Parte ── */}
+          {/* ── STEP 1: Seleccionar Alojamiento (Nuevo) ── */}
           {step === 1 && (
+            <View style={s.stepContent}>
+              <Text style={s.sectionHint}>
+                {locale === 'es' 
+                  ? 'Selecciona el alojamiento al cual irá vinculada la solicitud de contrato de renta.' 
+                  : 'Select the accommodation to which the rental contract request will be linked.'}
+              </Text>
+              
+              <View style={s.searchContainer}>
+                <MaterialCommunityIcons name="magnify" size={20} color="#888" style={s.searchIcon} />
+                <TextInput
+                  style={s.searchInput}
+                  placeholder={locale === 'es' ? 'Buscar por propiedad o propietario...' : 'Search by property or host...'}
+                  placeholderTextColor="#444"
+                  value={listingsSearchQuery}
+                  onChangeText={setListingsSearchQuery}
+                />
+              </View>
+
+              {loadingListings ? (
+                <ActivityIndicator size="small" color="#49C788" style={{ marginTop: 20 }} />
+              ) : filteredListings.length === 0 ? (
+                <View style={s.emptyState}>
+                  <View style={s.emptyIconWrap}>
+                    <MaterialCommunityIcons name="home-remove-outline" size={32} color="#666" />
+                  </View>
+                  <Text style={s.emptyStateText}>
+                    {locale === 'es' ? 'No hay propiedades activas disponibles para contratos.' : 'No active properties available for contracts.'}
+                  </Text>
+                </View>
+              ) : (
+                filteredListings.map(item => {
+                  const isSelected = selectedListing?.id === item.id;
+                  const firstPhoto = item.images && item.images[0] ? item.images[0] : null;
+
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={[s.propertySelectorCard, isSelected && s.propertySelectorCardActive]}
+                      onPress={() => selectProperty(item)}
+                    >
+                      {firstPhoto ? (
+                        <Image source={{ uri: firstPhoto }} style={s.propertySelectorThumb} />
+                      ) : (
+                        <View style={s.propertySelectorThumbFallback}>
+                          <MaterialCommunityIcons name="home-city" size={20} color="#444" />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[s.propertySelectorTitle, isSelected && { color: '#49C788' }]} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={s.propertySelectorAddress} numberOfLines={1}>
+                          {item.address}
+                        </Text>
+                        <Text style={s.propertySelectorPrice}>
+                          ${item.price?.toLocaleString()}/{locale === 'es' ? 'mes' : 'mo'}
+                        </Text>
+                        {item.profiles?.name && (
+                          <Text style={s.propertySelectorOwner}>
+                            {locale === 'es' ? 'Propietario: ' : 'Owner: '}{item.profiles.name}
+                          </Text>
+                        )}
+                      </View>
+                      <MaterialCommunityIcons
+                        name={isSelected ? 'check-circle' : 'circle-outline'}
+                        size={22}
+                        color={isSelected ? '#49C788' : '#333'}
+                      />
+                    </Pressable>
+                  );
+                })
+              )}
+            </View>
+          )}
+
+          {/* ── STEP 2: Participantes/Roommates ── */}
+          {step === 2 && (
             <ContractStepMatches
               matches={matches}
               selectedUsers={selectedUsers}
@@ -278,8 +435,8 @@ export default function NewContractScreen() {
             />
           )}
 
-          {/* ── STEP 2: Finanzas ── */}
-          {step === 2 && (
+          {/* ── STEP 3: Finanzas ── */}
+          {step === 3 && (
             <View style={s.stepContent}>
               <Text style={s.sectionHint}>{t('contracts.set_amounts')}</Text>
               
@@ -321,8 +478,8 @@ export default function NewContractScreen() {
             </View>
           )}
 
-          {/* ── STEP 3: Reglas ── */}
-          {step === 3 && (
+          {/* ── STEP 4: Reglas ── */}
+          {step === 4 && (
             <View style={s.stepContent}>
               <Text style={s.sectionHint}>{t('contracts.configure_policies')}</Text>
               <ToggleRow label={t('contracts.pets_allowed')} icon="dog" value={petsAllowed} onToggle={setPetsAllowed} />
@@ -348,8 +505,8 @@ export default function NewContractScreen() {
             </View>
           )}
 
-          {/* ── STEP 4: Módulos ── */}
-          {step === 4 && (
+          {/* ── STEP 5: Módulos ── */}
+          {step === 5 && (
             <View style={s.stepContent}>
               <Pressable style={s.aiBanner} onPress={handleAIGenerate} disabled={aiLoading}>
                 {aiLoading ? <ActivityIndicator size="small" color="#0A84FF" /> : <MaterialCommunityIcons name="auto-fix" size={20} color="#0A84FF" />}
@@ -501,4 +658,53 @@ const s = StyleSheet.create({
   selectedPillsScroll: { gap: 8, alignItems: 'center' },
   selectedPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#49C788', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   selectedPillText: { color: '#000', fontWeight: '700', fontSize: 13 },
+
+  // Estilos de la tarjeta de selección de propiedad
+  propertySelectorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0d1117',
+    borderWidth: 1,
+    borderColor: '#1a1a2e',
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
+    marginTop: 8,
+  },
+  propertySelectorCardActive: {
+    borderColor: '#49C788',
+    backgroundColor: 'rgba(73,199,136,0.05)',
+  },
+  propertySelectorThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: '#111',
+  },
+  propertySelectorThumbFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    backgroundColor: '#1a1a2e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  propertySelectorTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  propertySelectorAddress: {
+    color: '#888',
+    fontSize: 12,
+  },
+  propertySelectorPrice: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  propertySelectorOwner: {
+    color: '#555',
+    fontSize: 11,
+  },
 });

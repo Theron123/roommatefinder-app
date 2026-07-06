@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { key: 'overview',      icon: 'view-dashboard-outline' as const, path: '/(admin)' },
   { key: 'users',         icon: 'account-group-outline'  as const, path: '/(admin)/users' },
   { key: 'listings',      icon: 'home-city-outline'      as const, path: '/(admin)/listings' },
+  { key: 'contracts',     icon: 'file-document-outline'  as const, path: '/(admin)/contracts' },
   { key: 'payments',      icon: 'credit-card-outline'    as const, path: '/(admin)/payments' },
   { key: 'reports',       icon: 'alert-circle-outline'   as const, path: '/(admin)/reports' },
   { key: 'verifications', icon: 'shield-check-outline'   as const, path: '/(admin)/verifications' },
@@ -39,7 +40,7 @@ function AdminLayoutContent() {
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin]   = useState(false);
   const pathname = usePathname();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
   useEffect(() => { verifyAdmin(); }, []);
@@ -117,7 +118,7 @@ function AdminLayoutContent() {
                   />
                   {isExpanded && (
                     <Text style={[styles.navLabel, active && { color: accentColor, fontWeight: '600' }]}>
-                      {t(`admin.nav.${item.key}`)}
+                      {item.key === 'contracts' ? (locale === 'es' ? 'Contratos' : 'Contracts') : t(`admin.nav.${item.key}`)}
                     </Text>
                   )}
                 </TouchableOpacity>
