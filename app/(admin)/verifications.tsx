@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Linking, Modal
+  ActivityIndicator, RefreshControl, Linking, Modal, ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -41,6 +41,12 @@ export default function AdminVerifications() {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('pending');
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
 
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
@@ -95,6 +101,26 @@ export default function AdminVerifications() {
     return type;
   };
 
+  const fetchStats = async () => {
+    try {
+      const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        supabase.from('verifications').select('*', { count: 'exact', head: true }),
+        supabase.from('verifications').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('verifications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('verifications').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+      ]);
+
+      setStats({
+        total: totalRes.count || 0,
+        pending: pendingRes.count || 0,
+        approved: approvedRes.count || 0,
+        rejected: rejectedRes.count || 0,
+      });
+    } catch (e) {
+      console.error('Error calculando estadísticas de verificaciones:', e);
+    }
+  };
+
   const fetchData = useCallback(async () => {
     const { data, error } = await supabase
       .from('verifications')
@@ -103,6 +129,7 @@ export default function AdminVerifications() {
       .order('created_at', { ascending: false });
 
     if (!error) setItems((data as any) || []);
+    fetchStats();
     setLoading(false);
     setRefreshing(false);
   }, [filterStatus]);
@@ -262,6 +289,32 @@ export default function AdminVerifications() {
         <Text style={styles.pageTitle}>{t('admin.verifications.title', 'Verifications Hub')}</Text>
       </View>
 
+      {/* Panel de Estadísticas (KPIs) */}
+      <View style={styles.statsPanel}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
+          <View style={styles.statBox}>
+            <MaterialCommunityIcons name="shield-outline" size={18} color={accentColor} />
+            <Text style={[styles.statNumText, { color: '#fff' }]}>{stats.total}</Text>
+            <Text style={styles.statLabelText}>{locale === 'es' ? 'Total' : 'Total'}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <MaterialCommunityIcons name="clock-outline" size={18} color="#f97316" />
+            <Text style={[styles.statNumText, { color: '#f97316' }]}>{stats.pending}</Text>
+            <Text style={styles.statLabelText}>{locale === 'es' ? 'Pendientes' : 'Pending'}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <MaterialCommunityIcons name="check-decagram" size={18} color="#10b981" />
+            <Text style={[styles.statNumText, { color: '#10b981' }]}>{stats.approved}</Text>
+            <Text style={styles.statLabelText}>{locale === 'es' ? 'Aprobadas' : 'Approved'}</Text>
+          </View>
+          <View style={styles.statBox}>
+            <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ff4444" />
+            <Text style={[styles.statNumText, { color: '#ff4444' }]}>{stats.rejected}</Text>
+            <Text style={styles.statLabelText}>{locale === 'es' ? 'Rechazadas' : 'Rejected'}</Text>
+          </View>
+        </ScrollView>
+      </View>
+
       <View style={styles.filterRow}>
         {['pending', 'approved', 'rejected'].map(s => (
           <TouchableOpacity
@@ -356,6 +409,35 @@ const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: '#0a0a0a' },
   topBar:      { padding: 16, borderBottomWidth: 1, borderBottomColor: '#1a1a1a' },
   pageTitle:   { fontSize: 22, fontWeight: '700', color: '#fff' },
+  statsPanel: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+    backgroundColor: '#070707',
+  },
+  statsScroll: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  statBox: {
+    width: 100,
+    backgroundColor: '#111',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1a1a1a',
+    padding: 10,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statNumText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  statLabelText: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '600',
+  },
   filterRow:   { flexDirection: 'row', padding: 12, gap: 8, borderBottomWidth: 1, borderBottomColor: '#1a1a1a', flexWrap: 'wrap' },
   filterChip:  { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#222', backgroundColor: '#111' },
   filterText:  { color: '#888', fontSize: 12, fontWeight: '500', textTransform: 'capitalize' },

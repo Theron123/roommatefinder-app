@@ -4,23 +4,87 @@ import { Stack, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function FollowersScreen() {
   const router = useRouter();
+  const { locale, t } = useTranslation();
+  const isEs = locale === 'es';
+
   const [followers, setFollowers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchMockFollowers();
+    fetchRealFollowers();
   }, []);
 
-  const fetchMockFollowers = async () => {
-    // We don't have a likes/followers table yet, so we return empty instead of mocking
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    
-    setFollowers([]);
-    setLoading(false);
+  const fetchRealFollowers = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+      const myId = session.user.id;
+
+      // 1. Obtener swipes recibidos por mí con liked = true
+      const { data: swipesData, error: swipesError } = await supabase
+        .from('swipes')
+        .select('swiper, created_at')
+        .eq('swiped', myId)
+        .eq('liked', true);
+
+      if (swipesError || !swipesData || swipesData.length === 0) {
+        setFollowers([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Extraer los IDs únicos de los swipers
+      const swiperIds = Array.from(new Set(swipesData.map(s => s.swiper)));
+
+      // 3. Obtener los perfiles correspondientes
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl')
+        .in('id', swiperIds);
+
+      if (profilesError || !profilesData) {
+        setFollowers([]);
+        setLoading(false);
+        return;
+      }
+
+      // 4. Combinar con fecha de swipe
+      const followersList = profilesData.map(profile => {
+        const swipe = swipesData.find(s => s.swiper === profile.id);
+        return {
+          ...profile,
+          swipeTime: (swipe && swipe.created_at) ? new Date(swipe.created_at) : new Date(),
+        };
+      });
+
+      // Ordenar por tiempo de swipe descendente
+      followersList.sort((a, b) => b.swipeTime.getTime() - a.swipeTime.getTime());
+
+      setFollowers(followersList);
+    } catch (e) {
+      console.error('Error cargando seguidores:', e);
+      setFollowers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + (isEs ? ' d' : ' d');
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + (isEs ? ' h' : ' h');
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + (isEs ? ' m' : ' m');
+    return isEs ? 'ahora' : 'now';
   };
 
   return (
@@ -30,16 +94,22 @@ export default function FollowersScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialCommunityIcons name="chevron-left" size={32} color="#fff" />
         </Pressable>
-        <Text style={styles.title}>Recent Followers</Text>
+        <Text style={styles.title}>{isEs ? 'Seguidores Recientes' : 'Recent Followers'}</Text>
         <View style={{ width: 32 }} />
       </View>
 
-      <Text style={styles.subtitle}>These people liked your profile recently. Match with them to start chatting!</Text>
+      <Text style={styles.subtitle}>
+        {isEs 
+          ? 'Personas a las que les gustó tu perfil recientemente. ¡Haz match con ellas para chatear!'
+          : 'These people liked your profile recently. Match with them to start chatting!'}
+      </Text>
 
       {loading ? (
         <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 50 }} />
       ) : followers.length === 0 ? (
-        <Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>No new followers yet.</Text>
+        <Text style={{color: '#888', textAlign: 'center', marginTop: 40}}>
+          {isEs ? 'No tienes nuevos seguidores todavía.' : 'No new followers yet.'}
+        </Text>
       ) : (
         <FlatList
           data={followers}
@@ -51,7 +121,9 @@ export default function FollowersScreen() {
               <Image source={{ uri: item.photoUrl || 'https://via.placeholder.com/150' }} style={styles.avatar} />
               <View style={styles.content}>
                  <Text style={styles.name}>{item.name}, {item.age}</Text>
-                 <Text style={styles.time}>Liked you just now</Text>
+                 <Text style={styles.time}>
+                   {isEs ? `Le gustaste hace ${getTimeAgo(item.swipeTime)}` : `Liked you ${getTimeAgo(item.swipeTime)} ago`}
+                 </Text>
               </View>
               <View style={styles.actionBtn}>
                  <MaterialCommunityIcons name="heart" size={20} color="#fff" />

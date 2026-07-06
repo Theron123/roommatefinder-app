@@ -409,11 +409,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   messageBoxError: {
-    backgroundColor: '#0a1a12',
+    backgroundColor: '#1a0a0a',
     borderColor: '#ff4444',
   },
   messageBoxSuccess: {
-    backgroundColor: '#0a1a0a',
+    backgroundColor: '#0a1a12',
     borderColor: '#00C9A7',
   },
   messageText: {

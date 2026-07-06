@@ -116,7 +116,6 @@ export default function RootLayout() {
             <Stack.Screen name="chat/[id]" options={{ presentation: 'modal', headerShown: false }} />
             <Stack.Screen name="role-select" options={{ headerShown: false }} />
             <Stack.Screen name="preferences" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             <Stack.Screen name="contracts/index" options={{ headerShown: false }} />
             <Stack.Screen name="contracts/new" options={{ headerShown: false }} />
             <Stack.Screen name="contracts/review" options={{ headerShown: false }} />
