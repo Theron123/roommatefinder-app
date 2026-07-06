@@ -36,6 +36,10 @@ export default function AdminSettings() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [autoVerify, setAutoVerify]           = useState(false);
   const [commissionRate, setCommissionRate]   = useState('5.0');
+  
+  // Integration Configs State
+  const [yardiEndpoint, setYardiEndpoint]     = useState('');
+  const [yardiClient, setYardiClient]         = useState('');
 
   useEffect(() => {
     loadSystemConfigs();
@@ -50,6 +54,8 @@ export default function AdminSettings() {
         setMaintenanceMode(parsed.maintenanceMode ?? false);
         setAutoVerify(parsed.autoVerify ?? false);
         setCommissionRate(parsed.commissionRate ?? '5.0');
+        setYardiEndpoint(parsed.yardiEndpoint ?? '');
+        setYardiClient(parsed.yardiClient ?? '');
       }
     } catch (e) {
       console.log('Failed to load system configs:', e);
@@ -74,6 +80,8 @@ export default function AdminSettings() {
         maintenanceMode,
         autoVerify,
         commissionRate,
+        yardiEndpoint,
+        yardiClient,
       };
       await AsyncStorage.setItem('@admin_system_configs', JSON.stringify(payload));
       
@@ -226,6 +234,61 @@ export default function AdminSettings() {
                 placeholderTextColor="#666"
               />
             </View>
+            </View>
+          </View>
+
+          {/* Third Party Integrations */}
+          <Text style={styles.sectionTitle}>{t('admin.settings.integrations', 'Third Party Integrations')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('admin.settings.integrations_sub', 'Connect Yardi Voyager and Zumper')}</Text>
+          <View style={styles.glassCard}>
+            
+            {/* Yardi Config */}
+            <View style={styles.integrationRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Yardi Voyager Endpoint</Text>
+                <Text style={styles.toggleDesc}>URL to the SOAP/REST interface</Text>
+              </View>
+              <TextInput
+                style={[styles.rateInput, { width: 140, borderColor: 'rgba(255,255,255,0.08)' }]}
+                value={yardiEndpoint}
+                onChangeText={setYardiEndpoint}
+                placeholder="https://api..."
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+              />
+            </View>
+            <View style={styles.cardDivider} />
+            <View style={styles.integrationRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Yardi Client ID</Text>
+                <Text style={styles.toggleDesc}>Client identifier for Oni</Text>
+              </View>
+              <TextInput
+                style={[styles.rateInput, { width: 140, borderColor: 'rgba(255,255,255,0.08)' }]}
+                value={yardiClient}
+                onChangeText={setYardiClient}
+                placeholder="ONI-1234"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.cardDivider} />
+
+            {/* Zumper Config */}
+            <View style={styles.integrationRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Zumper XML Feed URL</Text>
+                <Text style={styles.toggleDesc}>Send this URL to feeds@zumper.com</Text>
+              </View>
+              <Pressable 
+                style={[styles.copyBtn, { backgroundColor: `${accentColor}20` }]}
+                onPress={() => Alert.alert('Copied', 'URL: https://api.roommatefinder.com/api/zumper-feed')}
+              >
+                <Text style={[styles.copyBtnText, { color: accentColor }]}>Copy URL</Text>
+              </Pressable>
+            </View>
+
           </View>
 
           {/* Save Button */}
@@ -402,6 +465,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
+  },
+  integrationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  copyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  copyBtnText: {
+    fontWeight: '700',
+    fontSize: 13,
   },
   rateInput: {
     backgroundColor: 'rgba(255,255,255,0.03)',
