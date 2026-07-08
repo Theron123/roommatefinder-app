@@ -98,6 +98,34 @@ export default function AdminListings() {
   const [editLatitude, setEditLatitude] = useState('');
   const [editLongitude, setEditLongitude] = useState('');
   const [editUtilities, setEditUtilities] = useState(false);
+  const [editStatus, setEditStatus] = useState<string>('active');
+  const [editVerified, setEditVerified] = useState<boolean>(false);
+
+  const [isLightboxVisible, setIsLightboxVisible] = useState(false);
+  const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  const showAlert = (title: string, message: string) => {
+    const isError = title.toLowerCase() === 'error';
+    const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
+    if (isError || isSuccess) {
+      showToast(message, isError ? 'error' : 'success');
+    } else {
+      if (Platform.OS === 'web') {
+        alert(`${title}: ${message}`);
+      } else {
+        Alert.alert(title, message);
+      }
+    }
+  };
   
   // Admin local metadata
   const [adminNotes, setAdminNotes] = useState('');
@@ -303,6 +331,8 @@ export default function AdminListings() {
     setEditLatitude(listing.latitude ? String(listing.latitude) : '');
     setEditLongitude(listing.longitude ? String(listing.longitude) : '');
     setEditUtilities(!!listing.utilities_included);
+    setEditStatus(listing.status || 'active');
+    setEditVerified(listing.is_property_verified === true);
 
     loadAdminMetadata(listing.id);
     if (listing.user_id) {
@@ -318,18 +348,20 @@ export default function AdminListings() {
     try {
       const priceNum = Number(editPrice);
       if (isNaN(priceNum) || priceNum < 0) {
-        Alert.alert('Error', locale === 'es' ? 'El precio debe ser un número válido.' : 'Price must be a valid number.');
+        showAlert('Error', locale === 'es' ? 'El precio debe ser un número válido.' : 'Price must be a valid number.');
         return;
       }
 
-      const updateData = {
+      const updateData: Partial<Listing> = {
         title: editTitle.trim(),
         address: editAddress.trim(),
         price: priceNum,
         description: editDescription.trim(),
         latitude: editLatitude ? Number(editLatitude) : null,
         longitude: editLongitude ? Number(editLongitude) : null,
-        utilities_included: editUtilities
+        utilities_included: editUtilities,
+        status: editStatus,
+        is_property_verified: editVerified
       };
 
       const { error } = await supabase
@@ -339,61 +371,66 @@ export default function AdminListings() {
 
       if (error) throw error;
 
+      const auditActions: string[] = [];
+      if (editTitle.trim() !== selectedListing.title) auditActions.push('Título modificado');
+      if (priceNum !== selectedListing.price) auditActions.push(`Precio cambiado a $${priceNum}`);
+      if (editStatus !== selectedListing.status) auditActions.push(`Estado cambiado a ${editStatus}`);
+      if (editVerified !== selectedListing.is_property_verified) auditActions.push(`Verificación de propiedad establecida en ${editVerified}`);
+
+      if (auditActions.length === 0) {
+        auditActions.push('Detalles de propiedad modificados por admin');
+      }
+
+      for (const action of auditActions) {
+        await addAuditLog(selectedListing.id, action);
+      }
+
       setSelectedListing({ ...selectedListing, ...updateData });
-      await addAuditLog(selectedListing.id, 'Detalles de propiedad modificados por admin');
-      Alert.alert(locale === 'es' ? 'Éxito' : 'Success', locale === 'es' ? 'Alojamiento actualizado con éxito.' : 'Listing updated successfully.');
+      showAlert(locale === 'es' ? 'Éxito' : 'Success', locale === 'es' ? 'Alojamiento actualizado con éxito.' : 'Listing updated successfully.');
       fetchListings();
       fetchStats();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Error guardando cambios');
+      showAlert('Error', e.message || 'Error guardando cambios');
     }
   };
 
-  // Actualiza campo individual (ej. estado o verificación)
-  const updateListingField = async (field: keyof Listing, value: any, actionName: string) => {
-    if (!selectedListing) return;
-    try {
-      const updateData = { [field]: value };
-      const { error } = await supabase
-        .from('listings')
-        .update(updateData as any)
-        .eq('id', selectedListing.id);
 
-      if (error) throw error;
-
-      const updated = { ...selectedListing, ...updateData };
-      setSelectedListing(updated);
-      await addAuditLog(selectedListing.id, actionName);
-      fetchListings();
-      fetchStats();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Fallo de actualización');
-    }
-  };
 
   // Elimina un alojamiento
   const deleteListing = (id: string) => {
-    Alert.alert(
-      t('admin.listings.delete_confirm', 'Delete Listing'),
-      t('admin.listings.delete_message', 'Are you sure you want to delete this listing? This action cannot be undone.'),
-      [
-        { text: t('general.cancel', 'Cancel'), style: 'cancel' },
-        {
-          text: t('admin.listings.delete_btn', 'Delete'),
-          style: 'destructive',
-          onPress: async () => {
-             const { error } = await supabase.from('listings').delete().eq('id', id);
-             if (!error) {
-               setDetailModalVisible(false);
-               fetchListings();
-               fetchStats();
-             } else {
-               Alert.alert('Error', error.message);
-             }
+    const handleConfirm = async () => {
+      const { error } = await supabase.from('listings').delete().eq('id', id);
+      if (!error) {
+        setDetailModalVisible(false);
+        fetchListings();
+        fetchStats();
+        showAlert(locale === 'es' ? 'Éxito' : 'Success', locale === 'es' ? 'Alojamiento eliminado.' : 'Listing deleted.');
+      } else {
+        showAlert('Error', error.message);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        `${t('admin.listings.delete_confirm', 'Delete Listing')}\n\n${t('admin.listings.delete_message', 'Are you sure you want to delete this listing? This action cannot be undone.')}`
+      );
+      if (confirmed) {
+        handleConfirm();
+      }
+    } else {
+      Alert.alert(
+        t('admin.listings.delete_confirm', 'Delete Listing'),
+        t('admin.listings.delete_message', 'Are you sure you want to delete this listing? This action cannot be undone.'),
+        [
+          { text: t('general.cancel', 'Cancel'), style: 'cancel' },
+          {
+            text: t('admin.listings.delete_btn', 'Delete'),
+            style: 'destructive',
+            onPress: handleConfirm,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   // ── Importación Masiva JSON ─────────────────────────────────────
@@ -508,6 +545,22 @@ export default function AdminListings() {
           </View>
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const renderToast = () => {
+    if (!toast) return null;
+    return (
+      <View style={styles.toastOuterContainer}>
+        <View style={[styles.toastCard, toast.type === 'error' ? styles.toastCardError : styles.toastCardSuccess]}>
+          <MaterialCommunityIcons 
+            name={toast.type === 'success' ? "check-circle" : "alert-circle"} 
+            size={18} 
+            color={toast.type === 'success' ? "#22c55e" : "#ef4444"} 
+          />
+          <Text style={styles.toastMessageText}>{toast.message}</Text>
+        </View>
+      </View>
     );
   };
 
@@ -871,21 +924,12 @@ export default function AdminListings() {
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Estado Administrativo' : 'Status Moderation'}</Text>
                       <View style={styles.buttonGroup}>
                         {STATUSES.filter(s => s !== 'all').map((stOption) => {
-                          const isActive = selectedListing.status === stOption;
+                          const isActive = editStatus === stOption;
                           return (
                             <TouchableOpacity
                               key={stOption}
                               style={[styles.groupBtn, isActive && { backgroundColor: STATUS_COLOR[stOption] || accentColor }]}
-                              onPress={() => {
-                                Alert.alert(
-                                  locale === 'es' ? 'Confirmar Cambio de Estado' : 'Confirm Status Change',
-                                  locale === 'es' ? `¿Desea marcar esta propiedad como ${stOption}?` : `Do you want to set this property as ${stOption}?`,
-                                  [
-                                    { text: locale === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
-                                    { text: locale === 'es' ? 'Confirmar' : 'Confirm', onPress: () => updateListingField('status', stOption, `Estado de propiedad establecido en ${stOption}`) }
-                                  ]
-                                );
-                              }}
+                              onPress={() => setEditStatus(stOption)}
                             >
                               <Text style={[styles.groupBtnText, isActive && { color: '#000', fontWeight: 'bold' }]}>
                                 {translateStatus(stOption)}
@@ -901,8 +945,8 @@ export default function AdminListings() {
                           <Text style={styles.switchDesc}>{locale === 'es' ? 'Activa el distintivo oficial de verificación en la feed' : 'Show official checkmark badge on listings feed'}</Text>
                         </View>
                         <Switch
-                          value={selectedListing.is_property_verified === true}
-                          onValueChange={(val) => updateListingField('is_property_verified', val, `Verificación de propiedad establecida en ${val}`)}
+                          value={editVerified}
+                          onValueChange={(val) => setEditVerified(val)}
                           trackColor={{ false: '#333', true: accentColor }}
                           thumbColor={'#fff'}
                         />
@@ -962,12 +1006,19 @@ export default function AdminListings() {
                       ) : (
                         <View style={styles.galleryGrid}>
                           {selectedListing.images.map((img, idx) => (
-                            <View key={idx} style={styles.galleryImageContainer}>
+                            <TouchableOpacity
+                              key={idx}
+                              style={styles.galleryImageContainer}
+                              onPress={() => {
+                                setLightboxPhotoIdx(idx);
+                                setIsLightboxVisible(true);
+                              }}
+                            >
                               <Image source={{ uri: img }} style={styles.galleryImage} />
                               <View style={styles.galleryIndexBadge}>
                                 <Text style={styles.galleryIndexText}>{idx + 1}</Text>
                               </View>
-                            </View>
+                            </TouchableOpacity>
                           ))}
                         </View>
                       )}
@@ -1055,11 +1106,92 @@ export default function AdminListings() {
                     </View>
                   )}
                 </ScrollView>
+                {detailModalVisible && renderToast()}
               </>
             )}
           </View>
         </View>
       </Modal>
+      {/* Lightbox Modal */}
+      {selectedListing && selectedListing.images && selectedListing.images.length > 0 && (
+        <Modal
+          visible={isLightboxVisible}
+          transparent={false}
+          animationType="fade"
+          onRequestClose={() => {
+            setIsLightboxVisible(false);
+          }}
+        >
+          <View style={styles.lightboxContainer}>
+            {/* Top Story indicators */}
+            {selectedListing.images.length > 1 && (
+              <View style={styles.lightboxIndicatorContainer}>
+                {selectedListing.images.map((_: any, idx: number) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.lightboxIndicatorBar,
+                      {
+                        backgroundColor: idx === lightboxPhotoIdx ? (accentColor || '#49C788') : 'rgba(255, 255, 255, 0.3)',
+                        width: `${100 / selectedListing.images!.length - 2}%`,
+                      }
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Close button (top right) */}
+            <TouchableOpacity
+              style={styles.lightboxCloseBtn}
+              onPress={() => {
+                setIsLightboxVisible(false);
+              }}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Zoomable Image Container */}
+            <ScrollView
+              maximumZoomScale={3}
+              minimumZoomScale={1}
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.lightboxImageWrapper}
+            >
+              <Image
+                source={{ uri: selectedListing.images[lightboxPhotoIdx] }}
+                style={styles.lightboxImage}
+                contentFit="contain"
+                transition={200}
+              />
+            </ScrollView>
+
+            {/* Left/Right press navigation overlays inside lightbox */}
+            {selectedListing.images.length > 1 && (
+              <View style={styles.lightboxTapOverlay}>
+                <TouchableOpacity
+                  style={styles.lightboxTapSide}
+                  onPress={() => setLightboxPhotoIdx((prev) => Math.max(0, prev - 1))}
+                />
+                <View style={{ flex: 1 }} pointerEvents="none" />
+                <TouchableOpacity
+                  style={styles.lightboxTapSide}
+                  onPress={() => setLightboxPhotoIdx((prev) => Math.min(selectedListing.images!.length - 1, prev + 1))}
+                />
+              </View>
+            )}
+
+            {/* Bottom Counter badge */}
+            <View style={styles.lightboxPageBadge}>
+              <Text style={styles.lightboxPageBadgeText}>
+                {lightboxPhotoIdx + 1} / {selectedListing.images.length}
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+      {!detailModalVisible && renderToast()}
     </SafeAreaView>
   );
 }
@@ -1634,5 +1766,112 @@ const styles = StyleSheet.create({
   auditActionText: {
     color: '#fff',
     fontSize: 13,
+  },
+  toastOuterContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    maxWidth: '90%',
+  },
+  toastCardSuccess: {
+    borderColor: '#22c55e40',
+  },
+  toastCardError: {
+    borderColor: '#ef444440',
+  },
+  toastMessageText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  lightboxContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  lightboxIndicatorContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    zIndex: 10,
+  },
+  lightboxIndicatorBar: {
+    height: 3,
+    borderRadius: 1.5,
+  },
+  lightboxCloseBtn: {
+    position: 'absolute',
+    top: 65,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  lightboxImageWrapper: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxImage: {
+    width: Dimensions.get('window').width,
+    height: '100%',
+  },
+  lightboxTapOverlay: {
+    position: 'absolute',
+    top: 120,
+    bottom: 120,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    zIndex: 5,
+  },
+  lightboxTapSide: {
+    width: '40%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0)',
+  },
+  lightboxPageBadge: {
+    position: 'absolute',
+    bottom: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    zIndex: 10,
+  },
+  lightboxPageBadgeText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

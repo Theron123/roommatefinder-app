@@ -160,10 +160,10 @@ export default function AdminVerifications() {
         }
 
         const flag = PROFILE_FLAG[type];
-        if (flag && decision === 'approved') {
+        if (flag) {
           const { error: profileUpdateErr } = await supabase
             .from('profiles')
-            .update({ [flag]: true } as any)
+            .update({ [flag]: decision === 'approved' } as any)
             .eq('id', userId);
 
           if (profileUpdateErr) {

@@ -120,7 +120,8 @@ export function useExplore() {
         .from('profiles')
         .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
         .neq('id', session.user.id)
-        .neq('role', 'landlord');
+        .neq('role', 'landlord')
+        .neq('role', 'admin');
 
       if (filters.role !== 'all') query = query.eq('role', filters.role);
       if (filters.onlyVerified) query = query.eq('is_identity_verified', true);

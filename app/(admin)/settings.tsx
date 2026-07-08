@@ -40,6 +40,55 @@ export default function AdminSettings() {
   // Integration Configs State
   const [yardiEndpoint, setYardiEndpoint]     = useState('');
   const [yardiClient, setYardiClient]         = useState('');
+  const [testingYardi, setTestingYardi]       = useState(false);
+  const [yardiTestLogs, setYardiTestLogs]     = useState<string[] | null>(null);
+
+  const handleTestYardi = async () => {
+    setTestingYardi(true);
+    setYardiTestLogs([]);
+    const logs: string[] = [];
+    const addLog = (msg: string) => {
+      logs.push(msg);
+      setYardiTestLogs([...logs]);
+    };
+
+    try {
+      addLog('🔄 Cargando configuración local de Yardi...');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      const { loadConfigFromEnv } = require('../../lib/integrations/yardi/config');
+      const { YardiApiClient } = require('../../lib/integrations/yardi/client');
+      
+      const config = loadConfigFromEnv();
+      config.simulationMode = true; // Forzar simulación para pruebas en app
+      
+      addLog(`📡 Endpoint: ${yardiEndpoint || config.apiEndpoint}`);
+      addLog('🔑 Solicitando token de acceso (OAuth2)...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      addLog('✅ Token obtenido: simulated_oauth2_token_12345');
+
+      const client = new YardiApiClient(config);
+      
+      addLog('🔍 Listando propiedades de Yardi (REST)...');
+      await new Promise(resolve => setTimeout(resolve, 900));
+      const properties = await client.get('/properties');
+      addLog(`✅ Recibidas ${properties.length} propiedades.`);
+      properties.forEach((p: any) => {
+        addLog(`   • [${p.PropertyCode}] ${p.PropertyName}`);
+      });
+
+      addLog('📨 Solicitando GetResidentDetails (SOAP)...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await client.soapRequest('GetResidentDetails', '<ResidentID>123</ResidentID>');
+      addLog('✅ SOAP exitoso. Inquilino actual: t001842');
+
+      addLog('🎉 ¡Sincronización simulada completada con éxito!');
+    } catch (e: any) {
+      addLog(`❌ Error en la prueba: ${e.message}`);
+    } finally {
+      setTestingYardi(false);
+    }
+  };
 
   useEffect(() => {
     loadSystemConfigs();
@@ -234,7 +283,6 @@ export default function AdminSettings() {
                 placeholderTextColor="#666"
               />
             </View>
-            </View>
           </View>
 
           {/* Third Party Integrations */}
@@ -274,6 +322,44 @@ export default function AdminSettings() {
             </View>
 
             <View style={styles.cardDivider} />
+
+            {/* Yardi Test Connection Button */}
+            <View style={styles.integrationRow}>
+              <View style={styles.toggleInfo}>
+                <Text style={styles.toggleLabel}>Probar Conexión Yardi</Text>
+                <Text style={styles.toggleDesc}>Ejecuta una simulación completa de API y SOAP</Text>
+              </View>
+              <Pressable
+                style={[styles.copyBtn, { backgroundColor: `${accentColor}20` }]}
+                onPress={handleTestYardi}
+                disabled={testingYardi}
+              >
+                {testingYardi ? (
+                  <ActivityIndicator color={accentColor} size="small" />
+                ) : (
+                  <Text style={[styles.copyBtnText, { color: accentColor }]}>Probar</Text>
+                )}
+              </Pressable>
+            </View>
+
+            {yardiTestLogs && (
+              <View style={{ padding: 16, backgroundColor: 'rgba(0,0,0,0.3)', borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Consola de Pruebas Yardi</Text>
+                  <Pressable onPress={() => setYardiTestLogs(null)}>
+                    <Text style={{ color: '#888', fontSize: 12 }}>Limpiar</Text>
+                  </Pressable>
+                </View>
+                {yardiTestLogs.map((log, index) => (
+                  <Text key={index} style={{ color: log.startsWith('❌') ? '#ff453a' : log.startsWith('✅') || log.startsWith('🎉') ? '#49C788' : '#aaa', fontSize: 12, fontFamily: 'monospace', marginVertical: 2 }}>
+                    {log}
+                  </Text>
+                ))}
+              </View>
+            )}
+
+            <View style={styles.cardDivider} />
+
 
             {/* Zumper Config */}
             <View style={styles.integrationRow}>
