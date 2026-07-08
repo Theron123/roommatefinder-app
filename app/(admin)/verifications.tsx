@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
