@@ -89,7 +89,7 @@ export default function ProfileDetailScreen() {
     );
   }
 
-  if (!profile) {
+  if (!profile || profile.role === 'admin') {
     return (
       <View style={styles.centerBox}>
         <Text style={styles.errorText}>{t('profile.not_found', 'Profile not found.')}</Text>

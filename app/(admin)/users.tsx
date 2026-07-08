@@ -89,6 +89,36 @@ export default function AdminUsers() {
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editRole, setEditRole] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<string>('active');
+  const [editTrustScore, setEditTrustScore] = useState<number | null>(null);
+  const [editRiskLevel, setEditRiskLevel] = useState<string | null>(null);
+  const [editVip, setEditVip] = useState<boolean>(false);
+  const [editVerifications, setEditVerifications] = useState<Record<string, boolean>>({});
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  const showAlert = (title: string, message: string) => {
+    const isError = title.toLowerCase() === 'error';
+    const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
+    if (isError || isSuccess) {
+      showToast(message, isError ? 'error' : 'success');
+    } else {
+      if (Platform.OS === 'web') {
+        alert(`${title}: ${message}`);
+      } else {
+        Alert.alert(title, message);
+      }
+    }
+  };
+
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [assocStats, setAssocStats] = useState<AssociationStats>({ listings: 0, contracts: 0, reportsFiled: 0, reportsAgainst: 0 });
   const [assocLoading, setAssocLoading] = useState(false);
@@ -158,24 +188,80 @@ export default function AdminUsers() {
       await AsyncStorage.setItem(phoneKey, editPhone);
       await AsyncStorage.setItem(notesKey, editNotes);
 
-      // Si el nombre cambió en el campo de edición, lo actualizamos también en Supabase
+      const updateData: Partial<Profile> = {};
+      const auditActions: string[] = [];
+
       if (editName.trim() && editName !== selectedUser.name) {
+        updateData.name = editName.trim();
+        auditActions.push(`Nombre editado de "${selectedUser.name}" a "${editName}"`);
+      }
+      if (editRole !== selectedUser.role) {
+        updateData.role = editRole;
+        auditActions.push(`Rol cambiado de "${selectedUser.role || 'ninguno'}" a "${editRole || 'ninguno'}"`);
+      }
+      if (editStatus !== (selectedUser.availability_status || 'active')) {
+        updateData.availability_status = editStatus;
+        auditActions.push(`Estado cambiado de "${selectedUser.availability_status || 'active'}" a "${editStatus}"`);
+      }
+      if (editTrustScore !== selectedUser.trust_score) {
+        updateData.trust_score = editTrustScore;
+        auditActions.push(`Trust Score cambiado de "${selectedUser.trust_score !== null ? selectedUser.trust_score + '%' : 'ninguno'}" a "${editTrustScore !== null ? editTrustScore + '%' : 'ninguno'}"`);
+      }
+      if (editRiskLevel !== (selectedUser.risk_level || 'low')) {
+        updateData.risk_level = editRiskLevel;
+        auditActions.push(`Nivel de riesgo cambiado de "${selectedUser.risk_level || 'low'}" a "${editRiskLevel}"`);
+      }
+      if (editVip !== (selectedUser.share_badges_enabled === true)) {
+        updateData.share_badges_enabled = editVip;
+        auditActions.push(`Suscripción Premium cambiada a ${editVip}`);
+      }
+
+      // Verificaciones
+      const verifKeys = [
+        'is_identity_verified',
+        'is_background_verified',
+        'is_income_verified',
+        'is_phone_verified',
+        'is_references_verified',
+        'is_social_verified',
+        'is_university_verified',
+        'is_workplace_verified'
+      ] as const;
+
+      verifKeys.forEach((key) => {
+        const val = !!editVerifications[key];
+        const oldVal = !!selectedUser[key];
+        if (val !== oldVal) {
+          updateData[key] = val;
+          auditActions.push(`Estado de ${key} cambiado a ${val}`);
+        }
+      });
+
+      if (Object.keys(updateData).length > 0) {
         const { error } = await supabase
           .from('profiles')
-          .update({ name: editName.trim() })
+          .update(updateData as any)
           .eq('id', selectedUser.id);
         
         if (error) throw error;
-        await addAuditLog(selectedUser.id, `Nombre editado de "${selectedUser.name}" a "${editName}"`);
+        
+        // Agregar logs de auditoría secuencialmente
+        for (const action of auditActions) {
+          await addAuditLog(selectedUser.id, action);
+        }
+
+        // Actualizar el selectedUser local
+        setSelectedUser({ ...selectedUser, ...updateData });
       }
 
-      Alert.alert(
+      showAlert(
         locale === 'es' ? 'Éxito' : 'Success',
-        locale === 'es' ? 'Datos del usuario guardados localmente.' : 'User details saved locally.'
+        locale === 'es' ? 'Datos del usuario guardados con éxito.' : 'User details saved successfully.'
       );
       fetchUsers();
+      fetchStats();
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Error guardando datos');
+      showAlert('Error', e.message || 'Error guardando datos');
     }
   };
 
@@ -316,36 +402,28 @@ export default function AdminUsers() {
   const openUserDetail = (user: Profile) => {
     setSelectedUser(user);
     setEditName(user.name);
+    setEditRole(user.role);
+    setEditStatus(user.availability_status || 'active');
+    setEditTrustScore(user.trust_score);
+    setEditRiskLevel(user.risk_level || 'low');
+    setEditVip(user.share_badges_enabled === true);
+    setEditVerifications({
+      is_identity_verified: !!user.is_identity_verified,
+      is_background_verified: !!user.is_background_verified,
+      is_income_verified: !!user.is_income_verified,
+      is_phone_verified: !!user.is_phone_verified,
+      is_references_verified: !!user.is_references_verified,
+      is_social_verified: !!user.is_social_verified,
+      is_university_verified: !!user.is_university_verified,
+      is_workplace_verified: !!user.is_workplace_verified,
+    });
     loadContactDetails(user.id, user.name);
     loadAssociationStats(user.id);
     setActiveTab('general');
     setDetailModalVisible(true);
   };
 
-  // Guarda actualizaciones en Supabase
-  const updateProfileField = async (field: keyof Profile, value: any, actionName: string) => {
-    if (!selectedUser) return;
-    try {
-      const updateData = { [field]: value };
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData as any)
-        .eq('id', selectedUser.id);
 
-      if (error) throw error;
-
-      // Actualizar el estado local
-      const updatedUser = { ...selectedUser, ...updateData };
-      setSelectedUser(updatedUser);
-      await addAuditLog(selectedUser.id, actionName);
-      
-      // Refrescar lista principal
-      fetchUsers();
-      fetchStats();
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Error actualizando registro');
-    }
-  };
 
   const formatDate = (iso: string) => {
     if (!iso) return '—';
@@ -439,6 +517,22 @@ export default function AdminUsers() {
           <MaterialCommunityIcons name="chevron-right" size={20} color="#333" />
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const renderToast = () => {
+    if (!toast) return null;
+    return (
+      <View style={styles.toastOuterContainer}>
+        <View style={[styles.toastCard, toast.type === 'error' ? styles.toastCardError : styles.toastCardSuccess]}>
+          <MaterialCommunityIcons 
+            name={toast.type === 'success' ? "check-circle" : "alert-circle"} 
+            size={18} 
+            color={toast.type === 'success' ? "#22c55e" : "#ef4444"} 
+          />
+          <Text style={styles.toastMessageText}>{toast.message}</Text>
+        </View>
+      </View>
     );
   };
 
@@ -701,21 +795,12 @@ export default function AdminUsers() {
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Rol de Usuario' : 'User Role'}</Text>
                       <View style={styles.buttonGroupRow}>
                         {ROLES.filter(r => r !== 'all').map((roleOption) => {
-                          const isActive = selectedUser.role === roleOption;
+                          const isActive = editRole === roleOption;
                           return (
                             <TouchableOpacity
                               key={roleOption}
                               style={[styles.groupButton, isActive && { backgroundColor: accentColor }]}
-                              onPress={() => {
-                                Alert.alert(
-                                  locale === 'es' ? 'Confirmar Cambio de Rol' : 'Confirm Role Change',
-                                  locale === 'es' ? `¿Estás seguro de cambiar el rol a ${roleOption}?` : `Are you sure to change role to ${roleOption}?`,
-                                  [
-                                    { text: locale === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
-                                    { text: locale === 'es' ? 'Confirmar' : 'Confirm', onPress: () => updateProfileField('role', roleOption, `Rol cambiado a ${roleOption}`) }
-                                  ]
-                                );
-                              }}
+                              onPress={() => setEditRole(roleOption)}
                             >
                               <Text style={[styles.groupButtonText, isActive && { color: '#000', fontWeight: 'bold' }]}>
                                 {translateRole(roleOption)}
@@ -728,22 +813,12 @@ export default function AdminUsers() {
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Estado de la Cuenta' : 'Account Status'}</Text>
                       <View style={styles.buttonGroupRow}>
                         {STATUSES.filter(s => s !== 'all').map((statusOption) => {
-                          const currentStatus = selectedUser.availability_status || 'active';
-                          const isActive = currentStatus === statusOption;
+                          const isActive = editStatus === statusOption;
                           return (
                             <TouchableOpacity
                               key={statusOption}
                               style={[styles.groupButton, isActive && { backgroundColor: STATUS_COLOR[statusOption] }]}
-                              onPress={() => {
-                                Alert.alert(
-                                  locale === 'es' ? 'Confirmar Cambio de Estado' : 'Confirm Status Change',
-                                  locale === 'es' ? `¿Estás seguro de cambiar el estado a ${statusOption}?` : `Are you sure to change status to ${statusOption}?`,
-                                  [
-                                    { text: locale === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
-                                    { text: locale === 'es' ? 'Confirmar' : 'Confirm', onPress: () => updateProfileField('availability_status', statusOption, `Estado de cuenta cambiado a ${statusOption}`) }
-                                  ]
-                                );
-                              }}
+                              onPress={() => setEditStatus(statusOption)}
                             >
                               <Text style={[styles.groupButtonText, isActive && { color: '#000', fontWeight: 'bold' }]}>
                                 {translateStatus(statusOption)}
@@ -760,20 +835,20 @@ export default function AdminUsers() {
                             <TouchableOpacity 
                               style={styles.adjustScoreBtn}
                               onPress={() => {
-                                const current = selectedUser.trust_score || 50;
+                                const current = editTrustScore !== null ? editTrustScore : 50;
                                 const newVal = Math.max(0, current - 5);
-                                updateProfileField('trust_score', newVal, `Trust Score ajustado a ${newVal}%`);
+                                setEditTrustScore(newVal);
                               }}
                             >
                               <MaterialCommunityIcons name="minus" size={16} color="#fff" />
                             </TouchableOpacity>
-                            <Text style={styles.scoreTextValue}>{selectedUser.trust_score !== null ? `${selectedUser.trust_score}%` : '50%'}</Text>
+                            <Text style={styles.scoreTextValue}>{editTrustScore !== null ? `${editTrustScore}%` : '50%'}</Text>
                             <TouchableOpacity 
                               style={styles.adjustScoreBtn}
                               onPress={() => {
-                                const current = selectedUser.trust_score || 50;
+                                const current = editTrustScore !== null ? editTrustScore : 50;
                                 const newVal = Math.min(100, current + 5);
-                                updateProfileField('trust_score', newVal, `Trust Score ajustado a ${newVal}%`);
+                                setEditTrustScore(newVal);
                               }}
                             >
                               <MaterialCommunityIcons name="plus" size={16} color="#fff" />
@@ -785,12 +860,12 @@ export default function AdminUsers() {
                           <Text style={styles.inputLabel}>{locale === 'es' ? 'Nivel de Riesgo' : 'Risk Level'}</Text>
                           <View style={styles.riskSelectionRow}>
                             {['low', 'medium', 'high'].map((lvl) => {
-                              const isActive = selectedUser.risk_level === lvl;
+                              const isActive = editRiskLevel === lvl;
                               return (
                                 <TouchableOpacity
                                   key={lvl}
                                   style={[styles.riskOptionBtn, isActive && { backgroundColor: RISK_COLOR[lvl] }]}
-                                  onPress={() => updateProfileField('risk_level', lvl, `Nivel de riesgo ajustado a ${lvl}`)}
+                                  onPress={() => setEditRiskLevel(lvl)}
                                 >
                                   <Text style={[styles.riskOptionText, isActive && { color: '#000', fontWeight: 'bold' }]}>
                                     {lvl[0].toUpperCase()}
@@ -808,8 +883,8 @@ export default function AdminUsers() {
                           <Text style={styles.vipToggleDesc}>{locale === 'es' ? 'Otorga ventajas exclusivas en la feed' : 'Grants premium features in application feed'}</Text>
                         </View>
                         <Switch
-                          value={selectedUser.share_badges_enabled === true}
-                          onValueChange={(val) => updateProfileField('share_badges_enabled', val, `Suscripción Premium cambiada a ${val}`)}
+                          value={editVip}
+                          onValueChange={(val) => setEditVip(val)}
                           trackColor={{ false: '#333', true: accentColor }}
                           thumbColor={'#fff'}
                         />
@@ -835,7 +910,7 @@ export default function AdminUsers() {
                         { key: 'is_university_verified', label: locale === 'es' ? 'Verificación Universitaria' : 'University Check', icon: 'school', color: '#f59e0b' },
                         { key: 'is_workplace_verified', label: locale === 'es' ? 'Centro de Trabajo' : 'Workplace Check', icon: 'briefcase', color: '#ec4899' }
                       ].map((item) => {
-                        const val = !!selectedUser[item.key as keyof Profile];
+                        const val = !!editVerifications[item.key];
                         return (
                           <View key={item.key} style={styles.verificationRow}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
@@ -844,7 +919,7 @@ export default function AdminUsers() {
                             </View>
                             <Switch
                               value={val}
-                              onValueChange={(newVal) => updateProfileField(item.key as keyof Profile, newVal, `${item.label} establecida en ${newVal}`)}
+                              onValueChange={(newVal) => setEditVerifications(prev => ({ ...prev, [item.key]: newVal }))}
                               trackColor={{ false: '#333', true: item.color }}
                               thumbColor={'#fff'}
                             />
@@ -919,11 +994,13 @@ export default function AdminUsers() {
                     </View>
                   )}
                 </ScrollView>
+                {detailModalVisible && renderToast()}
               </>
             )}
           </View>
         </View>
       </Modal>
+      {!detailModalVisible && renderToast()}
     </SafeAreaView>
   );
 }
@@ -1456,5 +1533,41 @@ const styles = StyleSheet.create({
   auditActionText: {
     color: '#fff',
     fontSize: 13,
+  },
+  toastOuterContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    maxWidth: '90%',
+  },
+  toastCardSuccess: {
+    borderColor: '#22c55e40',
+  },
+  toastCardError: {
+    borderColor: '#ef444440',
+  },
+  toastMessageText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

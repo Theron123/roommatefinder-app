@@ -168,6 +168,27 @@ export default function RoleSelectScreen() {
     ]).start();
   }, [entranceFade, entranceSlide]);
 
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          if (profile?.role === 'admin') {
+            router.replace('/(admin)');
+          }
+        }
+      } catch (err) {
+        console.log('Error checking admin role in role-select:', err);
+      }
+    };
+    checkAdmin();
+  }, []);
+
   if (saving) {
     return (
       <View style={styles.container}>

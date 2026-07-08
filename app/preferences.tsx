@@ -75,9 +75,14 @@ export default function PreferencesScreen() {
 
       const { data } = await supabase
         .from('profiles')
-        .select('likes, dealbreakers, latOffset, lngOffset, lifestyle, photos')
+        .select('role, likes, dealbreakers, latOffset, lngOffset, lifestyle, photos')
         .eq('id', session.user.id)
         .single();
+
+      if (data?.role === 'admin') {
+        router.replace('/(admin)');
+        return;
+      }
 
       if (data) {
         if (data.photos) {

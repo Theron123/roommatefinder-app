@@ -134,6 +134,7 @@ export default function HomeScreen() {
       .select('id, name, age, photoUrl, likes, preferences, dealbreakers, latOffset, lngOffset')
       .neq('id', session.user.id)
       .neq('role', 'landlord')
+      .neq('role', 'admin')
       .eq('is_public', true);
 
     if (blockedUserIds.length > 0) {
