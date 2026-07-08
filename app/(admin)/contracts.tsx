@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, RefreshControl, Alert, Modal, Image
+  TextInput, ActivityIndicator, RefreshControl, Alert, Modal, Image, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -71,6 +71,29 @@ export default function AdminContracts() {
   const [adminNotes, setAdminNotes] = useState('');
   const [auditLogs, setAuditLogs] = useState<ContractAuditLog[]>([]);
 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  const showAlert = (title: string, message: string) => {
+    const isError = title.toLowerCase() === 'error';
+    const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
+    if (isError || isSuccess) {
+      showToast(message, isError ? 'error' : 'success');
+    } else {
+      if (Platform.OS === 'web') {
+        alert(`${title}: ${message}`);
+      } else {
+        Alert.alert(title, message);
+      }
+    }
+  };
+
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
 
@@ -114,7 +137,7 @@ export default function AdminContracts() {
       const notesKey = `admin_contract_notes:${selectedContract.id}`;
       await AsyncStorage.setItem(notesKey, adminNotes);
 
-      Alert.alert(
+      showAlert(
         locale === 'es' ? 'Éxito' : 'Success',
         locale === 'es' ? 'Notas guardadas correctamente.' : 'Notes saved successfully.'
       );
@@ -276,9 +299,9 @@ export default function AdminContracts() {
       await addAuditLog(selectedContract.id, actionName);
       fetchContracts();
       fetchStats();
-      Alert.alert(locale === 'es' ? 'Éxito' : 'Success', locale === 'es' ? 'Contrato y alojamiento actualizados con éxito.' : 'Contract and accommodation updated successfully.');
+      showAlert(locale === 'es' ? 'Éxito' : 'Success', locale === 'es' ? 'Contrato y alojamiento actualizados con éxito.' : 'Contract and accommodation updated successfully.');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Error al actualizar el estado.');
+      showAlert('Error', e.message || 'Error al actualizar el estado.');
     }
   };
 
@@ -350,6 +373,22 @@ export default function AdminContracts() {
           <MaterialCommunityIcons name="chevron-right" size={16} color="#444" />
         </View>
       </TouchableOpacity>
+    );
+  };
+
+  const renderToast = () => {
+    if (!toast) return null;
+    return (
+      <View style={styles.toastOuterContainer}>
+        <View style={[styles.toastCard, toast.type === 'success' ? styles.toastCardSuccess : styles.toastCardError]}>
+          <MaterialCommunityIcons 
+            name={toast.type === 'success' ? 'check-circle' : 'alert-circle'} 
+            size={18} 
+            color={toast.type === 'success' ? '#22c55e' : '#ef4444'} 
+          />
+          <Text style={styles.toastMessageText}>{toast.message}</Text>
+        </View>
+      </View>
     );
   };
 
@@ -665,11 +704,13 @@ export default function AdminContracts() {
                     </View>
                   )}
                 </ScrollView>
+                {modalVisible && renderToast()}
               </>
             )}
           </View>
         </View>
       </Modal>
+      {!modalVisible && renderToast()}
     </SafeAreaView>
   );
 }
@@ -809,4 +850,40 @@ const styles = StyleSheet.create({
   auditAdminText: { color: '#aaa', fontSize: 12, fontWeight: 'bold' },
   auditTimeText: { color: '#444', fontSize: 10 },
   auditActionText: { color: '#fff', fontSize: 13 },
+  toastOuterContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#121212',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    maxWidth: '90%',
+  },
+  toastCardSuccess: {
+    borderColor: '#22c55e40',
+  },
+  toastCardError: {
+    borderColor: '#ef444440',
+  },
+  toastMessageText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '500',
+  },
 });

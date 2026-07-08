@@ -436,12 +436,11 @@ export default function AdminListings() {
   // ── Importación Masiva JSON ─────────────────────────────────────
   const handleBulkImport = async () => {
     setImportResult(null);
-    let parsed: any[];
+    let parsed: any;
     try {
       parsed = JSON.parse(jsonInput);
-      if (!Array.isArray(parsed)) throw new Error('Root must be a JSON array.');
     } catch (e: any) {
-      Alert.alert('JSON Error', e.message);
+      showAlert('JSON Error', e.message);
       return;
     }
 
@@ -452,24 +451,67 @@ export default function AdminListings() {
     const { data: { session } } = await supabase.auth.getSession();
     const adminId = session?.user?.id;
 
-    for (let i = 0; i < parsed.length; i++) {
-      const item = parsed[i];
-      if (!item.title || !item.address || !item.price) {
+    const itemsToProcess = Array.isArray(parsed) ? parsed : [parsed];
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
+      const item = itemsToProcess[i];
+      let title = '';
+      let address = '';
+      let price = 0;
+      let status = 'active';
+      let latitude = null;
+      let longitude = null;
+      let utilities_included = false;
+      let images: string[] = [];
+
+      // Detect Yardi Voyager Property Format (PropertyName or PropertyCode)
+      if (item.PropertyName !== undefined || item.PropertyCode !== undefined) {
+        title = item.PropertyName || item.PropertyCode || 'Yardi Property';
+        if (item.AddressInfo) {
+          const addr = item.AddressInfo;
+          address = [addr.Address1, addr.Address2, addr.City, addr.State, addr.PostalCode, addr.Country]
+            .filter(Boolean)
+            .join(', ');
+        } else {
+          address = item.address || 'Address Unknown';
+        }
+        price = Number(item.price) || Number(item.RentRange?.MinRent) || Number(item.RentRange?.MaxRent) || Number(item.MinRent) || 500;
+        status = item.Status === 'Inactive' ? 'inactive' : 'active';
+        latitude = item.latitude || null;
+        longitude = item.longitude || null;
+        utilities_included = item.utilities_included || false;
+        images = item.images || [];
+      } 
+      // Standard Format
+      else {
+        title = item.title;
+        address = item.address;
+        price = Number(item.price);
+        status = item.status || 'active';
+        latitude = item.latitude || null;
+        longitude = item.longitude || null;
+        utilities_included = item.utilities_included || false;
+        images = item.images || [];
+      }
+
+      if (!title || !address || isNaN(price)) {
         errors.push(`Item ${i + 1}: Missing required fields (title, address, price).`);
         continue;
       }
+
       const { error } = await supabase.from('listings').insert({
-        title: item.title,
-        address: item.address,
-        price: Number(item.price),
-        latitude: item.latitude || null,
-        longitude: item.longitude || null,
-        utilities_included: item.utilities_included || false,
-        status: item.status || 'active',
-        images: item.images || [],
+        title,
+        address,
+        price,
+        latitude,
+        longitude,
+        utilities_included,
+        status,
+        images,
         user_id: adminId,
       });
-      if (error) errors.push(`Item ${i + 1} (${item.title}): ${error.message}`);
+
+      if (error) errors.push(`Item ${i + 1} (${title}): ${error.message}`);
       else success++;
     }
 
@@ -740,17 +782,15 @@ export default function AdminListings() {
             <MaterialCommunityIcons name="information-outline" size={18} color="#3b82f6" />
             <Text style={styles.importInfoText}>
               {locale === 'es' 
-                ? "Pega un arreglo JSON de objetos de alojamiento. Requerido: "
-                : "Paste a JSON array of listing objects. Required: "}
+                ? "Soporta formato Estándar y formato Yardi Voyager (PropertyCode, PropertyName, AddressInfo). Requerido estándar: "
+                : "Supports Standard and Yardi Voyager formats (PropertyCode, PropertyName, AddressInfo). Required standard: "}
               <Text style={[styles.code, { color: accentColor }]}>title</Text>,{' '}
               <Text style={[styles.code, { color: accentColor }]}>address</Text>,{' '}
               <Text style={[styles.code, { color: accentColor }]}>price</Text>.{'\n'}
-              {locale === 'es' ? "Opcional: " : "Optional: "}
-              <Text style={[styles.code, { color: accentColor }]}>latitude</Text>,{' '}
-              <Text style={[styles.code, { color: accentColor }]}>longitude</Text>,{' '}
-              <Text style={[styles.code, { color: accentColor }]}>utilities_included</Text>,{' '}
-              <Text style={[styles.code, { color: accentColor }]}>status</Text>,{' '}
-              <Text style={[styles.code, { color: accentColor }]}>images</Text>.
+              {locale === 'es' ? "Yardi requiere: " : "Yardi requires: "}
+              <Text style={[styles.code, { color: accentColor }]}>PropertyCode</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>PropertyName</Text>,{' '}
+              <Text style={[styles.code, { color: accentColor }]}>AddressInfo</Text>.
             </Text>
           </View>
 
