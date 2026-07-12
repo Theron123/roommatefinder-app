@@ -683,8 +683,8 @@ export default function ChatScreen() {
           renderItem={renderMessage}
           contentContainerStyle={styles.list}
           ListEmptyComponent={() => (
-            <View style={{ transform: [{ scaleY: -1 }] }}>
-              <Text style={styles.emptyText}>Send a message to say hi! 👋</Text>
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ scaleY: -1 }] }}>
+              <Text style={[styles.emptyText, { transform: [{ scaleY: -1 }] }]}>Send a message to say hi! 👋</Text>
             </View>
           )}
         />
