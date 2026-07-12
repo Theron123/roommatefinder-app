@@ -485,49 +485,62 @@ export default function AdminContracts() {
       </View>
 
       {/* Filtros por Estado */}
-      <View style={styles.filtersRow}>
-        {STATUS_FILTERS.map(st => (
-          <TouchableOpacity
-            key={st}
-            style={[
-              styles.filterChip,
-              filterStatus === st && {
-                borderColor: (STATUS_CONFIG[st]?.color || accentColor),
-                backgroundColor: (STATUS_CONFIG[st]?.color || accentColor) + '15',
-              },
-            ]}
-            onPress={() => setFilterStatus(st)}
-          >
-            <Text style={[styles.filterChipText, filterStatus === st && { color: STATUS_CONFIG[st]?.color || accentColor }]}>
-              {st === 'all' ? (locale === 'es' ? 'Todos' : 'All') : (STATUS_CONFIG[st]?.label || st)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
 
       {/* Panel de Estadísticas (KPIs) */}
       <View style={styles.statsPanel}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
-          <View style={styles.statBox}>
+          {/* Total */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'all' && { borderColor: '#fff', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('all')}
+          >
             <MaterialCommunityIcons name="file-document-outline" size={18} color="#fff" />
             <Text style={styles.statNumText}>{stats.total}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Contratos' : 'Total'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Pendientes */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'pending_authorization' && { borderColor: '#FFB800', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('pending_authorization')}
+          >
             <MaterialCommunityIcons name="clock-outline" size={18} color="#FFB800" />
             <Text style={[styles.statNumText, { color: '#FFB800' }]}>{stats.pending}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Pendientes' : 'Pending'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Activos */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'active' && { borderColor: '#49C788', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('active')}
+          >
             <MaterialCommunityIcons name="check-circle-outline" size={18} color="#49C788" />
             <Text style={[styles.statNumText, { color: '#49C788' }]}>{stats.active}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Activos' : 'Active'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Rechazados / Terminados */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'terminated' && { borderColor: '#FF4B4B', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('terminated')}
+          >
             <MaterialCommunityIcons name="close-circle-outline" size={18} color="#FF4B4B" />
             <Text style={[styles.statNumText, { color: '#FF4B4B' }]}>{stats.terminated}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Rechazados' : 'Rejected'}</Text>
-          </View>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 

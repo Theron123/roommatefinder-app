@@ -65,7 +65,7 @@ export default function AdminVerifications() {
   };
 
   const STATUS_COLOR: Record<string, string> = {
-    pending: '#f97316', approved: accentColor, rejected: '#ff4444',
+    all: '#fff', pending: '#f97316', approved: accentColor, rejected: '#ff4444',
   };
 
   // Custom Modal States
@@ -124,11 +124,15 @@ export default function AdminVerifications() {
   };
 
   const fetchData = useCallback(async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from('verifications')
-      .select('id, type, status, document_url, created_at, user_id, metadata, profiles(name, photoUrl)')
-      .eq('status', filterStatus)
-      .order('created_at', { ascending: false });
+      .select('id, type, status, document_url, created_at, user_id, metadata, profiles(name, photoUrl)');
+
+    if (filterStatus !== 'all') {
+      query = query.eq('status', filterStatus);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (!error) setItems((data as any) || []);
     fetchStats();
@@ -294,48 +298,61 @@ export default function AdminVerifications() {
       {/* Panel de Estadísticas (KPIs) */}
       <View style={styles.statsPanel}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
-          <View style={styles.statBox}>
+          {/* Total */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'all' && { borderColor: '#fff', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('all')}
+          >
             <MaterialCommunityIcons name="shield-outline" size={18} color={accentColor} />
             <Text style={[styles.statNumText, { color: '#fff' }]}>{stats.total}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Total' : 'Total'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Pendientes */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'pending' && { borderColor: '#f97316', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('pending')}
+          >
             <MaterialCommunityIcons name="clock-outline" size={18} color="#f97316" />
             <Text style={[styles.statNumText, { color: '#f97316' }]}>{stats.pending}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Pendientes' : 'Pending'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Aprobadas */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'approved' && { borderColor: '#10b981', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('approved')}
+          >
             <MaterialCommunityIcons name="check-decagram" size={18} color="#10b981" />
             <Text style={[styles.statNumText, { color: '#10b981' }]}>{stats.approved}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Aprobadas' : 'Approved'}</Text>
-          </View>
-          <View style={styles.statBox}>
+          </TouchableOpacity>
+
+          {/* Rechazadas */}
+          <TouchableOpacity 
+            style={[
+              styles.statBox, 
+              filterStatus === 'rejected' && { borderColor: '#ff4444', borderWidth: 1 }
+            ]}
+            onPress={() => setFilterStatus('rejected')}
+          >
             <MaterialCommunityIcons name="close-circle-outline" size={18} color="#ff4444" />
             <Text style={[styles.statNumText, { color: '#ff4444' }]}>{stats.rejected}</Text>
             <Text style={styles.statLabelText}>{locale === 'es' ? 'Rechazadas' : 'Rejected'}</Text>
-          </View>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
-      <View style={styles.filterRow}>
-        {['pending', 'approved', 'rejected'].map(s => (
-          <TouchableOpacity
-            key={s}
-            style={[
-              styles.filterChip,
-              filterStatus === s && {
-                borderColor: STATUS_COLOR[s],
-                backgroundColor: STATUS_COLOR[s] + '18',
-              },
-            ]}
-            onPress={() => setFilterStatus(s)}
-          >
-            <Text style={[styles.filterText, filterStatus === s && { color: STATUS_COLOR[s] }]}>
-              {s}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
 
       {loading && !refreshing ? (
         <View style={styles.centerLoader}>

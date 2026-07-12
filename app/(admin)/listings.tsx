@@ -31,7 +31,7 @@ type Listing = {
 type ListingStats = {
   total: number;
   active: number;
-  pending: number;
+  inactive: number;
   verified: number;
   avgPrice: number;
 };
@@ -83,13 +83,16 @@ export default function AdminListings() {
 
   // Stats State
   const [stats, setStats] = useState<ListingStats>({
-    total: 0, active: 0, pending: 0, verified: 0, avgPrice: 0
+    total: 0, active: 0, inactive: 0, verified: 0, avgPrice: 0
   });
 
   // Detailed Modal States
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'general' | 'gallery' | 'owner' | 'audit'>('general');
+  const [activeContract, setActiveContract] = useState<any>(null);
+  const [contractTenant, setContractTenant] = useState<any>(null);
+  const [contractLoading, setContractLoading] = useState(false);
 
   // Editable fields in Modal
   const [editTitle, setEditTitle] = useState('');
@@ -236,6 +239,34 @@ export default function AdminListings() {
     }
   };
 
+  // Carga asíncrona de contrato activo e inquilino
+  const loadActiveContract = async (listingId: string) => {
+    setContractLoading(true);
+    setActiveContract(null);
+    setContractTenant(null);
+    try {
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*, initiator:initiator_id(id, name, photoUrl, is_identity_verified)')
+        .eq('listing_id', listingId)
+        .or('status.eq.active,status.eq.pending_authorization')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        setActiveContract(data);
+        if (data.initiator) {
+          setContractTenant(data.initiator);
+        }
+      }
+    } catch (e) {
+      console.error('Error cargando contrato activo:', e);
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
   // Carga estadísticas de alojamientos
   const fetchStats = async () => {
     try {
@@ -257,22 +288,22 @@ export default function AdminListings() {
 
       let totalQuery = supabase.from('listings').select('*', { count: 'exact', head: true });
       let activeQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active');
-      let pendingQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      let inactiveQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'inactive');
       let verifiedQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('is_property_verified', true);
       let priceQuery = supabase.from('listings').select('price');
 
       if (role !== 'admin') {
         totalQuery = totalQuery.eq('user_id', currentUserId);
         activeQuery = activeQuery.eq('user_id', currentUserId);
-        pendingQuery = pendingQuery.eq('user_id', currentUserId);
+        inactiveQuery = inactiveQuery.eq('user_id', currentUserId);
         verifiedQuery = verifiedQuery.eq('user_id', currentUserId);
         priceQuery = priceQuery.eq('user_id', currentUserId);
       }
 
-      const [totalRes, activeRes, pendingRes, verifiedRes, priceRes] = await Promise.all([
+      const [totalRes, activeRes, inactiveRes, verifiedRes, priceRes] = await Promise.all([
         totalQuery,
         activeQuery,
-        pendingQuery,
+        inactiveQuery,
         verifiedQuery,
         priceQuery,
       ]);
@@ -283,7 +314,7 @@ export default function AdminListings() {
       setStats({
         total: totalRes.count || 0,
         active: activeRes.count || 0,
-        pending: pendingRes.count || 0,
+        inactive: inactiveRes.count || 0,
         verified: verifiedRes.count || 0,
         avgPrice: avg,
       });
@@ -379,6 +410,7 @@ export default function AdminListings() {
     setEditVerified(listing.is_property_verified === true);
 
     loadAdminMetadata(listing.id);
+    loadActiveContract(listing.id);
     if (listing.user_id) {
       loadOwnerProfile(listing.user_id);
     }
@@ -769,26 +801,71 @@ export default function AdminListings() {
           {/* Estadísticas de Métricas de Propiedad */}
           <View style={styles.statsPanel}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
-              <View style={styles.statBox}>
+              {/* Total */}
+              <TouchableOpacity 
+                style={[
+                  styles.statBox, 
+                  (filterStatus === 'all' && filterVerification === 'all') && { borderColor: '#fff', borderWidth: 1 }
+                ]}
+                onPress={() => {
+                  setFilterStatus('all');
+                  setFilterVerification('all');
+                }}
+              >
                 <MaterialCommunityIcons name="home-city" size={18} color="#fff" />
                 <Text style={styles.statNumText}>{stats.total}</Text>
                 <Text style={styles.statLabelText}>{locale === 'es' ? 'Alojamientos' : 'Listings'}</Text>
-              </View>
-              <View style={styles.statBox}>
+              </TouchableOpacity>
+
+              {/* Activos */}
+              <TouchableOpacity 
+                style={[
+                  styles.statBox, 
+                  (filterStatus === 'active') && { borderColor: accentColor, borderWidth: 1 }
+                ]}
+                onPress={() => {
+                  setFilterStatus('active');
+                  setFilterVerification('all');
+                }}
+              >
                 <MaterialCommunityIcons name="home-circle-outline" size={18} color={accentColor} />
                 <Text style={[styles.statNumText, { color: accentColor }]}>{stats.active}</Text>
                 <Text style={styles.statLabelText}>{locale === 'es' ? 'Activos' : 'Active'}</Text>
-              </View>
-              <View style={styles.statBox}>
-                <MaterialCommunityIcons name="clock-outline" size={18} color="#f97316" />
-                <Text style={[styles.statNumText, { color: '#f97316' }]}>{stats.pending}</Text>
-                <Text style={styles.statLabelText}>{locale === 'es' ? 'Pendientes' : 'Pending'}</Text>
-              </View>
-              <View style={styles.statBox}>
+              </TouchableOpacity>
+
+              {/* Inactivos */}
+              <TouchableOpacity 
+                style={[
+                  styles.statBox, 
+                  (filterStatus === 'inactive') && { borderColor: '#ef4444', borderWidth: 1 }
+                ]}
+                onPress={() => {
+                  setFilterStatus('inactive');
+                  setFilterVerification('all');
+                }}
+              >
+                <MaterialCommunityIcons name="home-minus-outline" size={18} color="#ef4444" />
+                <Text style={[styles.statNumText, { color: '#ef4444' }]}>{stats.inactive}</Text>
+                <Text style={styles.statLabelText}>{locale === 'es' ? 'Inactivos' : 'Inactive'}</Text>
+              </TouchableOpacity>
+
+              {/* Verificados */}
+              <TouchableOpacity 
+                style={[
+                  styles.statBox, 
+                  (filterVerification === 'verified') && { borderColor: '#22c55e', borderWidth: 1 }
+                ]}
+                onPress={() => {
+                  setFilterStatus('all');
+                  setFilterVerification('verified');
+                }}
+              >
                 <MaterialCommunityIcons name="check-decagram" size={18} color="#22c55e" />
                 <Text style={[styles.statNumText, { color: '#22c55e' }]}>{stats.verified}</Text>
                 <Text style={styles.statLabelText}>{locale === 'es' ? 'Verificados' : 'Verified'}</Text>
-              </View>
+              </TouchableOpacity>
+
+              {/* Promedio */}
               <View style={styles.statBox}>
                 <MaterialCommunityIcons name="cash-multiple" size={18} color="#06b6d4" />
                 <Text style={[styles.statNumText, { color: '#06b6d4' }]}>${stats.avgPrice}</Text>
@@ -926,7 +1003,156 @@ export default function AdminListings() {
                 <ScrollView contentContainerStyle={styles.modalTabContent}>
                   {activeTab === 'general' && (
                     <View style={styles.tabPanel}>
-                      <Text style={styles.sectionTitle}>{locale === 'es' ? 'Ficha de Edición' : 'Edit Information'}</Text>
+                      {/* Estado de Publicación Centralizado/Unificado */}
+                      <View style={{
+                        backgroundColor: 'rgba(255,255,255,0.02)',
+                        borderColor: 'rgba(255,255,255,0.05)',
+                        borderWidth: 1,
+                        borderRadius: 14,
+                        padding: 16,
+                        marginBottom: 20,
+                        gap: 12,
+                      }}>
+                        <Text style={{ color: '#aaa', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                          {locale === 'es' ? 'Estado del Alojamiento' : 'Listing Status Dashboard'}
+                        </Text>
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <View style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 5,
+                            backgroundColor: activeContract?.status === 'active' 
+                              ? '#3b82f6' // Rented: Blue
+                              : editStatus === 'active'
+                              ? '#22c55e' // Available: Green
+                              : editStatus === 'pending'
+                              ? '#eab308' // Pending Approval: Yellow
+                              : '#ef4444' // Inactive: Red
+                          }} />
+                          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>
+                            {activeContract?.status === 'active' 
+                              ? (locale === 'es' ? 'Arrendado (Contrato Activo)' : 'Leased / Occupied')
+                              : editStatus === 'active'
+                              ? (locale === 'es' ? 'Disponible para Renta' : 'Available / Active')
+                              : editStatus === 'pending'
+                              ? (locale === 'es' ? 'En Revisión (Pendiente)' : 'Pending Approval')
+                              : (locale === 'es' ? 'Inactivo (Pausado)' : 'Inactive / Paused')}
+                          </Text>
+                        </View>
+                        
+                        <Text style={{ color: '#666', fontSize: 12, lineHeight: 18 }}>
+                          {activeContract?.status === 'active'
+                            ? (locale === 'es' ? 'Este alojamiento tiene un contrato activo firmado por el inquilino. No se puede reactivar en el feed hasta que venza el contrato.' : 'This listing is locked because there is an active signed contract for it.')
+                            : (locale === 'es' ? 'Este alojamiento se encuentra disponible y visible en el feed público para recibir postulaciones de nuevos roommates.' : 'This listing is visible on the public roommate listings page and ready for applications.')}
+                        </Text>
+                      </View>
+
+                      {/* Sección de Participantes / Personas */}
+                      <Text style={styles.sectionTitle}>{locale === 'es' ? 'Participantes del Arrendamiento' : 'Lease Participants'}</Text>
+                      <View style={{
+                        flexDirection: 'row',
+                        gap: 12,
+                        marginBottom: 20,
+                      }}>
+                        {/* Propietario / Anfitrión */}
+                        <View style={{
+                          flex: 1,
+                          backgroundColor: '#12121a',
+                          borderColor: 'rgba(255,255,255,0.04)',
+                          borderWidth: 1,
+                          borderRadius: 12,
+                          padding: 12,
+                          gap: 8,
+                        }}>
+                          <Text style={{ color: '#666', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>
+                            {locale === 'es' ? 'Propietario / Anfitrión' : 'Owner / Landlord'}
+                          </Text>
+                          {ownerLoading ? (
+                            <ActivityIndicator size="small" color={accentColor} style={{ padding: 10 }} />
+                          ) : ownerProfile ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <View style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 14,
+                                backgroundColor: 'rgba(255,255,255,0.03)',
+                                borderColor: accentColor + '20',
+                                borderWidth: 1,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                              }}>
+                                <Text style={{ color: accentColor, fontWeight: 'bold', fontSize: 12 }}>
+                                  {ownerProfile.name ? ownerProfile.name[0].toUpperCase() : 'O'}
+                                </Text>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
+                                  {ownerProfile.name || 'Anfitrión'}
+                                </Text>
+                                <Text style={{ color: '#555', fontSize: 9, fontWeight: '600' }}>
+                                  {ownerProfile.role === 'company' ? 'Inmobiliaria' : 'Particular'}
+                                </Text>
+                              </View>
+                            </View>
+                          ) : (
+                            <Text style={{ color: '#444', fontSize: 11 }}>{locale === 'es' ? 'No asignado' : 'Not assigned'}</Text>
+                          )}
+                        </View>
+
+                        {/* Inquilino / Arrendatario */}
+                        <View style={{
+                          flex: 1,
+                          backgroundColor: '#12121a',
+                          borderColor: 'rgba(255,255,255,0.04)',
+                          borderWidth: 1,
+                          borderRadius: 12,
+                          padding: 12,
+                          gap: 8,
+                        }}>
+                          <Text style={{ color: '#666', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' }}>
+                            {locale === 'es' ? 'Inquilino / Arrendatario' : 'Tenant / Signee'}
+                          </Text>
+                          {contractLoading ? (
+                            <ActivityIndicator size="small" color={accentColor} style={{ padding: 10 }} />
+                          ) : contractTenant ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <View style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 14,
+                                backgroundColor: 'rgba(255,255,255,0.03)',
+                                borderColor: '#3b82f620',
+                                borderWidth: 1,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                              }}>
+                                <Text style={{ color: '#3b82f6', fontWeight: 'bold', fontSize: 12 }}>
+                                  {contractTenant.name ? contractTenant.name[0].toUpperCase() : 'T'}
+                                </Text>
+                              </View>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }} numberOfLines={1}>
+                                  {contractTenant.name}
+                                </Text>
+                                <Text style={{ color: '#22c55e', fontSize: 9, fontWeight: '600' }}>
+                                  {activeContract?.status === 'active' ? (locale === 'es' ? 'Contrato Activo' : 'Active Lease') : (locale === 'es' ? 'Firma Pendiente' : 'Pending Signature')}
+                                </Text>
+                              </View>
+                            </View>
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 }}>
+                              <MaterialCommunityIcons name="lock-open-outline" size={14} color="#666" />
+                              <Text style={{ color: '#555', fontSize: 11, fontWeight: '600' }}>
+                                {locale === 'es' ? 'Sin contrato activo' : 'No active tenant'}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Ficha de Edición Minimalista */}
+                      <Text style={styles.sectionTitle}>{locale === 'es' ? 'Editar Información' : 'Edit Information'}</Text>
                       
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Título de Propiedad' : 'Property Title'}</Text>
                       <TextInput 
@@ -967,31 +1193,6 @@ export default function AdminListings() {
                         numberOfLines={4}
                       />
 
-                      <View style={styles.doubleMetaRow}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.inputLabel}>{locale === 'es' ? 'Latitud' : 'Latitude'}</Text>
-                          <TextInput 
-                            style={styles.textInput} 
-                            value={editLatitude} 
-                            onChangeText={setEditLatitude} 
-                            placeholder="Lat"
-                            placeholderTextColor="#444"
-                            keyboardType="numeric"
-                          />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.inputLabel}>{locale === 'es' ? 'Longitud' : 'Longitude'}</Text>
-                          <TextInput 
-                            style={styles.textInput} 
-                            value={editLongitude} 
-                            onChangeText={setEditLongitude} 
-                            placeholder="Lng"
-                            placeholderTextColor="#444"
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      </View>
-
                       <View style={styles.switchRow}>
                         <View style={{ flex: 1, gap: 2 }}>
                           <Text style={styles.switchTitle}>{locale === 'es' ? 'Servicios Incluidos' : 'Utilities Included'}</Text>
@@ -1005,23 +1206,48 @@ export default function AdminListings() {
                         />
                       </View>
 
-                      <Text style={styles.inputLabel}>{locale === 'es' ? 'Estado Administrativo' : 'Status Moderation'}</Text>
-                      <View style={styles.buttonGroup}>
-                        {STATUSES.filter(s => s !== 'all').map((stOption) => {
-                          const isActive = editStatus === stOption;
-                          return (
-                            <TouchableOpacity
-                              key={stOption}
-                              style={[styles.groupBtn, isActive && { backgroundColor: STATUS_COLOR[stOption] || accentColor }]}
-                              onPress={() => setEditStatus(stOption)}
-                            >
-                              <Text style={[styles.groupBtnText, isActive && { color: '#000', fontWeight: 'bold' }]}>
-                                {translateStatus(stOption)}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
+                      {/* Control de Estado Comercial simplificado */}
+                      <Text style={styles.inputLabel}>{locale === 'es' ? 'Control de Estado de Publicación' : 'Listing Availability Status'}</Text>
+                      {activeContract?.status === 'active' ? (
+                        <View style={{
+                          backgroundColor: 'rgba(239,68,68,0.05)',
+                          borderColor: 'rgba(239,68,68,0.1)',
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          padding: 10,
+                          marginBottom: 16,
+                        }}>
+                          <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '600', lineHeight: 16 }}>
+                            {locale === 'es' 
+                              ? '⚠️ Esta propiedad está bloqueada en modo "Arrendado". Para cambiar su estado a Disponible o Inactivo, primero debes rescindir el contrato de arrendamiento activo.'
+                              : '⚠️ This property is locked as "Leased". You cannot change its status to Available or Inactive without terminating the active lease first.'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.buttonGroup}>
+                          {[
+                            { key: 'active', label: locale === 'es' ? 'Disponible' : 'Available', color: '#22c55e' },
+                            { key: 'inactive', label: locale === 'es' ? 'Pausado' : 'Paused', color: '#ef4444' },
+                            { key: 'pending', label: locale === 'es' ? 'En Revisión' : 'In Review', color: '#eab308' },
+                          ].map((opt) => {
+                            const isActive = editStatus === opt.key;
+                            return (
+                              <TouchableOpacity
+                                key={opt.key}
+                                style={[
+                                  styles.groupBtn, 
+                                  isActive && { backgroundColor: opt.color }
+                                ]}
+                                onPress={() => setEditStatus(opt.key)}
+                              >
+                                <Text style={[styles.groupBtnText, isActive && { color: '#000', fontWeight: 'bold' }]}>
+                                  {opt.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
 
                       {userRole === 'admin' && (
                         <View style={styles.switchRow}>
@@ -1037,36 +1263,6 @@ export default function AdminListings() {
                           />
                         </View>
                       )}
-
-                      {/* Estatus Contractual del Alojamiento */}
-                      <Text style={styles.inputLabel}>{locale === 'es' ? 'Actividad de Contratos' : 'Contract Activity'}</Text>
-                      <View style={styles.switchRow}>
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={styles.switchTitle}>
-                            {selectedListing.contracts?.some(c => c.status === 'active')
-                              ? (locale === 'es' ? 'Arrendado (Contrato Activo)' : 'Leased (Active Contract)')
-                              : selectedListing.contracts?.some(c => c.status === 'pending_authorization')
-                              ? (locale === 'es' ? 'Aprobación Pendiente' : 'Approval Pending')
-                              : (locale === 'es' ? 'Sin Contratos Activos' : 'No Active Contracts')}
-                          </Text>
-                          <Text style={styles.switchDesc}>
-                            {locale === 'es' ? 'Estatus actual de renta de este alojamiento' : 'Current leasing status of this property'}
-                          </Text>
-                        </View>
-                        <MaterialCommunityIcons
-                          name={selectedListing.contracts?.some(c => c.status === 'active')
-                            ? 'file-document'
-                            : selectedListing.contracts?.some(c => c.status === 'pending_authorization')
-                            ? 'file-document-edit-outline'
-                            : 'file-document-outline'}
-                          size={24}
-                          color={selectedListing.contracts?.some(c => c.status === 'active')
-                            ? '#49C788'
-                            : selectedListing.contracts?.some(c => c.status === 'pending_authorization')
-                            ? '#FFB800'
-                            : '#555'}
-                        />
-                      </View>
 
                       {/* Botón Guardar Cambios */}
                       <TouchableOpacity style={[styles.saveBtn, { backgroundColor: accentColor }]} onPress={saveListingDetails}>
