@@ -8,7 +8,7 @@
 //   RESEND_API_KEY   - from https://resend.com/api-keys
 //   RESEND_FROM_EMAIL - optional, defaults to Resend's sandbox sender
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const CODE_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -22,6 +22,7 @@ async function hashCode(code: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

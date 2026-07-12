@@ -4,7 +4,7 @@
 // the bottom of supabase/admin_rls_policies.sql for privileged operations
 // RLS can't express on its own.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 const MAX_ATTEMPTS = 5;
 
@@ -17,6 +17,7 @@ async function hashCode(code: string): Promise<string> {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

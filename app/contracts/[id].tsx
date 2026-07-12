@@ -475,13 +475,12 @@ export default function ContractDetailScreen() {
                 await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
               }
 
-              const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
-              const publicUrl = publicUrlData.publicUrl;
-
-              // 6. Update contract record with pdf_url
+              // El bucket "contracts" es privado (RM-2026-003): guardamos solo
+              // el nombre del archivo, no una URL pública. Se firma una URL
+              // temporal cada vez que alguien autorizado necesita abrirlo.
               await supabase
                 .from('contracts')
-                .update({ pdf_url: publicUrl })
+                .update({ pdf_url: fileName })
                 .eq('id', id);
 
               // 7. Refresh local contract state
@@ -523,19 +522,25 @@ export default function ContractDetailScreen() {
     setGenerating(true);
     try {
       // If we already have a saved PDF, download/share it directly!
+      // El bucket es privado: hay que firmar una URL temporal para poder abrirlo.
       if (contract.pdf_url) {
+        const { data: signedData, error: signError } = await supabase.storage
+          .from('contracts')
+          .createSignedUrl(contract.pdf_url, 300); // 5 minutos
+        if (signError || !signedData?.signedUrl) {
+          throw signError || new Error('No se pudo generar el enlace del contrato.');
+        }
         if (Platform.OS === 'web') {
           // Open PDF in a new tab for easy viewing/downloading
-          window.open(contract.pdf_url, '_blank');
+          window.open(signedData.signedUrl, '_blank');
         } else {
           // On mobile, download from storage and share
           const localPath = `${FileSystem.cacheDirectory}contrato_${contract.id}.pdf`;
-          // Download the file
-          const { uri } = await FileSystem.downloadAsync(contract.pdf_url, localPath);
-          await Sharing.shareAsync(uri, { 
-            UTI: '.pdf', 
-            mimeType: 'application/pdf', 
-            dialogTitle: locale === 'es' ? 'Descargar Contrato' : 'Download Contract' 
+          const { uri } = await FileSystem.downloadAsync(signedData.signedUrl, localPath);
+          await Sharing.shareAsync(uri, {
+            UTI: '.pdf',
+            mimeType: 'application/pdf',
+            dialogTitle: locale === 'es' ? 'Descargar Contrato' : 'Download Contract'
           });
         }
         setGenerating(false);
@@ -565,16 +570,18 @@ export default function ContractDetailScreen() {
           const blobUri = URL.createObjectURL(webBlob);
           try {
             await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
-            const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
-            await supabase.from('contracts').update({ pdf_url: publicUrlData.publicUrl }).eq('id', contract.id);
-            contract.pdf_url = publicUrlData.publicUrl; // update local ref
+            // Bucket privado (RM-2026-003): se guarda solo el nombre del
+            // archivo, no una URL pública/permanente.
+            await supabase.from('contracts').update({ pdf_url: fileName }).eq('id', contract.id);
+            contract.pdf_url = fileName; // update local ref
           } catch (uploadError) {
             console.error("Error uploading contract PDF on web:", uploadError);
           }
         }
 
-        // Trigger browser download
-        const downloadUrl = contract.pdf_url || URL.createObjectURL(webBlob);
+        // Trigger browser download using the blob we already have in memory
+        // (no need to round-trip through a signed URL for this immediate download).
+        const downloadUrl = URL.createObjectURL(webBlob);
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = `contrato_${contract.id}.pdf`;
@@ -590,9 +597,10 @@ export default function ContractDetailScreen() {
           const fileName = `${contract.id}.pdf`;
           try {
             await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
-            const { data: publicUrlData } = supabase.storage.from('contracts').getPublicUrl(fileName);
-            await supabase.from('contracts').update({ pdf_url: publicUrlData.publicUrl }).eq('id', contract.id);
-            contract.pdf_url = publicUrlData.publicUrl; // update local ref
+            // Bucket privado (RM-2026-003): se guarda solo el nombre del
+            // archivo, no una URL pública/permanente.
+            await supabase.from('contracts').update({ pdf_url: fileName }).eq('id', contract.id);
+            contract.pdf_url = fileName; // update local ref
           } catch (uploadError) {
             console.error("Error uploading active contract PDF on mobile:", uploadError);
           }
