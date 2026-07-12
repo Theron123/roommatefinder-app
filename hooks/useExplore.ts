@@ -58,12 +58,13 @@ export function useExplore() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      unreadChannel = supabase
+      const channel = supabase
         .channel('public:unread_messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
           fetchUnreadCount();
-        })
-        .subscribe();
+        });
+      
+      unreadChannel = channel.subscribe();
     };
 
     setupUnreadSubscription();
