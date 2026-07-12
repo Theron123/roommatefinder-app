@@ -70,6 +70,7 @@ export default function AdminUsers() {
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterVerification, setFilterVerification] = useState('all');
+  const [filterNewThisMonth, setFilterNewThisMonth] = useState(false);
   const [sortBy, setSortBy] = useState('newest'); // newest, oldest, name-asc, name-desc, trust-desc
   const [showFiltersMenu, setShowFiltersMenu] = useState(false);
 
@@ -146,7 +147,7 @@ export default function AdminUsers() {
   const translateStatus = (status: string) => {
     if (status === 'active') return locale === 'es' ? 'Activo' : 'Active';
     if (status === 'pending') return locale === 'es' ? 'Pendiente' : 'Pending';
-    if (status === 'suspended') return locale === 'es' ? 'Suspendido' : 'Suspended';
+    if (status === 'suspended') return locale === 'es' ? 'Bloqueado' : 'Blocked';
     if (status === 'disabled') return locale === 'es' ? 'Deshabilitado' : 'Disabled';
     return status;
   };
@@ -351,10 +352,29 @@ export default function AdminUsers() {
     if (filterStatus !== 'all') {
       query = query.eq('availability_status', filterStatus);
     }
+    
     if (filterVerification === 'verified') {
       query = query.eq('is_identity_verified', true);
     } else if (filterVerification === 'unverified') {
       query = query.or('is_identity_verified.is.null,is_identity_verified.eq.false');
+    } else if (filterVerification === 'pending') {
+      const { data: pendingUsers } = await supabase
+        .from('verifications')
+        .select('user_id')
+        .eq('status', 'pending');
+      const pendingIds = (pendingUsers?.map(u => u.user_id).filter(Boolean) as string[]) || [];
+      if (pendingIds.length > 0) {
+        query = query.in('id', pendingIds);
+      } else {
+        query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      }
+    }
+
+    if (filterNewThisMonth) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      query = query.gte('created_at', startOfMonth.toISOString());
     }
 
     // Aplicar ordenación
@@ -383,7 +403,7 @@ export default function AdminUsers() {
     }
     setLoading(false);
     setRefreshing(false);
-  }, [filterRole, filterStatus, filterVerification, sortBy, search]);
+  }, [filterRole, filterStatus, filterVerification, filterNewThisMonth, sortBy, search]);
 
   useEffect(() => {
     setLoading(true);
@@ -650,36 +670,107 @@ export default function AdminUsers() {
       {/* Grid de Métricas del Dashboard */}
       <View style={styles.statsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScrollContent}>
-          <View style={styles.statCard}>
+          {/* Total */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              (filterStatus === 'all' && filterVerification === 'all' && !filterNewThisMonth) && { borderColor: '#fff', borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('all');
+              setFilterVerification('all');
+              setFilterNewThisMonth(false);
+            }}
+          >
             <MaterialCommunityIcons name="account-group" size={20} color="#fff" />
             <Text style={styles.statNumber}>{stats.total}</Text>
             <Text style={styles.statLabel}>{locale === 'es' ? 'Total' : 'Total'}</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+
+          {/* Activos */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              (filterStatus === 'active') && { borderColor: '#22c55e', borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('active');
+              setFilterVerification('all');
+              setFilterNewThisMonth(false);
+            }}
+          >
             <MaterialCommunityIcons name="account-check" size={20} color="#22c55e" />
             <Text style={[styles.statNumber, { color: '#22c55e' }]}>{stats.active}</Text>
             <Text style={styles.statLabel}>{locale === 'es' ? 'Activos' : 'Active'}</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+
+          {/* Verificados */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              (filterVerification === 'verified') && { borderColor: accentColor, borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('all');
+              setFilterVerification('verified');
+              setFilterNewThisMonth(false);
+            }}
+          >
             <MaterialCommunityIcons name="check-decagram" size={20} color={accentColor} />
             <Text style={[styles.statNumber, { color: accentColor }]}>{stats.verified}</Text>
             <Text style={styles.statLabel}>{locale === 'es' ? 'Verificados' : 'Verified'}</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+
+          {/* Pendientes */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              (filterVerification === 'pending') && { borderColor: '#eab308', borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('all');
+              setFilterVerification('pending');
+              setFilterNewThisMonth(false);
+            }}
+          >
             <MaterialCommunityIcons name="shield-alert" size={20} color="#eab308" />
             <Text style={[styles.statNumber, { color: '#eab308' }]}>{stats.pendingVerification}</Text>
             <Text style={styles.statLabel}>{locale === 'es' ? 'Pendientes' : 'Pending'}</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+
+          {/* Bloqueados */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              (filterStatus === 'suspended') && { borderColor: '#ef4444', borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('suspended');
+              setFilterVerification('all');
+              setFilterNewThisMonth(false);
+            }}
+          >
             <MaterialCommunityIcons name="account-cancel" size={20} color="#ef4444" />
             <Text style={[styles.statNumber, { color: '#ef4444' }]}>{stats.suspended}</Text>
-            <Text style={styles.statLabel}>{locale === 'es' ? 'Suspendidos' : 'Suspended'}</Text>
-          </View>
-          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>{locale === 'es' ? 'Bloqueados' : 'Blocked'}</Text>
+          </TouchableOpacity>
+
+          {/* Este Mes */}
+          <TouchableOpacity 
+            style={[
+              styles.statCard, 
+              filterNewThisMonth && { borderColor: '#06b6d4', borderWidth: 1 }
+            ]}
+            onPress={() => {
+              setFilterStatus('all');
+              setFilterVerification('all');
+              setFilterNewThisMonth(true);
+            }}
+          >
             <MaterialCommunityIcons name="account-plus" size={20} color="#06b6d4" />
             <Text style={[styles.statNumber, { color: '#06b6d4' }]}>{stats.newThisMonth}</Text>
             <Text style={styles.statLabel}>{locale === 'es' ? 'Este Mes' : 'New Month'}</Text>
-          </View>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -761,6 +852,27 @@ export default function AdminUsers() {
                   {activeTab === 'general' && (
                     <View style={styles.tabPanel}>
                       <Text style={styles.sectionTitle}>{locale === 'es' ? 'Información de Cuenta' : 'Account Details'}</Text>
+                      
+                      {editStatus === 'suspended' && (
+                        <View style={{
+                          backgroundColor: 'rgba(239,68,68,0.08)',
+                          borderColor: 'rgba(239,68,68,0.15)',
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          padding: 12,
+                          marginBottom: 16,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 10,
+                        }}>
+                          <MaterialCommunityIcons name="account-cancel" size={18} color="#ef4444" />
+                          <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 16 }}>
+                            {locale === 'es' 
+                              ? 'Este usuario se encuentra bloqueado del sistema y no puede iniciar sesión ni publicar anuncios.' 
+                              : 'This user is currently blocked and cannot log in or post listings.'}
+                          </Text>
+                        </View>
+                      )}
                       
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Nombre Completo' : 'Full Name'}</Text>
                       <TextInput 
