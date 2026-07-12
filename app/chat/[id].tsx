@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from '../../context/LanguageContext';
 import {
   View, Text, StyleSheet,
   KeyboardAvoidingView, Platform, Image, Alert, Dimensions
@@ -28,6 +29,7 @@ import ChatHeader from '@/components/chat/ChatHeader';
 import ChatInputBar from '@/components/chat/ChatInputBar';
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams();
   const id = Array.isArray(rawId) ? rawId[0] : (rawId || '');
   const router = useRouter();
@@ -684,7 +686,7 @@ export default function ChatScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={() => (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', transform: [{ scaleY: -1 }] }}>
-              <Text style={[styles.emptyText, { transform: [{ scaleY: -1 }] }]}>Send a message to say hi! 👋</Text>
+              <Text style={[styles.emptyText, { transform: [{ scaleY: -1 }] }]}>{t('inbox.chat_welcome')}</Text>
             </View>
           )}
         />
