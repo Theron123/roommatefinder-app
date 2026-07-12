@@ -21,7 +21,7 @@ type Profile = {
   is_identity_verified: boolean | null;
   is_background_verified: boolean | null;
   is_income_verified: boolean | null;
-  is_phone_verified: boolean | null;
+  is_email_verified: boolean | null;
   is_references_verified: boolean | null;
   is_social_verified: boolean | null;
   is_university_verified: boolean | null;
@@ -220,7 +220,7 @@ export default function AdminUsers() {
         'is_identity_verified',
         'is_background_verified',
         'is_income_verified',
-        'is_phone_verified',
+        'is_email_verified',
         'is_references_verified',
         'is_social_verified',
         'is_university_verified',
@@ -410,7 +410,7 @@ export default function AdminUsers() {
       is_identity_verified: !!user.is_identity_verified,
       is_background_verified: !!user.is_background_verified,
       is_income_verified: !!user.is_income_verified,
-      is_phone_verified: !!user.is_phone_verified,
+      is_email_verified: !!user.is_email_verified,
       is_references_verified: !!user.is_references_verified,
       is_social_verified: !!user.is_social_verified,
       is_university_verified: !!user.is_university_verified,
@@ -500,10 +500,10 @@ export default function AdminUsers() {
               color={item.is_income_verified ? '#22c55e' : '#222'} 
               style={styles.verificationIconSpacing}
             />
-            <MaterialCommunityIcons 
-              name="cellphone-check" 
-              size={16} 
-              color={item.is_phone_verified ? '#06b6d4' : '#222'} 
+            <MaterialCommunityIcons
+              name="email-check"
+              size={16}
+              color={item.is_email_verified ? '#06b6d4' : '#222'}
               style={styles.verificationIconSpacing}
             />
             <MaterialCommunityIcons 
@@ -903,7 +903,7 @@ export default function AdminUsers() {
                         { key: 'is_identity_verified', label: locale === 'es' ? 'Verificación de Identidad' : 'Identity Verification', icon: 'check-decagram', color: accentColor },
                         { key: 'is_background_verified', label: locale === 'es' ? 'Antecedentes Penales' : 'Background Verification', icon: 'shield-account', color: '#3b82f6' },
                         { key: 'is_income_verified', label: locale === 'es' ? 'Comprobación de Ingresos' : 'Income Verification', icon: 'wallet', color: '#22c55e' },
-                        { key: 'is_phone_verified', label: locale === 'es' ? 'Verificación Telefónica' : 'Phone Verification', icon: 'cellphone-check', color: '#06b6d4' },
+                        { key: 'is_email_verified', label: locale === 'es' ? 'Verificación de Email' : 'Email Verification', icon: 'email-check', color: '#06b6d4' },
                         { key: 'is_references_verified', label: locale === 'es' ? 'Referencias de Arrendadores' : 'Leasing References', icon: 'account-details', color: '#a855f7' },
                         { key: 'is_social_verified', label: locale === 'es' ? 'Redes Sociales' : 'Social Media Verification', icon: 'earth', color: '#3b82f6' },
                         { key: 'is_university_verified', label: locale === 'es' ? 'Verificación Universitaria' : 'University Check', icon: 'school', color: '#f59e0b' },

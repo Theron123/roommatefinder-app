@@ -39,7 +39,7 @@ export default function TrustAndSafetyHub() {
     if (session?.user?.id) {
       const { data } = await supabase
         .from('profiles')
-        .select('trust_score, is_identity_verified, is_background_verified, is_social_verified, is_phone_verified')
+        .select('trust_score, is_identity_verified, is_background_verified, is_social_verified, is_email_verified')
         .eq('id', session.user.id)
         .single();
 
@@ -49,7 +49,7 @@ export default function TrustAndSafetyHub() {
         if (data.is_identity_verified) count++;
         if (data.is_background_verified) count++;
         if (data.is_social_verified) count++;
-        if (data.is_phone_verified) count++;
+        if (data.is_email_verified) count++;
         const calculatedScore = 20 + count * 20;
         
         const finalProfile = { ...data, trust_score: calculatedScore };
@@ -103,14 +103,14 @@ export default function TrustAndSafetyHub() {
                 if (type === 'identity') updateData.is_identity_verified = false;
                 if (type === 'background') updateData.is_background_verified = false;
                 if (type === 'social') updateData.is_social_verified = false;
-                if (type === 'phone') updateData.is_phone_verified = false;
+                if (type === 'phone') updateData.is_email_verified = false;
 
                 // Recalculate score dynamically
                 let count = 0;
                 if (type !== 'identity' && profile.is_identity_verified) count++;
                 if (type !== 'background' && profile.is_background_verified) count++;
                 if (type !== 'social' && profile.is_social_verified) count++;
-                if (type !== 'phone' && profile.is_phone_verified) count++;
+                if (type !== 'phone' && profile.is_email_verified) count++;
                 const newScore = 20 + count * 20;
                 updateData.trust_score = newScore;
 
@@ -152,7 +152,7 @@ export default function TrustAndSafetyHub() {
                   is_background_verified: false,
                   is_references_verified: false,
                   is_social_verified: false,
-                  is_phone_verified: false,
+                  is_email_verified: false,
                   trust_score: 20
                 }).eq('id', session.user.id);
                 
@@ -329,10 +329,10 @@ export default function TrustAndSafetyHub() {
           type="social"
         />
         <VerificationItem 
-          icon="phone-check" 
-          title={t('trust.phone')} 
+          icon="email-check"
+          title={t('trust.phone')}
           desc={t('trust.phone_desc')} 
-          verified={profile?.is_phone_verified}
+          verified={profile?.is_email_verified}
           type="phone"
         />
 

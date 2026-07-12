@@ -41,14 +41,14 @@ export const VERIFY_CONFIG: Record<string, { color: string; benefits_es: string[
   phone: {
     color: '#FF9F0A',
     benefits_es: [
-      'Insignia de Teléfono Verificado en tu perfil.',
+      'Insignia de Email Verificado en tu perfil.',
       'Facilita que roommates y caseros te contacten directamente.',
-      'Protección de cuenta y prevención de fraudes SMS.'
+      'Protección de cuenta y prevención de fraudes.'
     ],
     benefits_en: [
-      'Verified Phone Badge on your profile.',
+      'Verified Email Badge on your profile.',
       'Makes it easier for roommates and landlords to contact you.',
-      'Account protection and SMS fraud prevention.'
+      'Account protection and fraud prevention.'
     ]
   }
 };

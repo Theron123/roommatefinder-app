@@ -1,4 +1,21 @@
 -- =====================================================================
+-- ⚠️ SUPERADO — NO EJECUTAR (verificado 10 de julio, 2026)
+-- =====================================================================
+-- Este script NUNCA se ejecutó. Se verificó directamente contra la base
+-- real (vía Management API, pg_policies/pg_proc) que la protección que
+-- este script buscaba dar YA EXISTE, creada desde el editor visual del
+-- Dashboard de Supabase con otros nombres ("Admins can update all
+-- listings", etc.) y apoyada en una función `is_admin(user_id uuid)`
+-- distinta a la `is_admin()` sin argumento de abajo. Cobertura real
+-- confirmada en profiles/listings/contracts/verifications/user_reports
+-- y además matches/swipes (que este script ni contempla).
+--
+-- Correrlo ahora solo crearía una segunda función `is_admin()` sin uso y
+-- políticas duplicadas. Se deja el archivo como referencia histórica de
+-- cómo se pensó resolver esto. Ver antigravity_rules.md sección 3.5 para
+-- el detalle completo y los nombres reales de las políticas activas.
+-- =====================================================================
+--
 -- Políticas RLS para el rol `admin` — Roommate Finder
 -- =====================================================================
 -- POR QUÉ EXISTE ESTE SCRIPT:

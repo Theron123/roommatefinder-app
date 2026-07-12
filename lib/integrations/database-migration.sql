@@ -1,6 +1,14 @@
 -- =====================================================================
 -- MIGRACIÓN DE BASE DE DATOS PARA LA INTEGRACIÓN CON YARDI VOYAGER / PMS
 -- =====================================================================
+-- ⚠️ NO APLICADO A LA BASE REAL (confirmado 10 de julio, 2026 — estas
+-- tablas no existen en la base de datos de producción, solo en este
+-- archivo). Yardi corre en `simulationMode: true` (ver
+-- EXPO_PUBLIC_YARDI_SIMULATION_MODE) y no necesita este schema todavía.
+-- Si se retoma la integración PMS de verdad, aplicar como una migración
+-- versionada en supabase/migrations/ (ver antigravity_rules.md sección
+-- 4.A0), no pegando este archivo suelto en el SQL Editor.
+--
 -- Este script define la estructura necesaria para soportar integraciones con
 -- sistemas de gestión de propiedades (PMS) de forma multitenant y modular.
 -- Compatible con PostgreSQL y diseñado para ejecutarse en Supabase.

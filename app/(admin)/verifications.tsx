@@ -24,11 +24,14 @@ type Verification = {
   } | null;
 };
 
+// NOTA: el slug 'phone' se mantiene por compatibilidad con filas existentes
+// en `verifications.type`, pero desde el OTP por email ya no representa un
+// teléfono — ver supabase/functions/send-email-otp.
 const PROFILE_FLAG: Record<string, string> = {
   identity:   'is_identity_verified',
   background: 'is_background_verified',
   income:     'is_income_verified',
-  phone:      'is_phone_verified',
+  phone:      'is_email_verified',
   social:     'is_social_verified',
   university: 'is_university_verified',
   workplace:  'is_workplace_verified',
@@ -54,7 +57,7 @@ export default function AdminVerifications() {
     identity:   { icon: 'card-account-details', color: '#3b82f6' },
     background: { icon: 'shield-check',          color: accentColor },
     income:     { icon: 'cash',                  color: '#a855f7' },
-    phone:      { icon: 'phone',                 color: '#06b6d4' },
+    phone:      { icon: 'email-check',           color: '#06b6d4' },
     social:     { icon: 'instagram',             color: '#f97316' },
     university: { icon: 'school',                color: '#f43f5e' },
     workplace:  { icon: 'briefcase',             color: '#eab308' },
@@ -92,7 +95,7 @@ export default function AdminVerifications() {
     if (type === 'identity') return locale === 'es' ? 'Identidad' : 'Identity';
     if (type === 'background') return locale === 'es' ? 'Antecedentes' : 'Background';
     if (type === 'income') return locale === 'es' ? 'Ingresos' : 'Income';
-    if (type === 'phone') return locale === 'es' ? 'Teléfono' : 'Phone';
+    if (type === 'phone') return locale === 'es' ? 'Email' : 'Email';
     if (type === 'social') return locale === 'es' ? 'Redes Sociales' : 'Social';
     if (type === 'university') return locale === 'es' ? 'Universidad' : 'University';
     if (type === 'workplace') return locale === 'es' ? 'Trabajo' : 'Workplace';

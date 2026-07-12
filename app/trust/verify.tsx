@@ -43,9 +43,10 @@ export default function VerificationWizard() {
   const [instagramPassword, setInstagramPassword] = useState('');
   const [instagramStage, setInstagramStage] = useState<'login' | 'loading' | 'success'>('login');
 
-  // Phone States
+  // Email OTP States (route param is still `type=phone`, see note in handleAction)
   const [smsSent, setSmsSent] = useState(false);
   const [smsCode, setSmsCode] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
 
   // Web/PC Live Camera States
   const [streamActive, setStreamActive] = useState(false);
@@ -64,6 +65,13 @@ export default function VerificationWizard() {
       stopWebcam();
     };
   }, []);
+
+  useEffect(() => {
+    if (type !== 'phone') return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAccountEmail(session?.user?.email || '');
+    });
+  }, [type]);
 
   const triggerAlert = (title: string, message: string, buttons?: { text: string; onPress?: () => void; style?: string }[]) => {
     setCustomAlertTitle(title);
@@ -224,37 +232,72 @@ export default function VerificationWizard() {
       setInstagramStage('login');
       setInstagramModalVisible(true);
     } else if (type === 'phone') {
+      // Nota: 'phone' es el slug histórico de este tipo de verificación; desde
+      // el cambio a OTP por email (ver decisión de presupuesto en
+      // scratch/estimacion_costes_150k_mau.csv) el código llega al correo de
+      // la cuenta, no a un número de teléfono. Real, vía Supabase Edge
+      // Functions (send-email-otp / verify-email-otp) — no más setTimeout mockeado.
       if (!smsSent) {
-        if (!inputValue.trim() || inputValue.length < 8) {
-          triggerAlert(
-            t('general.error') || 'Error',
-            locale === 'es' ? 'Por favor ingresa un número de teléfono válido.' : 'Please enter a valid phone number.'
-          );
-          return;
-        }
         setLoading(true);
-        setTimeout(() => {
-          setLoading(false);
+        try {
+          const { error } = await supabase.functions.invoke('send-email-otp');
+          if (error) throw error;
           setSmsSent(true);
           triggerAlert(
             locale === 'es' ? 'Código Enviado' : 'Code Sent',
-            locale === 'es' 
-              ? 'Se ha enviado un código de verificación de 6 dígitos al número ingresado (usa 123456 para pruebas).'
-              : 'A 6-digit verification code has been sent to your phone (use 123456 for testing).'
+            locale === 'es'
+              ? 'Te enviamos un código de verificación de 6 dígitos al correo de tu cuenta. Revisa tu bandeja de entrada.'
+              : 'We sent a 6-digit verification code to your account email. Check your inbox.'
           );
-        }, 1200);
-      } else {
-        if (!smsCode.trim() || smsCode.length < 6) {
+        } catch {
           triggerAlert(
             t('general.error') || 'Error',
-            locale === 'es' ? 'Ingresa el código de 6 dígitos.' : 'Enter the 6-digit code.'
+            locale === 'es' ? 'No se pudo enviar el código. Intenta de nuevo.' : 'Could not send the code. Please try again.'
           );
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        if (!smsCode.trim() || smsCode.length < 6) {
+          triggerAlert(t('general.error') || 'Error', t('trust.phone_err'));
           return;
         }
         setLoading(true);
-        setTimeout(() => {
-          submitVerification();
-        }, 1500);
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+            body: { code: smsCode.trim() },
+          });
+          if (error || !data?.success) {
+            const message =
+              data?.message ||
+              (locale === 'es' ? 'Código inválido o expirado.' : 'Invalid or expired code.');
+            triggerAlert(t('general.error') || 'Error', message);
+            return;
+          }
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          triggerAlert(
+            locale === 'es' ? '¡Verificado!' : 'Verified!',
+            locale === 'es'
+              ? 'Tu correo ha sido verificado correctamente.'
+              : 'Your email has been successfully verified.',
+            [
+              {
+                text: locale === 'es' ? 'Genial' : 'Awesome',
+                onPress: () => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.back();
+                },
+              },
+            ]
+          );
+        } catch {
+          triggerAlert(
+            t('general.error') || 'Error',
+            locale === 'es' ? 'Código inválido o expirado.' : 'Invalid or expired code.'
+          );
+        } finally {
+          setLoading(false);
+        }
       }
     }
   };
@@ -294,7 +337,8 @@ export default function VerificationWizard() {
         if (type === 'identity') updateData.is_identity_verified = true;
         if (type === 'background') updateData.is_background_verified = true;
         if (type === 'social') updateData.is_social_verified = true;
-        if (type === 'phone') updateData.is_phone_verified = true;
+        // Note: 'phone' (email OTP) is never routed through submitVerification —
+        // supabase/functions/verify-email-otp updates is_email_verified itself.
 
         // Calculate score dynamically to keep database in sync
         const { data: currentProfile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -302,7 +346,7 @@ export default function VerificationWizard() {
         if (type === 'identity' || currentProfile?.is_identity_verified) count++;
         if (type === 'background' || currentProfile?.is_background_verified) count++;
         if (type === 'social' || currentProfile?.is_social_verified) count++;
-        if (type === 'phone' || currentProfile?.is_phone_verified) count++;
+        if (currentProfile?.is_email_verified) count++;
         const newScore = 20 + count * 20;
         updateData.trust_score = newScore;
 
@@ -439,25 +483,17 @@ export default function VerificationWizard() {
             </View>
           )}
 
-          {/* 4. Phone Verification Section */}
+          {/* 4. Email OTP Verification Section */}
           {type === 'phone' && (
             <View style={s.inputWrapper}>
               {!smsSent ? (
-                <>
-                  <Text style={s.inputLabel}>{t('trust.phone_label')}</Text>
-                  <TextInput
-                    style={s.input}
-                    placeholder={t('trust.phone_placeholder')}
-                    placeholderTextColor="#555"
-                    keyboardType="phone-pad"
-                    value={inputValue}
-                    onChangeText={setInputValue}
-                  />
-                </>
+                <Text style={s.inputLabel}>
+                  {locale === 'es' ? `Enviaremos el código a ${accountEmail}` : `We'll send the code to ${accountEmail}`}
+                </Text>
               ) : (
                 <>
                   <Text style={s.inputLabel}>
-                    {locale === 'es' ? 'Código SMS (6 dígitos)' : 'SMS Code (6 digits)'}
+                    {locale === 'es' ? 'Código de Verificación (6 dígitos)' : 'Verification Code (6 digits)'}
                   </Text>
                   <TextInput
                     style={s.input}

@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
@@ -105,6 +107,36 @@ export type Database = {
           },
         ]
       }
+      email_otp_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           address: string | null
@@ -154,7 +186,15 @@ export type Database = {
           user_id?: string | null
           utilities_included?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "listings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       matches: {
         Row: {
@@ -251,9 +291,9 @@ export type Database = {
           dealbreakers: string | null
           id: string
           is_background_verified: boolean | null
+          is_email_verified: boolean | null
           is_identity_verified: boolean | null
           is_income_verified: boolean | null
-          is_phone_verified: boolean | null
           is_public: boolean | null
           is_references_verified: boolean | null
           is_social_verified: boolean | null
@@ -286,9 +326,9 @@ export type Database = {
           dealbreakers?: string | null
           id: string
           is_background_verified?: boolean | null
+          is_email_verified?: boolean | null
           is_identity_verified?: boolean | null
           is_income_verified?: boolean | null
-          is_phone_verified?: boolean | null
           is_public?: boolean | null
           is_references_verified?: boolean | null
           is_social_verified?: boolean | null
@@ -321,9 +361,9 @@ export type Database = {
           dealbreakers?: string | null
           id?: string
           is_background_verified?: boolean | null
+          is_email_verified?: boolean | null
           is_identity_verified?: boolean | null
           is_income_verified?: boolean | null
-          is_phone_verified?: boolean | null
           is_public?: boolean | null
           is_references_verified?: boolean | null
           is_social_verified?: boolean | null
@@ -497,7 +537,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_user: { Args: never; Returns: undefined }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
