@@ -70,6 +70,8 @@ const TABS = ['overview', 'users', 'accommodations', 'contracts', 'roommates', '
 
 export default function AdminReports() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('pending'); // Para la pestaña de Denuncias
@@ -97,41 +99,88 @@ export default function AdminReports() {
   // Carga unificada de datos para analíticas
   const fetchAnalyticsData = async () => {
     try {
-      // 1. Usuarios
-      const { data: usersData } = await supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const currentUserId = session.user.id;
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('id, name, role, trust_score, created_at, is_identity_verified');
-      setProfiles((usersData as ProfileItem[]) || []);
+        .select('role')
+        .eq('id', currentUserId)
+        .single();
+      
+      const role = profile?.role || 'seeker';
+      setUserRole(role);
+      setUserId(currentUserId);
 
-      // 2. Alojamientos
-      const { data: listData } = await supabase
-        .from('listings')
-        .select('id, title, price, status, created_at');
-      setListings((listData as ListingItem[]) || []);
+      if (role === 'admin') {
+        // 1. Usuarios
+        const { data: usersData } = await supabase
+          .from('profiles')
+          .select('id, name, role, trust_score, created_at, is_identity_verified');
+        setProfiles((usersData as ProfileItem[]) || []);
 
-      // 3. Contratos
-      const { data: contractData } = await supabase
-        .from('contracts')
-        .select('id, status, created_at, listings:listing_id(title, user_id)');
-      setContracts((contractData as unknown as ContractItem[]) || []);
+        // 2. Alojamientos
+        const { data: listData } = await supabase
+          .from('listings')
+          .select('id, title, price, status, created_at');
+        setListings((listData as ListingItem[]) || []);
 
-      // 4. Roommates (Swipes y Matches)
-      const { data: swipesData } = await supabase.from('swipes').select('id, liked, created_at');
-      setSwipes((swipesData as SwipeItem[]) || []);
+        // 3. Contratos
+        const { data: contractData } = await supabase
+          .from('contracts')
+          .select('id, status, created_at, listings:listing_id(title, user_id)');
+        setContracts((contractData as unknown as ContractItem[]) || []);
 
-      const { data: matchesData } = await supabase.from('matches').select('id, status, created_at');
-      setMatches((matchesData as MatchItem[]) || []);
+        // 4. Roommates (Swipes y Matches)
+        const { data: swipesData } = await supabase.from('swipes').select('id, liked, created_at');
+        setSwipes((swipesData as SwipeItem[]) || []);
 
-      // 5. Denuncias (Abuse Reports)
-      const { data: complaintsData } = await supabase
-        .from('user_reports')
-        .select('id, reason, description, status, created_at, reporter_id, reported_id')
-        .order('created_at', { ascending: false });
-      setComplaints((complaintsData as Report[]) || []);
+        const { data: matchesData } = await supabase.from('matches').select('id, status, created_at');
+        setMatches((matchesData as MatchItem[]) || []);
 
-      // 6. Cargar Logs de Auditoría desde AsyncStorage
-      await fetchLocalAuditLogs();
+        // 5. Denuncias (Abuse Reports)
+        const { data: complaintsData } = await supabase
+          .from('user_reports')
+          .select('id, reason, description, status, created_at, reporter_id, reported_id')
+          .order('created_at', { ascending: false });
+        setComplaints((complaintsData as Report[]) || []);
 
+        // 6. Cargar Logs de Auditoría desde AsyncStorage
+        await fetchLocalAuditLogs();
+      } else {
+        // 1. Usuarios (Solo el suyo propio)
+        const { data: usersData } = await supabase
+          .from('profiles')
+          .select('id, name, role, trust_score, created_at, is_identity_verified')
+          .eq('id', currentUserId);
+        setProfiles((usersData as ProfileItem[]) || []);
+
+        // 2. Alojamientos (Solo los suyos)
+        const { data: listData } = await supabase
+          .from('listings')
+          .select('id, title, price, status, created_at')
+          .eq('user_id', currentUserId);
+        setListings((listData as ListingItem[]) || []);
+
+        // 3. Contratos (Solo vinculados a sus alojamientos)
+        const listingIds = listData?.map(l => l.id) || [];
+        if (listingIds.length > 0) {
+          const { data: contractData } = await supabase
+            .from('contracts')
+            .select('id, status, created_at, listings:listing_id(title, user_id)')
+            .in('listing_id', listingIds);
+          setContracts((contractData as unknown as ContractItem[]) || []);
+        } else {
+          setContracts([]);
+        }
+
+        // Limpiar datos globales no aplicables a empresas/propietarios
+        setSwipes([]);
+        setMatches([]);
+        setComplaints([]);
+        setAuditLogs([]);
+      }
     } catch (e) {
       console.error('Error cargando analíticas de la plataforma:', e);
     }
@@ -904,7 +953,7 @@ export default function AdminReports() {
       {/* Navigation Tab Bar */}
       <View style={styles.navBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navBarScroll}>
-          {TABS.map(tab => (
+          {TABS.filter(tab => userRole === 'admin' || ['overview', 'accommodations', 'contracts', 'insights'].includes(tab)).map(tab => (
             <TouchableOpacity
               key={tab}
               style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}

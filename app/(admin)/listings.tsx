@@ -68,6 +68,8 @@ const BULK_PLACEHOLDER = `[
 
 export default function AdminListings() {
   const [tab, setTab] = useState<'list' | 'import'>('list');
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // List & Filter States
   const [listings, setListings] = useState<Listing[]>([]);
@@ -237,17 +239,42 @@ export default function AdminListings() {
   // Carga estadísticas de alojamientos
   const fetchStats = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const currentUserId = session.user.id;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUserId)
+        .single();
+      
+      const role = profile?.role || 'seeker';
+
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const [totalRes, activeRes, pendingRes, verifiedRes, priceRes, newThisMonthRes] = await Promise.all([
-        supabase.from('listings').select('*', { count: 'exact', head: true }),
-        supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('listings').select('*', { count: 'exact', head: true }).eq('is_property_verified', true),
-        supabase.from('listings').select('price'),
-        supabase.from('listings').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString()),
+      let totalQuery = supabase.from('listings').select('*', { count: 'exact', head: true });
+      let activeQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active');
+      let pendingQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      let verifiedQuery = supabase.from('listings').select('*', { count: 'exact', head: true }).eq('is_property_verified', true);
+      let priceQuery = supabase.from('listings').select('price');
+
+      if (role !== 'admin') {
+        totalQuery = totalQuery.eq('user_id', currentUserId);
+        activeQuery = activeQuery.eq('user_id', currentUserId);
+        pendingQuery = pendingQuery.eq('user_id', currentUserId);
+        verifiedQuery = verifiedQuery.eq('user_id', currentUserId);
+        priceQuery = priceQuery.eq('user_id', currentUserId);
+      }
+
+      const [totalRes, activeRes, pendingRes, verifiedRes, priceRes] = await Promise.all([
+        totalQuery,
+        activeQuery,
+        pendingQuery,
+        verifiedQuery,
+        priceQuery,
       ]);
 
       const prices = (priceRes.data || []).map(p => p.price || 0).filter(p => p > 0);
@@ -267,9 +294,27 @@ export default function AdminListings() {
 
   // Consultar y filtrar alojamientos de Supabase
   const fetchListings = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+
+    const currentUserId = session.user.id;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUserId)
+      .single();
+    
+    const role = profile?.role || 'seeker';
+    setUserRole(role);
+    setUserId(currentUserId);
+
     let query = supabase
       .from('listings')
       .select('*, contracts(id, status)');
+
+    if (role !== 'admin') {
+      query = query.eq('user_id', currentUserId);
+    }
 
     // Filtros de base de datos
     if (filterStatus !== 'all') {
@@ -978,18 +1023,20 @@ export default function AdminListings() {
                         })}
                       </View>
 
-                      <View style={styles.switchRow}>
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={styles.switchTitle}>{locale === 'es' ? 'Propiedad Verificada' : 'Property Verified'}</Text>
-                          <Text style={styles.switchDesc}>{locale === 'es' ? 'Activa el distintivo oficial de verificación en la feed' : 'Show official checkmark badge on listings feed'}</Text>
+                      {userRole === 'admin' && (
+                        <View style={styles.switchRow}>
+                          <View style={{ flex: 1, gap: 2 }}>
+                            <Text style={styles.switchTitle}>{locale === 'es' ? 'Propiedad Verificada' : 'Property Verified'}</Text>
+                            <Text style={styles.switchDesc}>{locale === 'es' ? 'Activa el distintivo oficial de verificación en la feed' : 'Show official checkmark badge on listings feed'}</Text>
+                          </View>
+                          <Switch
+                            value={editVerified}
+                            onValueChange={(val) => setEditVerified(val)}
+                            trackColor={{ false: '#333', true: accentColor }}
+                            thumbColor={'#fff'}
+                          />
                         </View>
-                        <Switch
-                          value={editVerified}
-                          onValueChange={(val) => setEditVerified(val)}
-                          trackColor={{ false: '#333', true: accentColor }}
-                          thumbColor={'#fff'}
-                        />
-                      </View>
+                      )}
 
                       {/* Estatus Contractual del Alojamiento */}
                       <Text style={styles.inputLabel}>{locale === 'es' ? 'Actividad de Contratos' : 'Contract Activity'}</Text>

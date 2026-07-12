@@ -56,10 +56,11 @@ export default function AdminContracts() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  // Stats State
   const [stats, setStats] = useState<ContractStats>({
     total: 0, pending: 0, active: 0, terminated: 0
   });
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Modal detailed states
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
@@ -170,11 +171,46 @@ export default function AdminContracts() {
   // Calcular estadísticas de contratos
   const fetchStats = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const currentUserId = session.user.id;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUserId)
+        .single();
+      
+      const role = profile?.role || 'seeker';
+
+      let totalQuery = supabase.from('contracts').select('*', { count: 'exact', head: true });
+      let pendingQuery = supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'pending_authorization');
+      let activeQuery = supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'active');
+      let terminatedQuery = supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'terminated');
+
+      if (role !== 'admin') {
+        const { data: userListings } = await supabase
+          .from('listings')
+          .select('id')
+          .eq('user_id', currentUserId);
+
+        const listingIds = userListings?.map(l => l.id) || [];
+        if (listingIds.length > 0) {
+          totalQuery = totalQuery.in('listing_id', listingIds);
+          pendingQuery = pendingQuery.in('listing_id', listingIds);
+          activeQuery = activeQuery.in('listing_id', listingIds);
+          terminatedQuery = terminatedQuery.in('listing_id', listingIds);
+        } else {
+          setStats({ total: 0, pending: 0, active: 0, terminated: 0 });
+          return;
+        }
+      }
+
       const [totalRes, pendingRes, activeRes, terminatedRes] = await Promise.all([
-        supabase.from('contracts').select('*', { count: 'exact', head: true }),
-        supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'pending_authorization'),
-        supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('contracts').select('*', { count: 'exact', head: true }).eq('status', 'terminated'),
+        totalQuery,
+        pendingQuery,
+        activeQuery,
+        terminatedQuery,
       ]);
 
       setStats({
@@ -191,9 +227,40 @@ export default function AdminContracts() {
   // Cargar contratos de Supabase
   const fetchContracts = useCallback(async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const currentUserId = session.user.id;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUserId)
+        .single();
+      
+      const role = profile?.role || 'seeker';
+      setUserRole(role);
+      setUserId(currentUserId);
+
       let query = supabase
         .from('contracts')
         .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles(name)), listings:listing_id(*, owner:profiles(name))');
+
+      if (role !== 'admin') {
+        const { data: userListings } = await supabase
+          .from('listings')
+          .select('id')
+          .eq('user_id', currentUserId);
+
+        const listingIds = userListings?.map(l => l.id) || [];
+        if (listingIds.length > 0) {
+          query = query.in('listing_id', listingIds);
+        } else {
+          setContracts([]);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
 
       if (filterStatus !== 'all') {
         query = query.eq('status', filterStatus);

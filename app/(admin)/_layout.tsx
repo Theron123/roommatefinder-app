@@ -18,14 +18,15 @@ import { AdminThemeProvider, useAdminTheme } from '../../context/AdminThemeConte
 const SIDEBAR_WIDTH = 220;
 
 const NAV_ITEMS = [
-  { key: 'overview',      icon: 'view-dashboard-outline' as const, path: '/(admin)' },
-  { key: 'users',         icon: 'account-group-outline'  as const, path: '/(admin)/users' },
-  { key: 'listings',      icon: 'home-city-outline'      as const, path: '/(admin)/listings' },
-  { key: 'contracts',     icon: 'file-document-outline'  as const, path: '/(admin)/contracts' },
-  { key: 'payments',      icon: 'credit-card-outline'    as const, path: '/(admin)/payments' },
-  { key: 'reports',       icon: 'alert-circle-outline'   as const, path: '/(admin)/reports' },
-  { key: 'verifications', icon: 'shield-check-outline'   as const, path: '/(admin)/verifications' },
-  { key: 'settings',      icon: 'cog-outline'            as const, path: '/(admin)/settings' },
+  { key: 'overview',      icon: 'view-dashboard-outline' as const, path: '/(admin)', roles: ['admin', 'landlord'] },
+  { key: 'users',         icon: 'account-group-outline'  as const, path: '/(admin)/users', roles: ['admin'] },
+  { key: 'roles',         icon: 'shield-account-outline' as const, path: '/(admin)/roles', roles: ['admin'] },
+  { key: 'listings',      icon: 'home-city-outline'      as const, path: '/(admin)/listings', roles: ['admin', 'landlord'] },
+  { key: 'contracts',     icon: 'file-document-outline'  as const, path: '/(admin)/contracts', roles: ['admin', 'landlord'] },
+  { key: 'payments',      icon: 'credit-card-outline'    as const, path: '/(admin)/payments', roles: ['admin'] },
+  { key: 'reports',       icon: 'alert-circle-outline'   as const, path: '/(admin)/reports', roles: ['admin', 'landlord'] },
+  { key: 'verifications', icon: 'shield-check-outline'   as const, path: '/(admin)/verifications', roles: ['admin'] },
+  { key: 'settings',      icon: 'cog-outline'            as const, path: '/(admin)/settings', roles: ['admin', 'landlord'] },
 ];
 
 export default function AdminLayout() {
@@ -38,7 +39,7 @@ export default function AdminLayout() {
 
 function AdminLayoutContent() {
   const [checking, setChecking] = useState(true);
-  const [isAdmin, setIsAdmin]   = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
   const { t, locale } = useTranslation();
   const { accentColor } = useAdminTheme();
@@ -56,15 +57,36 @@ function AdminLayoutContent() {
         .eq('id', session.user.id)
         .single();
 
-      if (profile?.role !== 'admin') { router.replace('/(tabs)' as any); return; }
+      const role = profile?.role;
+      if (role === 'company') {
+        router.replace('/(company)' as any);
+        return;
+      }
 
-      setIsAdmin(true);
+      const allowedRoles = ['admin', 'landlord'];
+      if (!allowedRoles.includes(role || '')) {
+        router.replace('/(tabs)' as any);
+        return;
+      }
+
+      setUserRole(role || null);
     } catch {
       router.replace('/(auth)/login' as any);
     } finally {
       setChecking(false);
     }
   };
+
+  useEffect(() => {
+    if (checking || !userRole) return;
+    const currentItem = NAV_ITEMS.find(item => {
+      if (item.path === '/(admin)') return pathname === '/(admin)';
+      return pathname.startsWith(item.path);
+    });
+    if (currentItem && !currentItem.roles.includes(userRole)) {
+      router.replace('/(admin)' as any);
+    }
+  }, [pathname, userRole, checking]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -80,7 +102,7 @@ function AdminLayoutContent() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!userRole) return null;
 
   const isExpanded = Platform.OS === 'web';
 
@@ -92,12 +114,12 @@ function AdminLayoutContent() {
           {/* Brand */}
           <View style={[styles.brand, isExpanded && styles.brandExpanded]}>
             <MaterialCommunityIcons name="shield-crown" size={26} color={accentColor} />
-            {isExpanded && <Text style={styles.brandText}>{t('admin.title', 'Admin Panel')}</Text>}
+            {isExpanded && <Text style={styles.brandText}>{userRole === 'admin' ? t('admin.title', 'Admin Panel') : userRole === 'company' ? (locale === 'es' ? 'Empresa' : 'Company') : (locale === 'es' ? 'Propietario' : 'Landlord')}</Text>}
           </View>
 
           {/* Nav items */}
           <ScrollView style={styles.navList} showsVerticalScrollIndicator={false}>
-            {NAV_ITEMS.map((item) => {
+            {NAV_ITEMS.filter(item => userRole && item.roles.includes(userRole)).map((item) => {
               const active =
                 pathname === item.path ||
                 (item.path !== '/(admin)' && pathname.startsWith(item.path));
@@ -118,7 +140,11 @@ function AdminLayoutContent() {
                   />
                   {isExpanded && (
                     <Text style={[styles.navLabel, active && { color: accentColor, fontWeight: '600' }]}>
-                      {item.key === 'contracts' ? (locale === 'es' ? 'Contratos' : 'Contracts') : t(`admin.nav.${item.key}`)}
+                      {item.key === 'contracts' 
+                        ? (locale === 'es' ? 'Contratos' : 'Contracts') 
+                        : item.key === 'roles' 
+                        ? (locale === 'es' ? 'Gestión de Roles' : 'Role Management') 
+                        : t(`admin.nav.${item.key}`)}
                     </Text>
                   )}
                 </TouchableOpacity>
