@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 
-type Role = 'landlord' | 'host' | 'seeker';
+type Role = 'landlord' | 'host' | 'seeker' | 'company' | 'admin';
 
 export default function RoleSelectScreen() {
   const [step, setStep] = useState<1 | 2>(1);
@@ -123,7 +123,13 @@ export default function RoleSelectScreen() {
         }
       }
 
-      router.replace('/preferences?firstTime=true');
+      if (role === 'company') {
+        router.replace('/(company)' as any);
+      } else if (role === 'landlord') {
+        router.replace('/(admin)' as any);
+      } else {
+        router.replace('/preferences?firstTime=true');
+      }
     } catch {
       Alert.alert('Error', 'Something went wrong. Please try again.');
       setSaving(false);
@@ -143,7 +149,7 @@ export default function RoleSelectScreen() {
   };
 
   const handleFindRoommate = () => {
-    saveRoleAndContinue('host');
+    saveRoleAndContinue('seeker');
   };
 
   const handleGoBack = () => {

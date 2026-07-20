@@ -71,8 +71,10 @@ export default function OnboardingScreen() {
             .single();
           
           if (profile?.role) {
-            if (profile.role === 'admin') {
+            if (profile.role === 'admin' || profile.role === 'landlord') {
               router.replace('/(admin)');
+            } else if (profile.role === 'company') {
+              router.replace('/(company)');
             } else {
               router.replace('/(tabs)');
             }
@@ -90,7 +92,7 @@ export default function OnboardingScreen() {
       if (router.canGoBack()) {
         router.back();
       } else {
-        // Double check admin role before redirecting force home
+        // Double check role before redirecting force home
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.id) {
           const { data: profile } = await supabase
@@ -98,8 +100,11 @@ export default function OnboardingScreen() {
             .select('role')
             .eq('id', session.user.id)
             .single();
-          if (profile?.role === 'admin') {
+          if (profile?.role === 'admin' || profile?.role === 'landlord') {
             router.replace('/(admin)');
+            return;
+          } else if (profile?.role === 'company') {
+            router.replace('/(company)');
             return;
           }
         }
@@ -118,8 +123,10 @@ export default function OnboardingScreen() {
           .single();
         
         if (profile?.role) {
-          if (profile.role === 'admin') {
+          if (profile.role === 'admin' || profile.role === 'landlord') {
             router.replace('/(admin)');
+          } else if (profile.role === 'company') {
+            router.replace('/(company)');
           } else {
             router.replace('/(tabs)');
           }

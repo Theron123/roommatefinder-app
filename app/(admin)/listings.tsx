@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, RefreshControl, Alert, Modal, Switch,
-  Image, Dimensions, Platform
+  Dimensions, Platform
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
@@ -157,8 +158,8 @@ export default function AdminListings() {
   };
 
   const translateRole = (role: string) => {
-    if (role === 'seeker') return locale === 'es' ? 'Buscador' : 'Seeker';
-    if (role === 'host') return locale === 'es' ? 'Anfitrión' : 'Host';
+    if (role === 'seeker') return locale === 'es' ? 'Roommate' : 'Roommate';
+    if (role === 'host') return locale === 'es' ? 'Roommate' : 'Roommate';
     if (role === 'landlord') return locale === 'es' ? 'Propietario' : 'Landlord';
     if (role === 'admin') return locale === 'es' ? 'Administrador' : 'Admin';
     return role;

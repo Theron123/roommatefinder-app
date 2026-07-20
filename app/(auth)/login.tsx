@@ -28,8 +28,10 @@ export default function LoginScreen() {
       .eq('id', userId)
       .single();
 
-    if (data?.role === 'admin') {
+    if (data?.role === 'admin' || data?.role === 'landlord') {
       router.replace('/(admin)' as any);
+    } else if (data?.role === 'company') {
+      router.replace('/(company)' as any);
     } else if (data && data.role) {
       router.replace('/(tabs)');
     } else {

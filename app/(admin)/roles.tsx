@@ -39,8 +39,7 @@ const ROLES_LIST = [
   { value: 'admin', label: 'Level 1 – System Administrator', labelEs: 'Nivel 1 – Administrador de Sistema', color: '#f97316', icon: 'shield-crown' },
   { value: 'company', label: 'Level 2 – Company', labelEs: 'Nivel 2 – Empresa Inmobiliaria', color: '#3b82f6', icon: 'office-building' },
   { value: 'landlord', label: 'Level 3 – Property Owner', labelEs: 'Nivel 3 – Propietario de Inmuebles', color: '#a855f7', icon: 'home-account' },
-  { value: 'seeker', label: 'Standard User (Seeker)', labelEs: 'Usuario Estándar (Buscador)', color: '#49C788', icon: 'account-outline' },
-  { value: 'host', label: 'Standard User (Host)', labelEs: 'Usuario Estándar (Anfitrión)', color: '#06b6d4', icon: 'account-cowboy-hat' },
+  { value: 'seeker', label: 'Standard User (Roommate)', labelEs: 'Usuario Estándar (Roommate)', color: '#49C788', icon: 'account-outline' },
 ];
 
 export default function RoleManagementScreen() {

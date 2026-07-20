@@ -79,8 +79,12 @@ export default function PreferencesScreen() {
         .eq('id', session.user.id)
         .single();
 
-      if (data?.role === 'admin') {
+      if (data?.role === 'admin' || data?.role === 'landlord') {
         router.replace('/(admin)');
+        return;
+      }
+      if (data?.role === 'company') {
+        router.replace('/(company)');
         return;
       }
 

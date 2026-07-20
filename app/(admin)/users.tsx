@@ -56,7 +56,7 @@ type AssociationStats = {
   reportsAgainst: number;
 };
 
-const ROLES = ['all', 'seeker', 'host', 'landlord', 'admin'];
+const ROLES = ['all', 'seeker', 'landlord', 'company', 'admin'];
 const STATUSES = ['all', 'active', 'pending', 'suspended', 'disabled'];
 const VERIFICATIONS = ['all', 'verified', 'unverified'];
 
@@ -137,9 +137,10 @@ export default function AdminUsers() {
   };
 
   const translateRole = (role: string) => {
-    if (role === 'seeker') return locale === 'es' ? 'Buscador' : 'Seeker';
-    if (role === 'host') return locale === 'es' ? 'Anfitrión' : 'Host';
+    if (role === 'seeker') return locale === 'es' ? 'Roommate' : 'Roommate';
+    if (role === 'host') return locale === 'es' ? 'Roommate (Legacy Host)' : 'Roommate (Legacy Host)';
     if (role === 'landlord') return locale === 'es' ? 'Propietario' : 'Landlord';
+    if (role === 'company') return locale === 'es' ? 'Empresa Inmobiliaria' : 'Company';
     if (role === 'admin') return locale === 'es' ? 'Administrador' : 'Admin';
     return role;
   };

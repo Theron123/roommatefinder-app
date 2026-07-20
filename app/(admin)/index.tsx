@@ -13,7 +13,7 @@ import { useAdminTheme } from '../../context/AdminThemeContext';
 type Stats = {
   totalUsers: number;
   seekerUsers: number;
-  hostUsers: number;
+  companyUsers: number;
   landlordUsers: number;
   newUsersToday: number;
   activeListings: number;
@@ -71,7 +71,7 @@ export default function AdminOverview() {
         const [
           { count: totalUsers },
           { count: seekerUsers },
-          { count: hostUsers },
+          { count: companyUsers },
           { count: landlordUsers },
           { count: newUsersToday },
           { count: activeListings },
@@ -87,7 +87,7 @@ export default function AdminOverview() {
         ] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'seeker'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'host'),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'landlord'),
           supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
           supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -112,7 +112,7 @@ export default function AdminOverview() {
         setStats({
           totalUsers: totalUsers || 0,
           seekerUsers: seekerUsers || 0,
-          hostUsers: hostUsers || 0,
+          companyUsers: companyUsers || 0,
           landlordUsers: landlordUsers || 0,
           newUsersToday: newUsersToday || 0,
           activeListings: activeListings || 0,
@@ -171,7 +171,7 @@ export default function AdminOverview() {
         setStats({
           totalUsers: 0,
           seekerUsers: 0,
-          hostUsers: 0,
+          companyUsers: 0,
           landlordUsers: 0,
           newUsersToday: 0,
           activeListings,
@@ -207,7 +207,7 @@ export default function AdminOverview() {
   const ROLE_COLOR: Record<string, string> = {
     admin: '#f97316',
     seeker: accentColor,
-    host: '#3b82f6',
+    company: '#3b82f6',
     landlord: '#a855f7',
   };
 
@@ -273,7 +273,7 @@ export default function AdminOverview() {
                     <Text style={styles.kpiLabel}>{locale === 'es' ? 'Usuarios Registrados' : 'Registered Users'}</Text>
                     <View style={styles.kpiFooter}>
                       <Text style={styles.kpiFooterText}>
-                        🔍 {stats.seekerUsers} | 🏠 {stats.hostUsers} | 🏢 {stats.landlordUsers}
+                        👥 {stats.seekerUsers} Roommates | 🏢 {stats.companyUsers} {locale === 'es' ? 'Empresas' : 'Companies'} | 🏡 {stats.landlordUsers} {locale === 'es' ? 'Prop.' : 'Prop.'}
                       </Text>
                     </View>
                   </TouchableOpacity>

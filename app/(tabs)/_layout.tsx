@@ -26,8 +26,10 @@ export default function TabLayout() {
           .eq('id', session.user.id)
           .single();
 
-        if (profile?.role === 'admin') {
+        if (profile?.role === 'admin' || profile?.role === 'landlord') {
           router.replace('/(admin)');
+        } else if (profile?.role === 'company') {
+          router.replace('/(company)');
         }
       } catch (err) {
         router.replace('/(auth)/login');
