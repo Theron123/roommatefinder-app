@@ -2,6 +2,7 @@ import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -20,6 +21,14 @@ export default function TabLayout() {
           router.replace('/(auth)/login');
           return;
         }
+
+        // Si el usuario eligió ver la app como buscador/seeker, no lo redirigimos
+        const viewMode = await AsyncStorage.getItem('viewMode');
+        if (viewMode === 'seeker') {
+          setChecking(false);
+          return;
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')

@@ -18,6 +18,8 @@ interface ProfileHeaderProps {
   onSettingsPress: () => void;
   onUpdateStatus: (status: string) => void;
   t: any;
+  hasListing?: boolean;
+  onDashboardPress?: () => void;
 }
 
 export default function ProfileHeader({
@@ -33,7 +35,13 @@ export default function ProfileHeader({
   onSettingsPress,
   onUpdateStatus,
   t,
+  hasListing = false,
+  onDashboardPress,
 }: ProfileHeaderProps) {
+  const showDashboardBtn = 
+    profile?.role === 'landlord' || 
+    profile?.role === 'company' || 
+    profile?.role === 'admin';
   return (
     <LinearGradient colors={['#1a1a24', '#000']} style={[styles.heroSection, { paddingTop: insets.top + 20 }]}>
       <View style={styles.avatarWrapper}>
@@ -64,27 +72,21 @@ export default function ProfileHeader({
           <IconSymbol name="pencil" size={18} color="#888" style={{ marginLeft: 4 }} />
         </Pressable>
         
+        {showDashboardBtn && (
+          <Pressable 
+            onPress={onDashboardPress}
+            style={{ marginLeft: 8 }}
+          >
+            <MaterialCommunityIcons name="swap-horizontal" size={24} color="#FFB800" />
+          </Pressable>
+        )}
+
         <Pressable 
           onPress={onSettingsPress}
           style={{ marginLeft: 6 }}
         >
           <MaterialCommunityIcons name="cog" size={24} color="#49C788" />
         </Pressable>
-      </View>
-
-      <View style={styles.statusChipsContainer}>
-        {STATUS_OPTIONS.map(opt => (
-          <Pressable
-            key={opt.id}
-            onPress={() => onUpdateStatus(opt.id)}
-            style={[styles.statusChip, status === opt.id && { backgroundColor: opt.color + '22', borderColor: opt.color }]}
-          >
-            <MaterialCommunityIcons name={opt.icon as any} size={14} color={status === opt.id ? opt.color : '#666'} />
-            <Text style={[styles.statusChipText, { color: status === opt.id ? opt.color : '#666' }]}>
-              {opt.label}
-            </Text>
-          </Pressable>
-        ))}
       </View>
 
       <Text style={styles.profileSub}>{t('myprofile.visible_sub')}</Text>

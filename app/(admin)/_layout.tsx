@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { AdminThemeProvider, useAdminTheme } from '../../context/AdminThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SIDEBAR_WIDTH = 220;
 
@@ -151,6 +152,18 @@ function AdminLayoutContent() {
               );
             })}
           </ScrollView>
+
+          {/* Swap Back Button */}
+          <TouchableOpacity
+            style={[styles.navItem, { marginBottom: 4 }, isExpanded && styles.navItemExpanded]}
+            onPress={async () => {
+              await AsyncStorage.setItem('viewMode', 'seeker');
+              router.replace('/(tabs)/myprofile');
+            }}
+          >
+            <MaterialCommunityIcons name="swap-horizontal" size={22} color="#FFB800" />
+            {isExpanded && <Text style={[styles.navLabel, { color: '#FFB800', fontWeight: 'bold' }]}>{locale === 'es' ? 'Vista Buscador' : 'Seeker View'}</Text>}
+          </TouchableOpacity>
 
           {/* Logout */}
           <TouchableOpacity

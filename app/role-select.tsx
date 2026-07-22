@@ -149,7 +149,7 @@ export default function RoleSelectScreen() {
   };
 
   const handleFindRoommate = () => {
-    saveRoleAndContinue('seeker');
+    saveRoleAndContinue('host');
   };
 
   const handleGoBack = () => {

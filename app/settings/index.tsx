@@ -3,14 +3,126 @@ import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useTranslation, Locale } from '../../context/LanguageContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { locale, setLocale, t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
+  const [userRole, setUserRole] = useState<string>('seeker');
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successModalTitle, setSuccessModalTitle] = useState('');
+  const [successModalMessage, setSuccessModalMessage] = useState('');
+  const [successModalIcon, setSuccessModalIcon] = useState('check-decagram');
+  const [successModalIconColor, setSuccessModalIconColor] = useState('#49C788');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        if (data?.role) {
+          setUserRole(data.role);
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleRoleChange = async (newRole: 'seeker' | 'host' | 'landlord') => {
+    if (userRole === newRole) {
+      setRoleModalVisible(false);
+      return;
+    }
+    
+    if (userRole === 'admin' || userRole === 'company') {
+      Alert.alert(
+        locale === 'es' ? 'Acción no permitida' : 'Not Allowed',
+        locale === 'es' ? 'Los roles administrativos no pueden ser modificados.' : 'Administrative roles cannot be modified.'
+      );
+      setRoleModalVisible(false);
+      return;
+    }
+
+    setLoading(true);
+    setRoleModalVisible(false);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('No session');
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      // Si se cambia a buscador o anfitrión, asegurar que el viewMode sea 'seeker'
+      if (newRole === 'seeker' || newRole === 'host') {
+        await AsyncStorage.setItem('viewMode', 'seeker');
+      } else {
+        await AsyncStorage.setItem('viewMode', 'owner');
+      }
+
+      setUserRole(newRole);
+      
+      let roleExpl = '';
+      let roleTitle = '';
+      if (newRole === 'seeker') {
+        roleTitle = locale === 'es' ? 'Buscador' : 'Seeker';
+        roleExpl = locale === 'es'
+          ? 'Este rol es ideal si no tienes un lugar físico y buscas alquilar una habitación o encontrar compañeros para buscar un nuevo apartamento juntos. Verás recomendaciones de perfiles de personas y apartamentos disponibles.'
+          : 'This role is ideal if you do not have a place and are looking to rent a room or find roommates to search for a new apartment together. You will see roommate profiles and available apartments.';
+      } else if (newRole === 'host') {
+        roleTitle = locale === 'es' ? 'Anfitrión' : 'Host';
+        roleExpl = locale === 'es'
+          ? 'Este rol es para quienes ya tienen un apartamento donde viven y buscan a un roommate para compartir los gastos de renta y servicios. Podrás subir tu habitación y buscar perfiles de inquilinos compatibles.'
+          : 'This role is for those who already live in an apartment and are looking for a roommate to split rent and bills. You can list your room and search for compatible tenant profiles.';
+      } else if (newRole === 'landlord') {
+        roleTitle = locale === 'es' ? 'Propietario' : 'Landlord';
+        roleExpl = locale === 'es'
+          ? 'Este rol es exclusivo para dueños de propiedades o administradores de inmuebles que no viven en ellos y solo buscan rentar. Tendrás acceso rápido al Panel/Dashboard de Propietario para gestionar contratos y listings.'
+          : 'This role is exclusive to property owners or managers who do not live in the property and only want to rent it out. You will have quick access to the Owner Dashboard to manage leases and listings.';
+      }
+
+      let roleIcon = 'account-switch-outline';
+      let roleColor = '#FFB800';
+      if (newRole === 'seeker') {
+        roleIcon = 'account-search';
+        roleColor = '#34C759';
+      } else if (newRole === 'host') {
+        roleIcon = 'home-account';
+        roleColor = '#0A84FF';
+      } else if (newRole === 'landlord') {
+        roleIcon = 'home-city';
+        roleColor = '#FFB800';
+      }
+
+      setSuccessModalTitle(roleTitle);
+      setSuccessModalMessage(roleExpl);
+      setSuccessModalIcon(roleIcon);
+      setSuccessModalIconColor(roleColor);
+      setSuccessModalVisible(true);
+    } catch (err: any) {
+      const errMsg = err.message || 'No se pudo actualizar el rol';
+      setSuccessModalTitle('Error');
+      setSuccessModalMessage(errMsg);
+      setSuccessModalIcon('alert-circle-outline');
+      setSuccessModalIconColor('#FF453A');
+      setSuccessModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLanguageChange = async (newLocale: Locale) => {
     if (locale === newLocale) return;
@@ -162,6 +274,14 @@ export default function SettingsScreen() {
               iconColor="#BF5AF2" 
               onPress={() => router.push('/subscriptions')} 
             />
+            <View style={styles.cardDivider} />
+            <SettingsItem 
+              icon="account-switch-outline" 
+              title={(locale === 'es' ? "Rol de Usuario: " : "User Role: ") + (userRole === 'seeker' ? (locale === 'es' ? 'Buscador' : 'Seeker') : userRole === 'host' ? (locale === 'es' ? 'Anfitrión' : 'Host') : userRole === 'landlord' ? (locale === 'es' ? 'Propietario' : 'Landlord') : userRole)} 
+              bgColor="rgba(255,184,0,0.1)" 
+              iconColor="#FFB800" 
+              onPress={() => setRoleModalVisible(true)} 
+            />
           </View>
 
           {/* Support & About Section */}
@@ -304,6 +424,117 @@ export default function SettingsScreen() {
                 </Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={roleModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRoleModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={[styles.modalIconWrap, { backgroundColor: 'rgba(255,184,0,0.1)' }]}>
+              <MaterialCommunityIcons name="account-switch-outline" size={32} color="#FFB800" />
+            </View>
+            <Text style={styles.modalTitle}>
+              {locale === 'es' ? "Cambiar Rol de Usuario" : "Change User Role"}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {locale === 'es' 
+                ? "Selecciona tu nuevo rol. Recuerda que esto cambiará tus permisos y las secciones visibles de la aplicación."
+                : "Select your new role. Remember that this will change your permissions and the visible sections of the application."}
+            </Text>
+            
+            <View style={[styles.modalButtonsStack, { gap: 12 }]}>
+              {/* Opción Seeker */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  userRole === 'seeker' && { borderColor: '#49C788', backgroundColor: 'rgba(73,199,136,0.05)' },
+                  pressed && { opacity: 0.8 }
+                ]}
+                onPress={() => handleRoleChange('seeker')}
+              >
+                <Text style={[styles.modalBtnTextCancel, userRole === 'seeker' && { color: '#49C788' }]}>
+                  {locale === 'es' ? "Buscador" : "Seeker"}
+                </Text>
+              </Pressable>
+
+              {/* Opción Host */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  userRole === 'host' && { borderColor: '#0A84FF', backgroundColor: 'rgba(10,132,255,0.05)' },
+                  pressed && { opacity: 0.8 }
+                ]}
+                onPress={() => handleRoleChange('host')}
+              >
+                <Text style={[styles.modalBtnTextCancel, userRole === 'host' && { color: '#0A84FF' }]}>
+                  {locale === 'es' ? "Anfitrión" : "Host"}
+                </Text>
+              </Pressable>
+
+              {/* Opción Landlord */}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  userRole === 'landlord' && { borderColor: '#FFB800', backgroundColor: 'rgba(255,184,0,0.05)' },
+                  pressed && { opacity: 0.8 }
+                ]}
+                onPress={() => handleRoleChange('landlord')}
+              >
+                <Text style={[styles.modalBtnTextCancel, userRole === 'landlord' && { color: '#FFB800' }]}>
+                  {locale === 'es' ? "Propietario" : "Landlord"}
+                </Text>
+              </Pressable>
+
+              <View style={{ height: 8 }} />
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.modalBtnCancel,
+                  pressed && { opacity: 0.8 },
+                  { backgroundColor: 'transparent', borderColor: 'transparent' }
+                ]}
+                onPress={() => setRoleModalVisible(false)}
+              >
+                <Text style={[styles.modalBtnTextCancel, { color: '#ff4444' }]}>
+                  {locale === 'es' ? "Cancelar" : "Cancel"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={successModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSuccessModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { width: '90%', maxWidth: 440, padding: 28 }]}>
+            <View style={[styles.modalIconWrap, { backgroundColor: `${successModalIconColor}15`, width: 72, height: 72, borderRadius: 36, marginBottom: 20 }]}>
+              <MaterialCommunityIcons name={successModalIcon as any} size={38} color={successModalIconColor} />
+            </View>
+            <Text style={[styles.modalTitle, { fontSize: 24, marginBottom: 12 }]}>{successModalTitle}</Text>
+            <Text style={[styles.modalMessage, { fontSize: 16, lineHeight: 24, color: '#e0e0e0', marginBottom: 28 }]}>{successModalMessage}</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.modalBtnCancel,
+                { borderColor: successModalIconColor, backgroundColor: `${successModalIconColor}10`, width: '100%', paddingVertical: 14, borderRadius: 16 },
+                pressed && { opacity: 0.8 }
+              ]}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={[styles.modalBtnTextCancel, { color: successModalIconColor, fontSize: 16, fontWeight: '700' }]}>
+                {locale === 'es' ? 'Entendido' : 'Got it'}
+              </Text>
+            </Pressable>
           </View>
         </View>
       </Modal>

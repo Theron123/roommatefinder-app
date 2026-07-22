@@ -15,6 +15,7 @@ import { useMyProfile, useUpdateProfileMutation } from '@/hooks/useProfileQuerie
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileLifestyleDetails from '@/components/profile/ProfileLifestyleDetails';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MyProfileScreen() {
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
@@ -190,6 +191,22 @@ export default function MyProfileScreen() {
     cooking: { label: 'Cooking', emoji: '🍳' },
   };
 
+  const handleDashboardPress = async () => {
+    if (!profile) return;
+    
+    if (profile.role === 'company') {
+      await AsyncStorage.setItem('viewMode', 'owner');
+      router.push('/(company)');
+      return;
+    }
+    
+    if (profile.role === 'admin' || profile.role === 'landlord') {
+      await AsyncStorage.setItem('viewMode', 'owner');
+      router.push('/(admin)');
+      return;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -208,6 +225,8 @@ export default function MyProfileScreen() {
           onSettingsPress={() => router.push('/settings')}
           onUpdateStatus={updateStatus}
           t={t}
+          hasListing={!!listing}
+          onDashboardPress={handleDashboardPress}
         />
 
         {/* Stats strip */}
