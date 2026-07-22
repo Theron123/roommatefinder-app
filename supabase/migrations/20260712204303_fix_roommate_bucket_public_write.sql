@@ -11,6 +11,14 @@
 -- Por eso el check de ownership compara el nombre contra esos dos patrones
 -- en vez del típico storage.foldername(name)[1] = auth.uid().
 
+-- El bucket "Roommate" se creó manualmente desde el Dashboard en producción,
+-- nunca por migración — por eso un bootstrap local desde cero (supabase
+-- start/db reset) fallaba aquí. Se crea de forma idempotente para que el
+-- historial de migraciones sea reproducible en cualquier entorno nuevo.
+insert into storage.buckets (id, name, public)
+values ('Roommate', 'Roommate', true)
+on conflict (id) do nothing;
+
 update storage.buckets
 set file_size_limit = 5242880, -- 5MB
     allowed_mime_types = array['image/jpeg','image/png','image/webp','image/heic']

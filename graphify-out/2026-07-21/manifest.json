@@ -170,9 +170,9 @@
     "semantic_hash": "0cd8025a3d4ecda025304b7932f0e400"
   },
   "app/api/zumper-feed+api.ts": {
-    "mtime": 1784693883.0646703,
-    "ast_hash": "fafcb089ca91289b5c8629204ca1f81d",
-    "semantic_hash": ""
+    "mtime": 1783049204.0995553,
+    "ast_hash": "f1346f7c032ee345dfc49cd3fca697bb",
+    "semantic_hash": "f1346f7c032ee345dfc49cd3fca697bb"
   },
   "app/chat/[id].tsx": {
     "mtime": 1783887250.6990488,
@@ -615,9 +615,9 @@
     "semantic_hash": "94aeffc561df83bc59fec54e15b7ab36"
   },
   "lib/integrations/zumper/ZumperFeedGenerator.ts": {
-    "mtime": 1784693873.4094152,
-    "ast_hash": "c958cfc90c989974e3cbf483d7402e84",
-    "semantic_hash": ""
+    "mtime": 1783888905.3009229,
+    "ast_hash": "2fbb343230bba95ad54197d598df9896",
+    "semantic_hash": "2fbb343230bba95ad54197d598df9896"
   },
   "lib/mockData.ts": {
     "mtime": 1777269067.6279771,
@@ -804,6 +804,11 @@
     "ast_hash": "f2ac3f51990a476c6652f76c90c68f0a",
     "semantic_hash": "f2ac3f51990a476c6652f76c90c68f0a"
   },
+  "supabase/.temp/linked-project.json": {
+    "mtime": 1783741295.4418223,
+    "ast_hash": "80318c2b93939a839e4b601bb3b79653",
+    "semantic_hash": "80318c2b93939a839e4b601bb3b79653"
+  },
   "supabase/admin_rls_policies.sql": {
     "mtime": 1783884056.1009429,
     "ast_hash": "945137064f355842a908700800801714",
@@ -850,9 +855,9 @@
     "semantic_hash": "5d31f209b1a759e20d6178fdbeee667d"
   },
   "supabase/migrations/20260712204303_fix_roommate_bucket_public_write.sql": {
-    "mtime": 1784694307.161994,
-    "ast_hash": "ea4f9fd5d51eb9b1bce3536a853cc000",
-    "semantic_hash": ""
+    "mtime": 1783889014.5041728,
+    "ast_hash": "03682c8ff73f2a06c0523074fbbe323b",
+    "semantic_hash": "03682c8ff73f2a06c0523074fbbe323b"
   },
   "supabase/migrations/20260712204651_reconcile_privesc_fix_with_super_admin_bootstrap.sql": {
     "mtime": 1783889244.9198482,
@@ -860,9 +865,9 @@
     "semantic_hash": "7a91caa3417b2e2ebaf5414b1bd2a2ab"
   },
   "supabase/migrations/20260712205300_fix_contracts_bucket_private_signed_urls.sql": {
-    "mtime": 1784694311.2516782,
-    "ast_hash": "f4cada083f5366bcb6a24046ce4af5a7",
-    "semantic_hash": ""
+    "mtime": 1783889602.0599923,
+    "ast_hash": "ac254e0aec2860bc4bf93cfdd4de0a58",
+    "semantic_hash": "ac254e0aec2860bc4bf93cfdd4de0a58"
   },
   "supabase/migrations/20260712210218_fix_contract_participants_idor.sql": {
     "mtime": 1783890153.1922596,
@@ -977,11 +982,6 @@
   "supabase/migrations/20260721140000_add_listings_staging.sql": {
     "mtime": 1784693305.0123312,
     "ast_hash": "2653ca98508b8b5052f93b72d82a769d",
-    "semantic_hash": ""
-  },
-  "supabase/functions/zumper-feed/index.ts": {
-    "mtime": 1784745209.8649406,
-    "ast_hash": "f193eebb91d9a763b249568fd375adda",
     "semantic_hash": ""
   }
 }

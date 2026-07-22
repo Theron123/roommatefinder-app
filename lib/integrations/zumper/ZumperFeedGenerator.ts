@@ -1,5 +1,13 @@
-// Zumper Feed XML Generator (Simulated)
+// Zumper Feed XML Generator
 // Basado en las especificaciones comunes de Feeds de Zumper para listados de propiedades.
+// El modelo público real de Zumper es push: nosotros les damos la URL de este feed y
+// ellos la crawlean periódicamente (no exponen una API para que nosotros "importemos"
+// su inventario — ver lib/integrations/zumper/ZumperImporter/staging para esa otra
+// dirección, que sigue en mock hasta confirmar con su equipo de partnerships).
+//
+// Este generador ya no inventa datos: recibe los listings reales como parámetro.
+// Quien llama (supabase/functions/zumper-feed/index.ts en producción, o el mock de
+// abajo en dev local) es responsable de traer los datos y mapearlos a ZumperListing.
 
 export interface ZumperListing {
   id: string;
@@ -18,40 +26,39 @@ export interface ZumperListing {
   contactEmail: string;
 }
 
-export class ZumperFeedGenerator {
-  
-  /**
-   * Genera el Feed XML de Zumper basado en los listados activos de la aplicación.
-   * Por ahora usa datos Mock, pero luego se conectará a la base de datos real.
-   */
-  async generateXMLFeed(): Promise<string> {
-    // 1. Aquí haríamos la consulta a la base de datos de RoommateFinder
-    // const activeListings = await db.query("SELECT * FROM apartments WHERE status = 'active'");
-    
-    // MOCK DATA
-    const mockListings: ZumperListing[] = [
-      {
-        id: "room-101",
-        title: "Cuarto privado en apartamento moderno",
-        description: "Excelente cuarto con baño privado en el centro de la ciudad.",
-        price: 800,
-        currency: "USD",
-        zipCode: "10001",
-        city: "New York",
-        state: "NY",
-        address: "123 Main St",
-        propertyType: "room",
-        bedrooms: 1,
-        bathrooms: 1,
-        images: ["https://example.com/photo1.jpg"],
-        contactEmail: "admin@roommatefinder.com"
-      }
-    ];
+// Usado solo para pruebas locales (app/api/zumper-feed+api.ts) — no representa
+// datos reales de `listings`.
+export function getMockZumperListings(): ZumperListing[] {
+  return [
+    {
+      id: "room-101",
+      title: "Cuarto privado en apartamento moderno",
+      description: "Excelente cuarto con baño privado en el centro de la ciudad.",
+      price: 800,
+      currency: "USD",
+      zipCode: "10001",
+      city: "New York",
+      state: "NY",
+      address: "123 Main St",
+      propertyType: "room",
+      bedrooms: 1,
+      bathrooms: 1,
+      images: ["https://example.com/photo1.jpg"],
+      contactEmail: "admin@roommatefinder.com"
+    }
+  ];
+}
 
-    // 2. Construir el XML string
+export class ZumperFeedGenerator {
+
+  /**
+   * Genera el Feed XML de Zumper a partir de listings ya mapeados al shape
+   * ZumperListing. No consulta la base de datos por sí mismo.
+   */
+  async generateXMLFeed(listings: ZumperListing[]): Promise<string> {
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<ZumperFeed>\n`;
-    
-    for (const listing of mockListings) {
+
+    for (const listing of listings) {
       xml += `  <Property>\n`;
       xml += `    <PropertyID>${listing.id}</PropertyID>\n`;
       xml += `    <Title>${this.escapeXML(listing.title)}</Title>\n`;

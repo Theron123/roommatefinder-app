@@ -307,8 +307,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "app_expo_plugins",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "plugins"
     },
     {
@@ -329,8 +329,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "ref_expo_web_browser",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "expo-web-browser"
     },
     {
@@ -340,8 +340,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "ref_expo_font",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "expo-font"
     },
     {
@@ -956,8 +956,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "app_admin_settings_adminsettings",
-      "community": 11,
-      "community_name": "YardiApiClient",
+      "community": 15,
+      "community_name": "LanguageContext.tsx",
       "norm_label": "adminsettings()"
     },
     {
@@ -1099,8 +1099,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_admin_verifications",
-      "community": 15,
-      "community_name": "LanguageContext.tsx",
+      "community": 23,
+      "community_name": "myprofile.tsx",
       "norm_label": "verifications.tsx"
     },
     {
@@ -1110,8 +1110,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "app_admin_verifications_verification",
-      "community": 15,
-      "community_name": "LanguageContext.tsx",
+      "community": 23,
+      "community_name": "myprofile.tsx",
       "norm_label": "verification"
     },
     {
@@ -1121,8 +1121,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "app_admin_verifications_profile_flag",
-      "community": 15,
-      "community_name": "LanguageContext.tsx",
+      "community": 23,
+      "community_name": "myprofile.tsx",
       "norm_label": "profile_flag"
     },
     {
@@ -1132,8 +1132,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "app_admin_verifications_adminverifications",
-      "community": 15,
-      "community_name": "LanguageContext.tsx",
+      "community": 23,
+      "community_name": "myprofile.tsx",
       "norm_label": "adminverifications()"
     },
     {
@@ -1143,8 +1143,8 @@
       "source_location": "L427",
       "_origin": "ast",
       "id": "app_admin_verifications_styles",
-      "community": 15,
-      "community_name": "LanguageContext.tsx",
+      "community": 23,
+      "community_name": "myprofile.tsx",
       "norm_label": "styles"
     },
     {
@@ -1176,8 +1176,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_auth_index",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 52,
+      "community_name": "messages.tsx",
       "norm_label": "(auth)/index.tsx"
     },
     {
@@ -1187,8 +1187,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_auth_login",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 52,
+      "community_name": "messages.tsx",
       "norm_label": "login.tsx"
     },
     {
@@ -1198,8 +1198,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "app_auth_login_loginscreen",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 52,
+      "community_name": "messages.tsx",
       "norm_label": "loginscreen()"
     },
     {
@@ -1209,8 +1209,8 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "app_auth_login_styles",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 52,
+      "community_name": "messages.tsx",
       "norm_label": "styles"
     },
     {
@@ -1220,8 +1220,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_auth_signup",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 134,
+      "community_name": "signup.tsx",
       "norm_label": "signup.tsx"
     },
     {
@@ -1231,8 +1231,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "app_auth_signup_countries",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 134,
+      "community_name": "signup.tsx",
       "norm_label": "countries"
     },
     {
@@ -1242,8 +1242,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "app_auth_signup_signupscreen",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 134,
+      "community_name": "signup.tsx",
       "norm_label": "signupscreen()"
     },
     {
@@ -1253,8 +1253,8 @@
       "source_location": "L274",
       "_origin": "ast",
       "id": "app_auth_signup_styles",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 134,
+      "community_name": "signup.tsx",
       "norm_label": "styles"
     },
     {
@@ -1506,8 +1506,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_company_contracts",
-      "community": 9,
-      "community_name": "useAdminTheme",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "(company)/contracts.tsx"
     },
     {
@@ -1517,8 +1517,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "app_company_contracts_contract",
-      "community": 9,
-      "community_name": "useAdminTheme",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "contract"
     },
     {
@@ -1528,8 +1528,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "app_company_contracts_companycontractsscreen",
-      "community": 9,
-      "community_name": "useAdminTheme",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "companycontractsscreen()"
     },
     {
@@ -1539,8 +1539,8 @@
       "source_location": "L379",
       "_origin": "ast",
       "id": "app_company_contracts_styles",
-      "community": 9,
-      "community_name": "useAdminTheme",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "styles"
     },
     {
@@ -1605,8 +1605,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_company_messages",
-      "community": 51,
-      "community_name": "(company)/index.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "messages.tsx"
     },
     {
@@ -1616,8 +1616,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "app_company_messages_chatthread",
-      "community": 51,
-      "community_name": "(company)/index.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "chatthread"
     },
     {
@@ -1627,8 +1627,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "app_company_messages_templates",
-      "community": 51,
-      "community_name": "(company)/index.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "templates"
     },
     {
@@ -1638,8 +1638,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "app_company_messages_companymessagesscreen",
-      "community": 51,
-      "community_name": "(company)/index.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "companymessagesscreen()"
     },
     {
@@ -1649,8 +1649,8 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "app_company_messages_styles",
-      "community": 51,
-      "community_name": "(company)/index.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "styles"
     },
     {
@@ -1660,8 +1660,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_company_notifications",
-      "community": 59,
-      "community_name": "applications.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "(company)/notifications.tsx"
     },
     {
@@ -1671,8 +1671,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "app_company_notifications_notificationitem",
-      "community": 59,
-      "community_name": "applications.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "notificationitem"
     },
     {
@@ -1682,8 +1682,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "app_company_notifications_companynotificationsscreen",
-      "community": 59,
-      "community_name": "applications.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "companynotificationsscreen()"
     },
     {
@@ -1693,8 +1693,8 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "app_company_notifications_styles",
-      "community": 59,
-      "community_name": "applications.tsx",
+      "community": 9,
+      "community_name": "useAdminTheme",
       "norm_label": "styles"
     },
     {
@@ -1792,8 +1792,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_tabs_inbox",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inbox.tsx"
     },
     {
@@ -1803,8 +1803,8 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "app_tabs_inbox_typedflashlist",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "typedflashlist"
     },
     {
@@ -1814,8 +1814,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "app_tabs_inbox_inboxscreen",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxscreen()"
     },
     {
@@ -1825,8 +1825,8 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "app_tabs_inbox_styles",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -1880,8 +1880,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_tabs_myprofile",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "myprofile.tsx"
     },
     {
@@ -1891,8 +1891,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "app_tabs_myprofile_myprofilescreen",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "myprofilescreen()"
     },
     {
@@ -1902,8 +1902,8 @@
       "source_location": "L424",
       "_origin": "ast",
       "id": "app_tabs_myprofile_styles",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -1913,8 +1913,8 @@
       "source_location": "L989",
       "_origin": "ast",
       "id": "app_tabs_myprofile_s",
-      "community": 3,
-      "community_name": "icon-symbol.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "s"
     },
     {
@@ -1924,8 +1924,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_layout",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "app/_layout.tsx"
     },
     {
@@ -1935,8 +1935,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "app_layout_unstable_settings",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "unstable_settings"
     },
     {
@@ -1946,8 +1946,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "app_layout_rootlayout",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "rootlayout()"
     },
     {
@@ -1957,8 +1957,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_activity",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 51,
+      "community_name": "(company)/index.tsx",
       "norm_label": "activity.tsx"
     },
     {
@@ -1968,8 +1968,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "app_activity_activityitem",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 51,
+      "community_name": "(company)/index.tsx",
       "norm_label": "activityitem"
     },
     {
@@ -1979,8 +1979,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "app_activity_activityscreen",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 51,
+      "community_name": "(company)/index.tsx",
       "norm_label": "activityscreen()"
     },
     {
@@ -1990,8 +1990,8 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "app_activity_styles",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 51,
+      "community_name": "(company)/index.tsx",
       "norm_label": "styles"
     },
     {
@@ -2243,8 +2243,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_contracts_review",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "review.tsx"
     },
     {
@@ -2254,8 +2254,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "app_contracts_review_contract",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "contract"
     },
     {
@@ -2265,8 +2265,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "app_contracts_review_reviewcontractscreen",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "reviewcontractscreen()"
     },
     {
@@ -2276,8 +2276,8 @@
       "source_location": "L637",
       "_origin": "ast",
       "id": "app_contracts_review_section",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "section()"
     },
     {
@@ -2287,8 +2287,8 @@
       "source_location": "L646",
       "_origin": "ast",
       "id": "app_contracts_review_row",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "row()"
     },
     {
@@ -2298,8 +2298,8 @@
       "source_location": "L655",
       "_origin": "ast",
       "id": "app_contracts_review_s",
-      "community": 14,
-      "community_name": "inbox.tsx",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "s"
     },
     {
@@ -2419,8 +2419,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_followers",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "followers.tsx"
     },
     {
@@ -2441,8 +2441,8 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "app_followers_styles",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "styles"
     },
     {
@@ -2683,8 +2683,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_role_select",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 53,
+      "community_name": "ChatSettingsModal.tsx",
       "norm_label": "role-select.tsx"
     },
     {
@@ -2694,8 +2694,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "app_role_select_role",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 53,
+      "community_name": "ChatSettingsModal.tsx",
       "norm_label": "role"
     },
     {
@@ -2705,8 +2705,8 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "app_role_select_roleselectscreen",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 53,
+      "community_name": "ChatSettingsModal.tsx",
       "norm_label": "roleselectscreen()"
     },
     {
@@ -2716,8 +2716,8 @@
       "source_location": "L349",
       "_origin": "ast",
       "id": "app_role_select_styles",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 53,
+      "community_name": "ChatSettingsModal.tsx",
       "norm_label": "styles"
     },
     {
@@ -2760,8 +2760,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_settings_blocked",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "blocked.tsx"
     },
     {
@@ -2771,8 +2771,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "app_settings_blocked_blockeduser",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "blockeduser"
     },
     {
@@ -2782,8 +2782,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "app_settings_blocked_blockedusersscreen",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "blockedusersscreen()"
     },
     {
@@ -2793,8 +2793,8 @@
       "source_location": "L269",
       "_origin": "ast",
       "id": "app_settings_blocked_s",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 19,
+      "community_name": "app/_layout.tsx",
       "norm_label": "s"
     },
     {
@@ -2903,8 +2903,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_settings_privacy",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "privacy.tsx"
     },
     {
@@ -2925,8 +2925,8 @@
       "source_location": "L303",
       "_origin": "ast",
       "id": "app_settings_privacy_styles",
-      "community": 19,
-      "community_name": "app/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "styles"
     },
     {
@@ -3079,8 +3079,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "app_trust_tips",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 54,
+      "community_name": "ImageViewerModal.tsx",
       "norm_label": "tips.tsx"
     },
     {
@@ -3090,8 +3090,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "app_trust_tips_securitytipsscreen",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 54,
+      "community_name": "ImageViewerModal.tsx",
       "norm_label": "securitytipsscreen()"
     },
     {
@@ -3101,8 +3101,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "app_trust_tips_tipcard",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 54,
+      "community_name": "ImageViewerModal.tsx",
       "norm_label": "tipcard()"
     },
     {
@@ -3112,8 +3112,8 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "app_trust_tips_s",
-      "community": 0,
-      "community_name": "supabase.ts",
+      "community": 54,
+      "community_name": "ImageViewerModal.tsx",
       "norm_label": "s"
     },
     {
@@ -3310,8 +3310,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_tutorialmodal",
-      "community": 38,
-      "community_name": "(tabs)/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "tutorialmodal.tsx"
     },
     {
@@ -3332,8 +3332,8 @@
       "source_location": "L357",
       "_origin": "ast",
       "id": "components_tutorialmodal_styles",
-      "community": 38,
-      "community_name": "(tabs)/_layout.tsx",
+      "community": 0,
+      "community_name": "supabase.ts",
       "norm_label": "styles"
     },
     {
@@ -3343,8 +3343,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_chatheader",
-      "community": 62,
-      "community_name": "ChatHeader.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatheader.tsx"
     },
     {
@@ -3354,8 +3354,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "components_chat_chatheader_chatheaderprops",
-      "community": 62,
-      "community_name": "ChatHeader.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatheaderprops"
     },
     {
@@ -3365,8 +3365,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_chat_chatheader_chatheader",
-      "community": 62,
-      "community_name": "ChatHeader.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatheader()"
     },
     {
@@ -3376,8 +3376,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "components_chat_chatheader_styles",
-      "community": 62,
-      "community_name": "ChatHeader.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -3486,8 +3486,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_modals_chatactionmenu",
-      "community": 63,
-      "community_name": "ChatActionMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatactionmenu.tsx"
     },
     {
@@ -3497,8 +3497,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "components_chat_modals_chatactionmenu_chatactionmenuprops",
-      "community": 63,
-      "community_name": "ChatActionMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatactionmenuprops"
     },
     {
@@ -3508,8 +3508,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "components_chat_modals_chatactionmenu_chatactionmenu",
-      "community": 63,
-      "community_name": "ChatActionMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatactionmenu()"
     },
     {
@@ -3519,8 +3519,8 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "components_chat_modals_chatactionmenu_styles",
-      "community": 63,
-      "community_name": "ChatActionMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -3530,8 +3530,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_modals_chatattachmenu",
-      "community": 64,
-      "community_name": "ChatAttachMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatattachmenu.tsx"
     },
     {
@@ -3541,8 +3541,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "components_chat_modals_chatattachmenu_chatattachmenuprops",
-      "community": 64,
-      "community_name": "ChatAttachMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatattachmenuprops"
     },
     {
@@ -3552,8 +3552,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "components_chat_modals_chatattachmenu_chatattachmenu",
-      "community": 64,
-      "community_name": "ChatAttachMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatattachmenu()"
     },
     {
@@ -3563,8 +3563,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "components_chat_modals_chatattachmenu_styles",
-      "community": 64,
-      "community_name": "ChatAttachMenu.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -3618,8 +3618,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_modals_chatsettingsmodal",
-      "community": 52,
-      "community_name": "messages.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatsettingsmodal.tsx"
     },
     {
@@ -3629,8 +3629,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "components_chat_modals_chatsettingsmodal_preset_wallpapers",
-      "community": 52,
-      "community_name": "messages.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "preset_wallpapers"
     },
     {
@@ -3640,8 +3640,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "components_chat_modals_chatsettingsmodal_chatsettingsmodalprops",
-      "community": 52,
-      "community_name": "messages.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatsettingsmodalprops"
     },
     {
@@ -3651,8 +3651,8 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "components_chat_modals_chatsettingsmodal_chatsettingsmodal",
-      "community": 52,
-      "community_name": "messages.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "chatsettingsmodal()"
     },
     {
@@ -3662,8 +3662,8 @@
       "source_location": "L86",
       "_origin": "ast",
       "id": "components_chat_modals_chatsettingsmodal_styles",
-      "community": 52,
-      "community_name": "messages.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -3673,8 +3673,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_modals_imageviewermodal",
-      "community": 53,
-      "community_name": "ChatSettingsModal.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "imageviewermodal.tsx"
     },
     {
@@ -3684,8 +3684,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "components_chat_modals_imageviewermodal_width_screen_width_height_screen_height",
-      "community": 53,
-      "community_name": "ChatSettingsModal.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "{ width: screen_width, height: screen_height }"
     },
     {
@@ -3695,8 +3695,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "components_chat_modals_imageviewermodal_imageviewermodalprops",
-      "community": 53,
-      "community_name": "ChatSettingsModal.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "imageviewermodalprops"
     },
     {
@@ -3706,8 +3706,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "components_chat_modals_imageviewermodal_imageviewermodal",
-      "community": 53,
-      "community_name": "ChatSettingsModal.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "imageviewermodal()"
     },
     {
@@ -3717,8 +3717,8 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "components_chat_modals_imageviewermodal_styles",
-      "community": 53,
-      "community_name": "ChatSettingsModal.tsx",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -3728,8 +3728,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_chat_modals_messageinfomodal",
-      "community": 88,
-      "community_name": "expo-blur",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "messageinfomodal.tsx"
     },
     {
@@ -3739,8 +3739,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "components_chat_modals_messageinfomodal_messageinfomodalprops",
-      "community": 88,
-      "community_name": "expo-blur",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "messageinfomodalprops"
     },
     {
@@ -3750,8 +3750,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "components_chat_modals_messageinfomodal_messageinfomodal",
-      "community": 88,
-      "community_name": "expo-blur",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "messageinfomodal()"
     },
     {
@@ -3761,8 +3761,8 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "components_chat_modals_messageinfomodal_styles",
-      "community": 88,
-      "community_name": "expo-blur",
+      "community": 18,
+      "community_name": "chat/[id].tsx",
       "norm_label": "styles"
     },
     {
@@ -4003,8 +4003,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_external_link",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "external-link.tsx"
     },
     {
@@ -4014,8 +4014,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "components_external_link_props",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "props"
     },
     {
@@ -4025,8 +4025,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "components_external_link_externallink",
-      "community": 2,
-      "community_name": "expo",
+      "community": 14,
+      "community_name": "inbox.tsx",
       "norm_label": "externallink()"
     },
     {
@@ -4080,8 +4080,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_inbox_inboxconversationitem",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxconversationitem.tsx"
     },
     {
@@ -4091,8 +4091,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "components_inbox_inboxconversationitem_inboxconversationitemprops",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxconversationitemprops"
     },
     {
@@ -4102,8 +4102,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "components_inbox_inboxconversationitem_inboxconversationitemcomponent",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxconversationitemcomponent()"
     },
     {
@@ -4113,8 +4113,8 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "components_inbox_inboxconversationitem_inboxconversationitem",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxconversationitem"
     },
     {
@@ -4124,8 +4124,8 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "components_inbox_inboxconversationitem_styles",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -4135,8 +4135,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_inbox_inboxmatchitem",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxmatchitem.tsx"
     },
     {
@@ -4146,8 +4146,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "components_inbox_inboxmatchitem_inboxmatchitemprops",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxmatchitemprops"
     },
     {
@@ -4157,8 +4157,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "components_inbox_inboxmatchitem_inboxmatchitemcomponent",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxmatchitemcomponent()"
     },
     {
@@ -4168,8 +4168,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "components_inbox_inboxmatchitem_inboxmatchitem",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "inboxmatchitem"
     },
     {
@@ -4179,8 +4179,8 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "components_inbox_inboxmatchitem_styles",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -4234,8 +4234,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_profile_editprofilemodal",
-      "community": 94,
-      "community_name": "EditProfileModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "editprofilemodal.tsx"
     },
     {
@@ -4245,8 +4245,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "components_profile_editprofilemodal_editprofilemodalprops",
-      "community": 94,
-      "community_name": "EditProfileModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "editprofilemodalprops"
     },
     {
@@ -4256,8 +4256,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "components_profile_editprofilemodal_editprofilemodal",
-      "community": 94,
-      "community_name": "EditProfileModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "editprofilemodal()"
     },
     {
@@ -4267,8 +4267,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "components_profile_editprofilemodal_styles",
-      "community": 94,
-      "community_name": "EditProfileModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -4641,8 +4641,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_ui_locationautocomplete",
-      "community": 54,
-      "community_name": "ImageViewerModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "locationautocomplete.tsx"
     },
     {
@@ -4652,8 +4652,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "components_ui_locationautocomplete_props",
-      "community": 54,
-      "community_name": "ImageViewerModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "props"
     },
     {
@@ -4663,8 +4663,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "components_ui_locationautocomplete_costa_rica_cities",
-      "community": 54,
-      "community_name": "ImageViewerModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "costa_rica_cities"
     },
     {
@@ -4674,8 +4674,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "components_ui_locationautocomplete_locationautocomplete",
-      "community": 54,
-      "community_name": "ImageViewerModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "locationautocomplete()"
     },
     {
@@ -4685,8 +4685,8 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "components_ui_locationautocomplete_styles",
-      "community": 54,
-      "community_name": "ImageViewerModal.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "styles"
     },
     {
@@ -4696,8 +4696,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "components_ui_mapcomponent",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 59,
+      "community_name": "applications.tsx",
       "norm_label": "mapcomponent.tsx"
     },
     {
@@ -4707,8 +4707,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "components_ui_mapcomponent_mapcomponent",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 59,
+      "community_name": "applications.tsx",
       "norm_label": "mapcomponent()"
     },
     {
@@ -4718,8 +4718,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "components_ui_mapcomponent_styles",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 59,
+      "community_name": "applications.tsx",
       "norm_label": "styles"
     },
     {
@@ -5048,8 +5048,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "context_languagecontext_languageprovider",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "languageprovider()"
     },
     {
@@ -5213,8 +5213,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hooks_useinboxqueries",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "useinboxqueries.ts"
     },
     {
@@ -5224,8 +5224,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "hooks_useinboxqueries_useinboxdata",
-      "community": 23,
-      "community_name": "myprofile.tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "useinboxdata()"
     },
     {
@@ -5257,8 +5257,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hooks_useprofilequeries",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "useprofilequeries.ts"
     },
     {
@@ -5268,8 +5268,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "hooks_useprofilequeries_getcurrentuserid",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "getcurrentuserid()"
     },
     {
@@ -5279,8 +5279,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "hooks_useprofilequeries_usemyprofile",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "usemyprofile()"
     },
     {
@@ -5290,8 +5290,8 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "hooks_useprofilequeries_useupdateprofilemutation",
-      "community": 20,
-      "community_name": "profile/[id].tsx",
+      "community": 7,
+      "community_name": "preferences.tsx",
       "norm_label": "useupdateprofilemutation()"
     },
     {
@@ -5818,8 +5818,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_integrations_yardi_yardiadapter",
-      "community": 8,
-      "community_name": "test-yardi-integration.ts",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "yardiadapter.ts"
     },
     {
@@ -5829,8 +5829,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_integrations_yardi_yardiadapter_tenantyardidata",
-      "community": 8,
-      "community_name": "test-yardi-integration.ts",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "tenantyardidata"
     },
     {
@@ -5840,8 +5840,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "lib_integrations_yardi_yardiadapter_yardiadapter",
-      "community": 8,
-      "community_name": "test-yardi-integration.ts",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "yardiadapter"
     },
     {
@@ -5851,8 +5851,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "lib_integrations_yardi_yardiadapter_yardiadapter_gettenantstatus",
-      "community": 8,
-      "community_name": "test-yardi-integration.ts",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": ".gettenantstatus()"
     },
     {
@@ -6049,8 +6049,8 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "lib_integrations_yardi_config_loadconfigfromenv",
-      "community": 6,
-      "community_name": "YardiIntegrationProvider",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "loadconfigfromenv()"
     },
     {
@@ -6951,8 +6951,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_notifications",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "notifications.ts"
     },
     {
@@ -6962,8 +6962,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "lib_notifications_registerforpushnotifications",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "registerforpushnotifications()"
     },
     {
@@ -6973,8 +6973,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "lib_notifications_sendlocalnotification",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "sendlocalnotification()"
     },
     {
@@ -6984,8 +6984,8 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "lib_notifications_notifynewmessage",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "notifynewmessage()"
     },
     {
@@ -7006,8 +7006,8 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "lib_notifications_notifycontractupdate",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "notifycontractupdate()"
     },
     {
@@ -7017,8 +7017,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "lib_notifications_notifymajorwarning",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "notifymajorwarning()"
     },
     {
@@ -7039,8 +7039,8 @@
       "source_location": "L196",
       "_origin": "ast",
       "id": "lib_notifications_getactivechatuserid",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "getactivechatuserid()"
     },
     {
@@ -7050,8 +7050,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "lib_queryclient",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "queryclient.ts"
     },
     {
@@ -7061,8 +7061,8 @@
       "source_location": "L3",
       "_origin": "ast",
       "id": "lib_queryclient_queryclient",
-      "community": 39,
-      "community_name": "test_yardi.ts",
+      "community": 10,
+      "community_name": "collapsible.tsx",
       "norm_label": "queryclient"
     },
     {
@@ -7611,8 +7611,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "package_dependencies_expo_blur",
-      "community": 24,
-      "community_name": "dependencies",
+      "community": 88,
+      "community_name": "expo-blur",
       "norm_label": "expo-blur"
     },
     {
@@ -7622,8 +7622,8 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "expo_blur",
-      "community": 24,
-      "community_name": "dependencies",
+      "community": 88,
+      "community_name": "expo-blur",
       "norm_label": "expo-blur"
     },
     {
@@ -7765,8 +7765,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "package_dependencies_expo_haptics",
-      "community": 121,
-      "community_name": "expo-haptics",
+      "community": 24,
+      "community_name": "dependencies",
       "norm_label": "expo-haptics"
     },
     {
@@ -7776,8 +7776,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "expo_haptics",
-      "community": 121,
-      "community_name": "expo-haptics",
+      "community": 24,
+      "community_name": "dependencies",
       "norm_label": "expo-haptics"
     },
     {
@@ -9426,8 +9426,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "scratch_test_yardi",
-      "community": 8,
-      "community_name": "test-yardi-integration.ts",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "test_yardi.ts"
     },
     {
@@ -9437,8 +9437,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "scratch_test_yardi_runtests",
-      "community": 11,
-      "community_name": "YardiApiClient",
+      "community": 39,
+      "community_name": "test_yardi.ts",
       "norm_label": "runtests()"
     },
     {
@@ -10303,7 +10303,7 @@
       "label": "splitAddress()",
       "file_type": "code",
       "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L43",
+      "source_location": "L39",
       "_origin": "ast",
       "id": "supabase_functions_zumper_feed_index_splitaddress",
       "community": 37,
@@ -10311,21 +10311,10 @@
       "norm_label": "splitaddress()"
     },
     {
-      "label": "timingSafeEqual()",
-      "file_type": "code",
-      "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L56",
-      "_origin": "ast",
-      "id": "supabase_functions_zumper_feed_index_timingsafeequal",
-      "community": 37,
-      "community_name": "ZumperFeedGenerator",
-      "norm_label": "timingsafeequal()"
-    },
-    {
       "label": "mapRowToZumperListing()",
       "file_type": "code",
       "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L67",
+      "source_location": "L48",
       "_origin": "ast",
       "id": "supabase_functions_zumper_feed_index_maprowtozumperlisting",
       "community": 37,
@@ -28771,7 +28760,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L67",
+      "source_location": "L48",
       "weight": 1.0,
       "_origin": "ast",
       "source": "supabase_functions_zumper_feed_index",
@@ -28782,7 +28771,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L43",
+      "source_location": "L39",
       "weight": 1.0,
       "_origin": "ast",
       "source": "supabase_functions_zumper_feed_index",
@@ -28790,22 +28779,11 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L56",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "supabase_functions_zumper_feed_index",
-      "target": "supabase_functions_zumper_feed_index_timingsafeequal",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "supabase/functions/zumper-feed/index.ts",
-      "source_location": "L69",
+      "source_location": "L50",
       "weight": 1.0,
       "_origin": "ast",
       "source": "supabase_functions_zumper_feed_index_maprowtozumperlisting",

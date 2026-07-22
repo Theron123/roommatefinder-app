@@ -1,11 +1,11 @@
-# Graph Report - roommatefinder-app  (2026-07-22)
+# Graph Report - roommatefinder-app  (2026-07-21)
 
 ## Corpus Check
-- 186 files · ~250,804 words
+- 187 files · ~250,503 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1018 nodes · 1592 edges · 147 communities (77 shown, 70 thin omitted)
+- 1017 nodes · 1591 edges · 143 communities (72 shown, 71 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.57)
 - Token cost: 0 input · 0 output
 
@@ -77,9 +77,6 @@
 - applications.tsx
 - (company)/contracts.tsx
 - ChatHeader.tsx
-- ChatHeader.tsx
-- ChatActionMenu.tsx
-- ChatAttachMenu.tsx
 - mockData.ts
 - get_profiles.js
 - get_schema.js
@@ -107,7 +104,6 @@
 - expo-device
 - expo-document-picker
 - expo-file-system
-- EditProfileModal.tsx
 - expo-image
 - expo-image-picker
 - expo-linear-gradient
@@ -133,7 +129,6 @@
 - react-native-gesture-handler
 - react-native-google-places-autocomplete
 - react-native-maps
-- expo-haptics
 - react-native-safe-area-context
 - react-native-screens
 - react-native-web
@@ -144,6 +139,7 @@
 - @supabase/supabase-js
 - @tanstack/react-query
 - 20260712202000_assign_super_admin.sql
+- signup.tsx
 - 20260712164902_rename_phone_to_email_verification.sql
 - 20260712203127_fix_profiles_privilege_escalation.sql
 - @react-navigation/elements
@@ -164,35 +160,35 @@
 ## Surprising Connections (you probably didn't know these)
 - `ReviewContractScreen()` --calls--> `useTranslation()`  [EXTRACTED]
   app/contracts/review.tsx → context/LanguageContext.tsx
+- `BlockedUsersScreen()` --calls--> `useTranslation()`  [EXTRACTED]
+  app/settings/blocked.tsx → context/LanguageContext.tsx
 - `SettingsScreen()` --calls--> `useTranslation()`  [EXTRACTED]
   app/settings/index.tsx → context/LanguageContext.tsx
 - `TermsScreen()` --calls--> `useTranslation()`  [EXTRACTED]
   app/terms.tsx → context/LanguageContext.tsx
 - `TrustAndSafetyHub()` --calls--> `useTranslation()`  [EXTRACTED]
   app/trust/index.tsx → context/LanguageContext.tsx
-- `ConflictResolutionCenter()` --calls--> `useTranslation()`  [EXTRACTED]
-  app/trust/report.tsx → context/LanguageContext.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (147 total, 70 thin omitted)
+## Communities (143 total, 71 thin omitted)
 
 ### Community 0 - "supabase.ts"
-Cohesion: 0.10
-Nodes (18): AgreementsHubScreen(), Contract, s, FollowersScreen(), AboutScreen(), styles, BlockedUser, BlockedUsersScreen() (+10 more)
+Cohesion: 0.11
+Nodes (16): AgreementsHubScreen(), Contract, s, FollowersScreen(), styles, AboutScreen(), styles, HelpScreen() (+8 more)
 
 ### Community 1 - "mappers.ts"
 Cohesion: 0.12
 Nodes (10): YardiDocument, YardiFinancialSummary, YardiLease, YardiProperty, YardiResident, YardiSoapResponse, YardiTransaction, YardiUnit (+2 more)
 
 ### Community 2 - "expo"
-Cohesion: 0.06
-Nodes (33): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, edgeToEdgeEnabled, permissions, predictiveBackGestureEnabled (+25 more)
+Cohesion: 0.07
+Nodes (29): backgroundColor, backgroundImage, foregroundImage, monochromeImage, adaptiveIcon, edgeToEdgeEnabled, permissions, predictiveBackGestureEnabled (+21 more)
 
 ### Community 3 - "icon-symbol.tsx"
-Cohesion: 0.10
-Nodes (15): COUNTRIES, SignUpScreen(), styles, styles, styles, s, styles, ProfileHeaderProps (+7 more)
+Cohesion: 0.13
+Nodes (10): styles, styles, ProfileHeaderProps, styles, ProfileLifestyleDetailsProps, styles, IconMapping, IconSymbol() (+2 more)
 
 ### Community 4 - "scripts"
 Cohesion: 0.07
@@ -203,40 +199,40 @@ Cohesion: 0.09
 Nodes (13): s, TrustAndSafetyHub(), s, VerificationWizard(), styles, TrustAlertButton, TrustAlertModalProps, BadgeConfig (+5 more)
 
 ### Community 6 - "YardiIntegrationProvider"
-Cohesion: 0.13
-Nodes (12): PmsDocument, PmsFinancialSummary, PmsLease, PmsProperty, PmsResident, PmsUnit, PmsVendor, PmsWorkOrder (+4 more)
+Cohesion: 0.14
+Nodes (11): PmsDocument, PmsFinancialSummary, PmsLease, PmsProperty, PmsResident, PmsUnit, PmsVendor, PmsWorkOrder (+3 more)
 
 ### Community 7 - "preferences.tsx"
-Cohesion: 0.16
-Nodes (15): Contract, ContractDetailScreen(), s, ManageListingScreen(), styles, DEALBREAKERS, HOBBIES, LANGUAGES (+7 more)
+Cohesion: 0.06
+Nodes (36): Contract, ContractDetailScreen(), s, ManageListingScreen(), styles, DEALBREAKERS, HOBBIES, LANGUAGES (+28 more)
 
 ### Community 8 - "test-yardi-integration.ts"
-Cohesion: 0.13
-Nodes (10): YardiApiError, YardiConfigurationError, YardiIntegrationError, YardiMappingError, YardiSyncConflictError, YardiValidationError, ConflictResolutionStrategy, EntityMappingRecord (+2 more)
+Cohesion: 0.17
+Nodes (8): YardiApiError, YardiConfigurationError, YardiIntegrationError, YardiMappingError, YardiSyncConflictError, YardiValidationError, ConflictResolutionStrategy, EntityMappingRecord
 
 ### Community 9 - "useAdminTheme"
-Cohesion: 0.09
-Nodes (23): AdminPayments(), styles, CompanyAnalyticsScreen(), styles, TopAptItem, AMENITIES_LIST, Apartment, CompanyApartmentsScreen() (+15 more)
+Cohesion: 0.08
+Nodes (27): AdminPayments(), styles, CompanyAnalyticsScreen(), styles, TopAptItem, AMENITIES_LIST, Apartment, CompanyApartmentsScreen() (+19 more)
 
 ### Community 10 - "collapsible.tsx"
-Cohesion: 0.18
-Nodes (12): ParallaxScrollView(), Props, styles, styles, ThemedText(), ThemedTextProps, ThemedView(), ThemedViewProps (+4 more)
+Cohesion: 0.11
+Nodes (22): RootLayout(), unstable_settings, ParallaxScrollView(), Props, styles, styles, ThemedText(), ThemedTextProps (+14 more)
 
 ### Community 11 - "YardiApiClient"
-Cohesion: 0.18
-Nodes (5): AdminSettings(), YardiApiClient, YardiConfig, YardiSyncManager, runTests()
+Cohesion: 0.20
+Nodes (3): YardiApiClient, YardiConfig, YardiSyncManager
 
 ### Community 13 - "useTranslation"
 Cohesion: 0.15
 Nodes (12): 🏗 1. Stack Tecnológico Principal, 🔑 1B. Variables de Entorno y Secretos, 📂 2. Estructura del Proyecto (Expo Router), 🚨 3. Reglas Críticas de Desarrollo (Antigravity Rules), 🗄 4. Arquitectura de Base de Datos y Storage, 🎭 5. Sistema de Roles (Jerarquía), A0. Migraciones (a partir del 10 de julio, 2026), A. Tablas Principales (Supabase PostgreSQL) (+4 more)
 
 ### Community 14 - "inbox.tsx"
-Cohesion: 0.11
-Nodes (8): styles, Contract, ReviewContractScreen(), s, SLIDES, styles, { width, height }, expo-router
+Cohesion: 0.15
+Nodes (8): plugins, SLIDES, styles, { width, height }, Props, expo-font, expo-router, expo-web-browser
 
 ### Community 15 - "LanguageContext.tsx"
-Cohesion: 0.13
-Nodes (14): styles, THEME_COLORS, AdminVerifications(), PROFILE_FLAG, styles, Verification, SettingsScreen(), styles (+6 more)
+Cohesion: 0.17
+Nodes (11): AdminSettings(), styles, THEME_COLORS, SettingsScreen(), styles, s, TermsScreen(), translations (+3 more)
 
 ### Community 16 - "ExploreMapView.tsx"
 Cohesion: 0.17
@@ -247,16 +243,16 @@ Cohesion: 0.20
 Nodes (7): AdminLayoutContent(), NAV_ITEMS, styles, COMPANY_NAV_ITEMS, CompanyLayoutContent(), styles, AdminThemeProvider()
 
 ### Community 18 - "chat/[id].tsx"
-Cohesion: 0.18
-Nodes (10): ChatScreen(), styles, TypedFlashList, ChatInputBar(), ChatInputBarProps, styles, ChatMessageItem, ChatMessageItemProps (+2 more)
+Cohesion: 0.05
+Nodes (24): ChatScreen(), styles, TypedFlashList, ChatHeaderProps, styles, ChatInputBar(), ChatInputBarProps, styles (+16 more)
 
 ### Community 19 - "app/_layout.tsx"
-Cohesion: 0.11
-Nodes (12): ActivityItem, styles, styles, Role, styles, styles, CONFLICT_REASONS, ConflictResolutionCenter() (+4 more)
+Cohesion: 0.10
+Nodes (15): CompanyContractsScreen(), Contract, styles, Contract, ReviewContractScreen(), s, BlockedUser, BlockedUsersScreen() (+7 more)
 
 ### Community 20 - "profile/[id].tsx"
-Cohesion: 0.19
-Nodes (13): ProfileDetailScreen(), styles, HomeScreen(), Profile, styles, MyProfileScreen(), styles, getCurrentUserId() (+5 more)
+Cohesion: 0.35
+Nodes (8): ProfileDetailScreen(), styles, HomeScreen(), Profile, styles, useUserProfile(), getDistanceFromLatLonInKm(), getSimilarityScore()
 
 ### Community 21 - "new.tsx"
 Cohesion: 0.18
@@ -267,12 +263,12 @@ Cohesion: 0.17
 Nodes (11): AdminReports(), AuditItem, COMPLAINT_STATUSES, ContractItem, ListingItem, MatchItem, ProfileItem, Report (+3 more)
 
 ### Community 23 - "myprofile.tsx"
-Cohesion: 0.16
-Nodes (10): InboxScreen(), styles, TypedFlashList, InboxConversationItem, InboxConversationItemProps, styles, InboxMatchItem, InboxMatchItemProps (+2 more)
+Cohesion: 0.40
+Nodes (4): AdminVerifications(), PROFILE_FLAG, styles, Verification
 
 ### Community 24 - "dependencies"
 Cohesion: 0.15
-Nodes (13): expo-blur, expo-font, expo-notifications, expo-splash-screen, html2pdf.js, idnumbers, dependencies, expo-blur (+5 more)
+Nodes (13): expo-font, expo-haptics, expo-notifications, expo-splash-screen, html2pdf.js, idnumbers, dependencies, expo-font (+5 more)
 
 ### Community 25 - "users.tsx"
 Cohesion: 0.18
@@ -323,16 +319,12 @@ Cohesion: 0.29
 Nodes (7): { createClient }, FEMALE_NAMES, getThemeForUser(), MALE_NAMES, seed(), supabase, THEMED_SETS
 
 ### Community 37 - "ZumperFeedGenerator"
-Cohesion: 0.24
+Cohesion: 0.27
 Nodes (7): GET(), getMockZumperListings(), ZumperFeedGenerator, ZumperListing, ListingRow, mapRowToZumperListing(), splitAddress()
 
-### Community 38 - "(tabs)/_layout.tsx"
-Cohesion: 0.47
-Nodes (3): TabLayout(), HapticTab(), styles
-
 ### Community 39 - "test_yardi.ts"
-Cohesion: 0.28
-Nodes (10): RootLayout(), unstable_settings, LanguageProvider(), getActiveChatUserId(), notifyContractUpdate(), notifyMajorWarning(), notifyNewMessage(), registerForPushNotifications() (+2 more)
+Cohesion: 0.38
+Nodes (4): loadConfigFromEnv(), TenantYardiData, YardiAdapter, runTests()
 
 ### Community 40 - "compilerOptions"
 Cohesion: 0.29
@@ -378,22 +370,6 @@ Nodes (4): ExploreCard(), ExploreCardProps, styles, calculateCompatibility()
 Cohesion: 0.18
 Nodes (10): "public"."contract_participants", "public"."contracts", "public"."is_admin"(), "public"."listings", "public"."matches", "public"."messages", "public"."profiles", "public"."swipes" (+2 more)
 
-### Community 51 - "(company)/index.tsx"
-Cohesion: 0.40
-Nodes (4): ChatThread, CompanyMessagesScreen(), styles, TEMPLATES
-
-### Community 52 - "messages.tsx"
-Cohesion: 0.40
-Nodes (3): ChatSettingsModalProps, PRESET_WALLPAPERS, styles
-
-### Community 53 - "ChatSettingsModal.tsx"
-Cohesion: 0.40
-Nodes (3): ImageViewerModalProps, styles, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT }
-
-### Community 54 - "ImageViewerModal.tsx"
-Cohesion: 0.40
-Nodes (3): COSTA_RICA_CITIES, Props, styles
-
 ### Community 56 - "generate_listing_seeds.js"
 Cohesion: 0.40
 Nodes (3): { createClient }, supabase, themedPortfolios
@@ -405,10 +381,6 @@ Nodes (3): envStr, supabaseKey, supabaseUrl
 ### Community 58 - "verify_rls_anon.mjs"
 Cohesion: 0.60
 Nodes (4): check(), firstId(), main(), supabase
-
-### Community 59 - "applications.tsx"
-Cohesion: 0.50
-Nodes (3): CompanyNotificationsScreen(), NotificationItem, styles
 
 ### Community 60 - "(company)/contracts.tsx"
 Cohesion: 0.48
@@ -430,25 +402,29 @@ Nodes (5): Get a fresh project, Get started, Join the community, Learn more, Wel
 Cohesion: 0.60
 Nodes (4): public.check_new_profile_role(), public.check_role_update(), tr_check_new_profile_role, tr_check_role_update
 
+### Community 134 - "signup.tsx"
+Cohesion: 0.67
+Nodes (3): COUNTRIES, SignUpScreen(), styles
+
 ## Knowledge Gaps
 - **423 isolated node(s):** `name`, `slug`, `version`, `orientation`, `icon` (+418 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **70 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **71 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useTranslation()` connect `supabase.ts` to `icon-symbol.tsx`, `trust/index.tsx`, `preferences.tsx`, `useAdminTheme`, `YardiApiClient`, `inbox.tsx`, `LanguageContext.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `app/_layout.tsx`, `profile/[id].tsx`, `new.tsx`, `reports.tsx`, `myprofile.tsx`, `users.tsx`, `listings.tsx`, `filters.tsx`, `useExplore.ts`, `(tabs)/_layout.tsx`, `(admin)/contracts.tsx`, `(admin)/index.tsx`, `roles.tsx`, `expo-router`, `(company)/index.tsx`, `applications.tsx`?**
+- **Why does `useTranslation()` connect `supabase.ts` to `trust/index.tsx`, `preferences.tsx`, `useAdminTheme`, `LanguageContext.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `app/_layout.tsx`, `profile/[id].tsx`, `new.tsx`, `reports.tsx`, `myprofile.tsx`, `users.tsx`, `listings.tsx`, `filters.tsx`, `useExplore.ts`, `(admin)/contracts.tsx`, `(admin)/index.tsx`, `roles.tsx`, `expo-router`, `ImageViewerModal.tsx`?**
   _High betweenness centrality (0.143) - this node is a cross-community bridge._
-- **Why does `expo-router` connect `inbox.tsx` to `supabase.ts`, `expo`, `icon-symbol.tsx`, `trust/index.tsx`, `preferences.tsx`, `LanguageContext.tsx`, `ExploreMapView.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `app/_layout.tsx`, `profile/[id].tsx`, `new.tsx`, `myprofile.tsx`, `filters.tsx`, `useExplore.ts`, `ExploreHeader.tsx`, `(tabs)/_layout.tsx`, `test_yardi.ts`, `(admin)/index.tsx`, `ExploreCard.tsx`?**
+- **Why does `expo-router` connect `inbox.tsx` to `supabase.ts`, `icon-symbol.tsx`, `trust/index.tsx`, `signup.tsx`, `preferences.tsx`, `collapsible.tsx`, `LanguageContext.tsx`, `ExploreMapView.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `app/_layout.tsx`, `profile/[id].tsx`, `new.tsx`, `filters.tsx`, `useExplore.ts`, `ExploreHeader.tsx`, `(tabs)/_layout.tsx`, `(admin)/index.tsx`, `ExploreCard.tsx`, `(company)/index.tsx`, `messages.tsx`, `ChatSettingsModal.tsx`, `ImageViewerModal.tsx`?**
   _High betweenness centrality (0.099) - this node is a cross-community bridge._
 - **Why does `AdminContracts()` connect `(admin)/contracts.tsx` to `supabase.ts`, `useAdminTheme`, `YardiIntegrationProvider`?**
   _High betweenness centrality (0.077) - this node is a cross-community bridge._
 - **What connects `name`, `slug`, `version` to the rest of the system?**
   _423 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `supabase.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11462450592885376 - nodes in this community are weakly interconnected._
 - **Should `mappers.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.11965811965811966 - nodes in this community are weakly interconnected._
 - **Should `expo` be split into smaller, more focused modules?**
-  _Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._

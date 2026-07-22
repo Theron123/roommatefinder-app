@@ -52,6 +52,23 @@ type PropertyAuditLog = {
   adminName: string;
 };
 
+type StagingListing = {
+  id: string;
+  source: string;
+  external_id: string;
+  title: string | null;
+  address: string | null;
+  description: string | null;
+  price: number | null;
+  currency: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  utilities_included: boolean | null;
+  images: string[] | null;
+  review_status: 'pending' | 'approved' | 'rejected';
+  imported_at: string;
+};
+
 const STATUSES = ['all', 'active', 'inactive', 'pending'];
 const VERIFICATIONS = ['all', 'verified', 'unverified'];
 
@@ -68,7 +85,7 @@ const BULK_PLACEHOLDER = `[
 ]`;
 
 export default function AdminListings() {
-  const [tab, setTab] = useState<'list' | 'import'>('list');
+  const [tab, setTab] = useState<'list' | 'import' | 'staging'>('list');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -142,6 +159,12 @@ export default function AdminListings() {
   const [jsonInput, setJsonInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ success: number; errors: string[] } | null>(null);
+
+  // Staging state (importaciones automáticas de proveedores externos, ej. Zumper)
+  const [stagingItems, setStagingItems] = useState<StagingListing[]>([]);
+  const [stagingLoading, setStagingLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
@@ -601,6 +624,125 @@ export default function AdminListings() {
     }
   };
 
+  // ── Staging de importaciones externas (Zumper, etc.) ────────────
+  const fetchStagingItems = useCallback(async () => {
+    setStagingLoading(true);
+    const { data, error } = await supabase
+      .from('listings_staging')
+      .select('*')
+      .eq('review_status', 'pending')
+      .order('imported_at', { ascending: false })
+      .limit(100);
+
+    if (!error) {
+      setStagingItems((data as unknown as StagingListing[]) || []);
+    }
+    setStagingLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'staging' && userRole === 'admin') {
+      fetchStagingItems();
+    }
+  }, [tab, userRole, fetchStagingItems]);
+
+  // Dispara el sync manual contra la edge function import-listings-sync.
+  // Corre en modo mock hasta que se configuren ZUMPER_FEED_URL / ZUMPER_API_TOKEN
+  // como secrets de la función (ver supabase/functions/import-listings-sync/index.ts).
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-listings-sync');
+      if (error) throw error;
+      const mode = data?.mode === 'live' ? (locale === 'es' ? 'real' : 'live') : 'mock';
+      showAlert(
+        locale === 'es' ? 'Éxito' : 'Success',
+        locale === 'es'
+          ? `Sync completado (modo ${mode}): ${data?.imported ?? 0} listing(s) en cola.`
+          : `Sync complete (${mode} mode): ${data?.imported ?? 0} listing(s) queued.`
+      );
+      fetchStagingItems();
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Error al sincronizar con el proveedor externo.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const approveStaging = async (item: StagingListing) => {
+    setReviewingId(item.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+
+      const { data: newListing, error: insertErr } = await supabase
+        .from('listings')
+        .insert({
+          title: item.title,
+          address: item.address,
+          description: item.description,
+          price: item.price,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          utilities_included: item.utilities_included,
+          images: item.images || [],
+          status: 'active',
+          user_id: adminId,
+        })
+        .select('id')
+        .single();
+
+      if (insertErr) throw insertErr;
+
+      const { error: updateErr } = await supabase
+        .from('listings_staging')
+        .update({
+          review_status: 'approved',
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+          created_listing_id: newListing.id,
+        })
+        .eq('id', item.id);
+
+      if (updateErr) throw updateErr;
+
+      setStagingItems((prev) => prev.filter((s) => s.id !== item.id));
+      showToast(locale === 'es' ? 'Listing aprobado y publicado.' : 'Listing approved and published.');
+      fetchListings();
+      fetchStats();
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Error al aprobar el listing.');
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const rejectStaging = async (item: StagingListing) => {
+    setReviewingId(item.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminId = session?.user?.id;
+
+      const { error } = await supabase
+        .from('listings_staging')
+        .update({
+          review_status: 'rejected',
+          reviewed_by: adminId,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq('id', item.id);
+
+      if (error) throw error;
+
+      setStagingItems((prev) => prev.filter((s) => s.id !== item.id));
+      showToast(locale === 'es' ? 'Listing rechazado.' : 'Listing rejected.');
+    } catch (e: any) {
+      showAlert('Error', e.message || 'Error al rechazar el listing.');
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
   const formatDate = (iso: string) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
@@ -706,6 +848,22 @@ export default function AdminListings() {
               {locale === 'es' ? 'Importar' : 'Import'}
             </Text>
           </TouchableOpacity>
+          {userRole === 'admin' && (
+            <TouchableOpacity
+              style={[styles.tabBtn, tab === 'staging' && styles.tabBtnActive]}
+              onPress={() => setTab('staging')}
+            >
+              <MaterialCommunityIcons name="cloud-sync-outline" size={14} color={tab === 'staging' ? accentColor : '#888'} />
+              <Text style={[styles.tabBtnText, tab === 'staging' && { color: accentColor }]}>
+                {locale === 'es' ? 'Staging' : 'Staging'}
+              </Text>
+              {stagingItems.length > 0 && (
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingBadgeText}>{stagingItems.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -897,7 +1055,7 @@ export default function AdminListings() {
             />
           )}
         </>
-      ) : (
+      ) : tab === 'import' ? (
         /* ── Importador Masivo JSON ── */
         <ScrollView style={styles.importScroll} contentContainerStyle={styles.importContent}>
           <View style={styles.importInfo}>
@@ -953,6 +1111,95 @@ export default function AdminListings() {
                 <Text key={i} style={styles.resultError}>✗ {e}</Text>
               ))}
             </View>
+          )}
+        </ScrollView>
+      ) : (
+        /* ── Staging de importaciones externas (Zumper, etc.) ── */
+        <ScrollView
+          style={styles.importScroll}
+          contentContainerStyle={styles.importContent}
+          refreshControl={<RefreshControl refreshing={stagingLoading} onRefresh={fetchStagingItems} tintColor={accentColor} />}
+        >
+          <View style={styles.importInfo}>
+            <MaterialCommunityIcons name="information-outline" size={18} color="#3b82f6" />
+            <Text style={styles.importInfoText}>
+              {locale === 'es'
+                ? 'Listings jalados automáticamente de proveedores externos (hoy: Zumper, en modo mock hasta tener credenciales reales). Revisa y aprueba cada uno antes de que se publique.'
+                : 'Listings pulled automatically from external providers (currently: Zumper, in mock mode until real credentials exist). Review and approve each one before it goes live.'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.importBtn, { backgroundColor: accentColor }, syncing && { opacity: 0.5 }]}
+            onPress={handleSyncNow}
+            disabled={syncing}
+          >
+            {syncing ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="cloud-sync-outline" size={18} color="#000" />
+                <Text style={styles.importBtnText}>{locale === 'es' ? 'Sincronizar Ahora' : 'Sync Now'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {stagingLoading && stagingItems.length === 0 ? (
+            <View style={styles.centerLoader}>
+              <ActivityIndicator size="large" color={accentColor} />
+            </View>
+          ) : stagingItems.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcons name="tray-arrow-down" size={48} color="#222" />
+              <Text style={styles.emptyText}>
+                {locale === 'es' ? 'No hay listings pendientes de revisión.' : 'No listings pending review.'}
+              </Text>
+            </View>
+          ) : (
+            stagingItems.map((item) => (
+              <View key={item.id} style={styles.stagingCard}>
+                <View style={styles.stagingCardHeader}>
+                  <Text style={styles.stagingSourceBadge}>{item.source}</Text>
+                  <Text style={styles.stagingCardMeta}>{formatDate(item.imported_at)}</Text>
+                </View>
+                <Text style={styles.stagingCardTitle} numberOfLines={1}>{item.title || 'Untitled'}</Text>
+                <Text style={styles.stagingCardMeta} numberOfLines={1}>{item.address}</Text>
+                <Text style={[styles.stagingCardPrice, { color: accentColor }]}>
+                  ${item.price ?? 0} {item.currency || 'USD'}
+                </Text>
+
+                <View style={styles.stagingActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.stagingActionBtn, styles.stagingRejectBtn]}
+                    onPress={() => rejectStaging(item)}
+                    disabled={reviewingId === item.id}
+                  >
+                    {reviewingId === item.id ? (
+                      <ActivityIndicator size="small" color="#ef4444" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="close" size={16} color="#ef4444" />
+                        <Text style={styles.stagingRejectBtnText}>{locale === 'es' ? 'Rechazar' : 'Reject'}</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.stagingActionBtn, styles.stagingApproveBtn, { backgroundColor: accentColor }]}
+                    onPress={() => approveStaging(item)}
+                    disabled={reviewingId === item.id}
+                  >
+                    {reviewingId === item.id ? (
+                      <ActivityIndicator size="small" color="#000" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="check" size={16} color="#000" />
+                        <Text style={styles.stagingApproveBtnText}>{locale === 'es' ? 'Aprobar' : 'Approve'}</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
           )}
         </ScrollView>
       )}
@@ -1720,6 +1967,53 @@ const styles = StyleSheet.create({
   resultBox: { backgroundColor: '#0c0c0c', borderRadius: 10, padding: 16, gap: 6, borderWidth: 1, borderColor: '#1e1e1e' },
   resultSuccess: { fontSize: 13, fontWeight: '600' },
   resultError: { color: '#ff4444', fontSize: 12 },
+
+  pendingBadge: {
+    backgroundColor: '#ef4444',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  stagingCard: {
+    backgroundColor: '#0c0c0c',
+    borderRadius: 10,
+    padding: 14,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#1e1e1e',
+  },
+  stagingCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  stagingSourceBadge: {
+    color: '#3b82f6',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    backgroundColor: '#0c1827',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  stagingCardMeta: { color: '#888', fontSize: 12 },
+  stagingCardTitle: { color: '#eee', fontSize: 15, fontWeight: '600' },
+  stagingCardPrice: { fontSize: 14, fontWeight: '700', marginTop: 2 },
+  stagingActionsRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  stagingActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 8,
+    paddingVertical: 10,
+  },
+  stagingRejectBtn: { backgroundColor: '#1a0d0d', borderWidth: 1, borderColor: '#3a1414' },
+  stagingRejectBtnText: { color: '#ef4444', fontSize: 13, fontWeight: '600' },
+  stagingApproveBtn: {},
+  stagingApproveBtnText: { color: '#000', fontSize: 13, fontWeight: '700' },
 
   // Estilos del Modal
   modalOverlay: {

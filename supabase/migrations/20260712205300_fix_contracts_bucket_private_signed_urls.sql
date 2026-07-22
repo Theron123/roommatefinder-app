@@ -12,6 +12,13 @@
 -- requerir una URL firmada (createSignedUrl), que Supabase solo emite si
 -- la policy de SELECT se cumple para quien la pide.
 
+-- El bucket "contracts" también se creó manualmente desde el Dashboard en
+-- producción, nunca por migración (mismo problema que "Roommate" en
+-- 20260712204303). Se crea de forma idempotente para reproducibilidad local.
+insert into storage.buckets (id, name, public)
+values ('contracts', 'contracts', false)
+on conflict (id) do nothing;
+
 update storage.buckets set public = false where id = 'contracts';
 
 drop policy if exists "Public can read contracts" on storage.objects;

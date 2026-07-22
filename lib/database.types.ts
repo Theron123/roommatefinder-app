@@ -196,6 +196,87 @@ export type Database = {
           },
         ]
       }
+      listings_staging: {
+        Row: {
+          address: string | null
+          created_listing_id: string | null
+          currency: string | null
+          description: string | null
+          external_id: string
+          id: string
+          images: string[] | null
+          imported_at: string
+          latitude: number | null
+          longitude: number | null
+          price: number | null
+          raw_payload: Json | null
+          reject_reason: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          title: string | null
+          utilities_included: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          created_listing_id?: string | null
+          currency?: string | null
+          description?: string | null
+          external_id: string
+          id?: string
+          images?: string[] | null
+          imported_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          price?: number | null
+          raw_payload?: Json | null
+          reject_reason?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: string
+          title?: string | null
+          utilities_included?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          created_listing_id?: string | null
+          currency?: string | null
+          description?: string | null
+          external_id?: string
+          id?: string
+          images?: string[] | null
+          imported_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          price?: number | null
+          raw_payload?: Json | null
+          reject_reason?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          title?: string | null
+          utilities_included?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_staging_created_listing_id_fkey"
+            columns: ["created_listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_staging_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           created_at: string | null

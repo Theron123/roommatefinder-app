@@ -1,0 +1,1489 @@
+{
+  "communities": {
+    "0": [
+      "app_contracts_index",
+      "app_contracts_index_agreementshubscreen",
+      "app_contracts_index_contract",
+      "app_contracts_index_s",
+      "app_followers",
+      "app_followers_followersscreen",
+      "app_followers_styles",
+      "app_role_select",
+      "app_role_select_role",
+      "app_role_select_roleselectscreen",
+      "app_role_select_styles",
+      "app_settings_blocked",
+      "app_settings_blocked_blockeduser",
+      "app_settings_blocked_blockedusersscreen",
+      "app_settings_blocked_s",
+      "app_settings_privacy",
+      "app_settings_privacy_privacyscreen",
+      "app_settings_privacy_styles",
+      "app_trust_report",
+      "app_trust_report_conflict_reasons",
+      "app_trust_report_conflictresolutioncenter",
+      "app_trust_report_s",
+      "lib_supabase",
+      "lib_supabase_supabase",
+      "lib_supabase_supabaseanonkey",
+      "lib_supabase_supabaseurl",
+      "scratch_test_contracts_query",
+      "scratch_test_contracts_query_testcontractsquery",
+      "scratch_test_listings_query",
+      "scratch_test_listings_query_testquery"
+    ],
+    "1": [
+      "lib_integrations_pms_interface",
+      "lib_integrations_pms_interface_pmsdocument",
+      "lib_integrations_pms_interface_pmsfinancialsummary",
+      "lib_integrations_pms_interface_pmslease",
+      "lib_integrations_pms_interface_pmsresident",
+      "lib_integrations_pms_interface_pmsunit",
+      "lib_integrations_pms_interface_pmsvendor",
+      "lib_integrations_yardi_mappers",
+      "lib_integrations_yardi_mappers_mapdocumenttoyardi",
+      "lib_integrations_yardi_mappers_mapleasetoyardi",
+      "lib_integrations_yardi_mappers_mappropertytoyardi",
+      "lib_integrations_yardi_mappers_mapresidenttoyardi",
+      "lib_integrations_yardi_mappers_mapunittoyardi",
+      "lib_integrations_yardi_mappers_mapvendortoyardi",
+      "lib_integrations_yardi_mappers_mapworkordertoyardi",
+      "lib_integrations_yardi_mappers_mapyarditodocument",
+      "lib_integrations_yardi_mappers_mapyarditolease",
+      "lib_integrations_yardi_mappers_mapyarditoproperty",
+      "lib_integrations_yardi_mappers_mapyarditoresident",
+      "lib_integrations_yardi_mappers_mapyarditounit",
+      "lib_integrations_yardi_mappers_mapyarditovendor",
+      "lib_integrations_yardi_mappers_mapyarditoworkorder",
+      "lib_integrations_yardi_provider",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getlease",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getresident",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getunit",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getvendor",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_listdocuments",
+      "lib_integrations_yardi_types",
+      "lib_integrations_yardi_types_yardidocument",
+      "lib_integrations_yardi_types_yardifinancialsummary",
+      "lib_integrations_yardi_types_yardilease",
+      "lib_integrations_yardi_types_yardiproperty",
+      "lib_integrations_yardi_types_yardiresident",
+      "lib_integrations_yardi_types_yardisoapresponse",
+      "lib_integrations_yardi_types_yarditransaction",
+      "lib_integrations_yardi_types_yardiunit",
+      "lib_integrations_yardi_types_yardivendor",
+      "lib_integrations_yardi_types_yardiworkorder"
+    ],
+    "2": [
+      "app",
+      "app_adaptiveicon_backgroundcolor",
+      "app_adaptiveicon_backgroundimage",
+      "app_adaptiveicon_foregroundimage",
+      "app_adaptiveicon_monochromeimage",
+      "app_android_adaptiveicon",
+      "app_android_edgetoedgeenabled",
+      "app_android_permissions",
+      "app_android_predictivebackgestureenabled",
+      "app_experiments_reactcompiler",
+      "app_experiments_typedroutes",
+      "app_expo",
+      "app_expo_android",
+      "app_expo_experiments",
+      "app_expo_icon",
+      "app_expo_ios",
+      "app_expo_name",
+      "app_expo_newarchenabled",
+      "app_expo_orientation",
+      "app_expo_plugins",
+      "app_expo_scheme",
+      "app_expo_slug",
+      "app_expo_userinterfacestyle",
+      "app_expo_version",
+      "app_expo_web",
+      "app_infoplist_nsmicrophoneusagedescription",
+      "app_ios_infoplist",
+      "app_ios_supportstablet",
+      "app_web_favicon",
+      "app_web_output",
+      "components_external_link",
+      "components_external_link_externallink",
+      "components_external_link_props",
+      "ref_android_permission_record_audio",
+      "ref_expo_font",
+      "ref_expo_web_browser"
+    ],
+    "3": [
+      "app_auth_index",
+      "app_auth_login",
+      "app_auth_login_loginscreen",
+      "app_auth_login_styles",
+      "app_auth_signup",
+      "app_auth_signup_countries",
+      "app_auth_signup_signupscreen",
+      "app_auth_signup_styles",
+      "app_listing_id",
+      "app_listing_id_listingdetailscreen",
+      "app_listing_id_styles",
+      "app_subscriptions",
+      "app_subscriptions_styles",
+      "app_subscriptions_subscriptionsscreen",
+      "components_profile_profileheader",
+      "components_profile_profileheader_profileheader",
+      "components_profile_profileheader_profileheaderprops",
+      "components_profile_profileheader_styles",
+      "components_profile_profilelifestyledetails",
+      "components_profile_profilelifestyledetails_profilelifestyledetails",
+      "components_profile_profilelifestyledetails_profilelifestyledetailsprops",
+      "components_profile_profilelifestyledetails_styles",
+      "components_ui_icon_symbol",
+      "components_ui_icon_symbol_iconmapping",
+      "components_ui_icon_symbol_iconsymbol",
+      "components_ui_icon_symbol_iconsymbolname",
+      "components_ui_icon_symbol_mapping"
+    ],
+    "4": [
+      "eslint",
+      "eslint_config_expo",
+      "package",
+      "package_devdependencies",
+      "package_devdependencies_eslint",
+      "package_devdependencies_eslint_config_expo",
+      "package_devdependencies_patch_package",
+      "package_devdependencies_types_leaflet",
+      "package_devdependencies_types_react",
+      "package_devdependencies_typescript",
+      "package_main",
+      "package_name",
+      "package_private",
+      "package_scripts",
+      "package_scripts_android",
+      "package_scripts_build",
+      "package_scripts_ios",
+      "package_scripts_lint",
+      "package_scripts_postinstall",
+      "package_scripts_reset_project",
+      "package_scripts_start",
+      "package_scripts_web",
+      "package_version",
+      "patch_package",
+      "types_leaflet",
+      "types_react",
+      "typescript"
+    ],
+    "5": [
+      "app_trust_index",
+      "app_trust_index_s",
+      "app_trust_index_trustandsafetyhub",
+      "app_trust_verify",
+      "app_trust_verify_s",
+      "app_trust_verify_verificationwizard",
+      "app_trust_verify_webcanvas",
+      "app_trust_verify_webvideo",
+      "components_trust_trustalertmodal",
+      "components_trust_trustalertmodal_styles",
+      "components_trust_trustalertmodal_trustalertbutton",
+      "components_trust_trustalertmodal_trustalertmodal",
+      "components_trust_trustalertmodal_trustalertmodalprops",
+      "components_trust_trustbadgedetailmodal",
+      "components_trust_trustbadgedetailmodal_badgeconfig",
+      "components_trust_trustbadgedetailmodal_styles",
+      "components_trust_trustbadgedetailmodal_trustbadgedetailmodal",
+      "components_trust_trustbadgedetailmodal_trustbadgedetailmodalprops",
+      "components_trust_trustinstagrammodal",
+      "components_trust_trustinstagrammodal_styles",
+      "components_trust_trustinstagrammodal_trustinstagrammodal",
+      "components_trust_trustinstagrammodal_trustinstagrammodalprops",
+      "constants_verifyconfig",
+      "constants_verifyconfig_verify_config"
+    ],
+    "6": [
+      "app_admin_contracts_admincontracts",
+      "lib_integrations_pms_interface_pmsproperty",
+      "lib_integrations_pms_interface_pmsworkorder",
+      "lib_integrations_yardi_client_yardiapiclient_logsync",
+      "lib_integrations_yardi_provider_yardiintegrationprovider",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getfinancialsummary",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getproperty",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_getworkorder",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_listproperties",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_listworkorders",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_postpayment",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_synclease",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_syncproperty",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_syncresident",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_syncunit",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_syncvendor",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_syncworkorder",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_uploaddocument",
+      "lib_integrations_yardi_sync_yardisyncmanager_getexternalcode",
+      "lib_integrations_yardi_sync_yardisyncmanager_handleyardiwebhook",
+      "lib_integrations_yardi_sync_yardisyncmanager_savemapping",
+      "scratch_test_yardi_integration_runtests"
+    ],
+    "7": [
+      "app_contracts_id",
+      "app_contracts_id_contract",
+      "app_contracts_id_contractdetailscreen",
+      "app_contracts_id_row",
+      "app_contracts_id_s",
+      "app_contracts_id_section",
+      "app_manage_listing",
+      "app_manage_listing_managelistingscreen",
+      "app_manage_listing_styles",
+      "app_preferences",
+      "app_preferences_dealbreakers",
+      "app_preferences_hobbies",
+      "app_preferences_languages",
+      "app_preferences_lifestyle_options",
+      "app_preferences_preferencesscreen",
+      "app_preferences_styles",
+      "utils_file",
+      "utils_file_base64toarraybuffer",
+      "utils_file_getcleanextension",
+      "utils_file_lookup",
+      "utils_file_uploadtosupabase"
+    ],
+    "8": [
+      "lib_integrations_yardi_client",
+      "lib_integrations_yardi_config",
+      "lib_integrations_yardi_config_loadconfigfromdb",
+      "lib_integrations_yardi_config_validateconfig",
+      "lib_integrations_yardi_errors",
+      "lib_integrations_yardi_errors_yardiapierror",
+      "lib_integrations_yardi_errors_yardiapierror_constructor",
+      "lib_integrations_yardi_errors_yardiconfigurationerror",
+      "lib_integrations_yardi_errors_yardiconfigurationerror_constructor",
+      "lib_integrations_yardi_errors_yardiintegrationerror",
+      "lib_integrations_yardi_errors_yardiintegrationerror_constructor",
+      "lib_integrations_yardi_errors_yardimappingerror",
+      "lib_integrations_yardi_errors_yardimappingerror_constructor",
+      "lib_integrations_yardi_errors_yardisyncconflicterror",
+      "lib_integrations_yardi_errors_yardisyncconflicterror_constructor",
+      "lib_integrations_yardi_errors_yardivalidationerror",
+      "lib_integrations_yardi_errors_yardivalidationerror_constructor",
+      "lib_integrations_yardi_sync",
+      "lib_integrations_yardi_sync_conflictresolutionstrategy",
+      "lib_integrations_yardi_sync_entitymappingrecord",
+      "scratch_test_yardi_integration"
+    ],
+    "9": [
+      "app_admin_payments",
+      "app_admin_payments_adminpayments",
+      "app_admin_payments_styles",
+      "app_admin_verifications",
+      "app_admin_verifications_adminverifications",
+      "app_admin_verifications_profile_flag",
+      "app_admin_verifications_styles",
+      "app_admin_verifications_verification",
+      "app_company_calendar",
+      "app_company_calendar_calendarevent",
+      "app_company_calendar_companycalendarscreen",
+      "app_company_calendar_styles",
+      "app_company_notifications",
+      "app_company_notifications_companynotificationsscreen",
+      "app_company_notifications_notificationitem",
+      "app_company_notifications_styles",
+      "app_company_profile",
+      "app_company_profile_companyprofilescreen",
+      "app_company_profile_styles",
+      "context_adminthemecontext_useadmintheme"
+    ],
+    "10": [
+      "components_parallax_scroll_view",
+      "components_parallax_scroll_view_parallaxscrollview",
+      "components_parallax_scroll_view_props",
+      "components_parallax_scroll_view_styles",
+      "components_themed_text",
+      "components_themed_text_styles",
+      "components_themed_text_themedtext",
+      "components_themed_text_themedtextprops",
+      "components_themed_view",
+      "components_themed_view_themedview",
+      "components_themed_view_themedviewprops",
+      "components_ui_collapsible",
+      "components_ui_collapsible_collapsible",
+      "components_ui_collapsible_styles",
+      "constants_theme",
+      "constants_theme_colors",
+      "constants_theme_fonts",
+      "hooks_use_color_scheme",
+      "hooks_use_theme_color",
+      "hooks_use_theme_color_usethemecolor"
+    ],
+    "11": [
+      "app_admin_settings_adminsettings",
+      "lib_integrations_yardi_client_yardiapiclient",
+      "lib_integrations_yardi_client_yardiapiclient_buildurl",
+      "lib_integrations_yardi_client_yardiapiclient_constructor",
+      "lib_integrations_yardi_client_yardiapiclient_executefetch",
+      "lib_integrations_yardi_client_yardiapiclient_get",
+      "lib_integrations_yardi_client_yardiapiclient_getaccesstoken",
+      "lib_integrations_yardi_client_yardiapiclient_post",
+      "lib_integrations_yardi_client_yardiapiclient_requestwithretry",
+      "lib_integrations_yardi_client_yardiapiclient_safeparsejson",
+      "lib_integrations_yardi_client_yardiapiclient_simulaterestresponse",
+      "lib_integrations_yardi_client_yardiapiclient_simulatesoapresponse",
+      "lib_integrations_yardi_client_yardiapiclient_soaprequest",
+      "lib_integrations_yardi_config_yardiconfig",
+      "lib_integrations_yardi_provider_yardiintegrationprovider_constructor",
+      "lib_integrations_yardi_sync_yardisyncmanager",
+      "lib_integrations_yardi_sync_yardisyncmanager_constructor",
+      "lib_integrations_yardi_sync_yardisyncmanager_enqueuesynctask",
+      "lib_integrations_yardi_sync_yardisyncmanager_resolveconflict"
+    ],
+    "12": [
+      "lib_integrations_pms_interface_ipmsintegrationprovider",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getfinancialsummary",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getlease",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getproperty",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getresident",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getunit",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getvendor",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_getworkorder",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_listdocuments",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_listproperties",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_listworkorders",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_postpayment",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_synclease",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_syncproperty",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_syncresident",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_syncunit",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_syncvendor",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_syncworkorder",
+      "lib_integrations_pms_interface_ipmsintegrationprovider_uploaddocument"
+    ],
+    "13": [
+      "app_company_analytics",
+      "app_company_analytics_companyanalyticsscreen",
+      "app_company_analytics_styles",
+      "app_company_analytics_topaptitem",
+      "app_settings_about",
+      "app_settings_about_aboutscreen",
+      "app_settings_about_styles",
+      "app_settings_help",
+      "app_settings_help_helpscreen",
+      "app_settings_help_styles",
+      "app_settings_notifications",
+      "app_settings_notifications_notificationsscreen",
+      "app_settings_notifications_styles",
+      "app_trust_tips",
+      "app_trust_tips_s",
+      "app_trust_tips_securitytipsscreen",
+      "app_trust_tips_tipcard",
+      "context_languagecontext_usetranslation"
+    ],
+    "14": [
+      "app_tabs_inbox",
+      "app_tabs_inbox_inboxscreen",
+      "app_tabs_inbox_styles",
+      "app_tabs_inbox_typedflashlist",
+      "components_inbox_inboxconversationitem",
+      "components_inbox_inboxconversationitem_inboxconversationitem",
+      "components_inbox_inboxconversationitem_inboxconversationitemcomponent",
+      "components_inbox_inboxconversationitem_inboxconversationitemprops",
+      "components_inbox_inboxconversationitem_styles",
+      "components_inbox_inboxmatchitem",
+      "components_inbox_inboxmatchitem_inboxmatchitem",
+      "components_inbox_inboxmatchitem_inboxmatchitemcomponent",
+      "components_inbox_inboxmatchitem_inboxmatchitemprops",
+      "components_inbox_inboxmatchitem_styles",
+      "hooks_useinboxqueries",
+      "hooks_useinboxqueries_useinboxdata"
+    ],
+    "15": [
+      "app_admin_settings",
+      "app_admin_settings_styles",
+      "app_admin_settings_theme_colors",
+      "app_settings_index",
+      "app_settings_index_settingsscreen",
+      "app_settings_index_styles",
+      "app_terms",
+      "app_terms_s",
+      "app_terms_termsscreen",
+      "constants_translations",
+      "constants_translations_translations",
+      "context_languagecontext",
+      "context_languagecontext_languagecontext",
+      "context_languagecontext_languagecontexttype",
+      "context_languagecontext_locale"
+    ],
+    "16": [
+      "components_explore_exploremapview",
+      "components_explore_exploremapview_exploremapview",
+      "components_explore_exploremapview_exploremapviewprops",
+      "components_explore_exploremapview_styles",
+      "components_mapviewwrapper",
+      "components_mapviewwrapper_callout",
+      "components_mapviewwrapper_changeview",
+      "components_mapviewwrapper_mapcontainer",
+      "components_mapviewwrapper_mapview",
+      "components_mapviewwrapper_marker",
+      "components_mapviewwrapper_popup",
+      "components_mapviewwrapper_rmarker",
+      "components_mapviewwrapper_styles",
+      "components_mapviewwrapper_tilelayer",
+      "components_mapviewwrapper_usemap"
+    ],
+    "17": [
+      "app_admin_layout",
+      "app_admin_layout_adminlayout",
+      "app_admin_layout_adminlayoutcontent",
+      "app_admin_layout_nav_items",
+      "app_admin_layout_styles",
+      "app_company_layout",
+      "app_company_layout_company_nav_items",
+      "app_company_layout_companylayout",
+      "app_company_layout_companylayoutcontent",
+      "app_company_layout_styles",
+      "context_adminthemecontext",
+      "context_adminthemecontext_adminthemecontext",
+      "context_adminthemecontext_adminthemecontexttype",
+      "context_adminthemecontext_adminthemeprovider"
+    ],
+    "18": [
+      "app_chat_id",
+      "app_chat_id_chatscreen",
+      "app_chat_id_styles",
+      "app_chat_id_typedflashlist",
+      "components_chat_chatinputbar",
+      "components_chat_chatinputbar_chatinputbar",
+      "components_chat_chatinputbar_chatinputbarprops",
+      "components_chat_chatinputbar_styles",
+      "components_chat_chatmessageitem",
+      "components_chat_chatmessageitem_chatmessageitem",
+      "components_chat_chatmessageitem_chatmessageitemcomponent",
+      "components_chat_chatmessageitem_chatmessageitemprops",
+      "components_chat_chatmessageitem_styles",
+      "lib_notifications_setactivechatuserid"
+    ],
+    "19": [
+      "app_layout",
+      "app_layout_rootlayout",
+      "app_layout_unstable_settings",
+      "context_languagecontext_languageprovider",
+      "lib_notifications",
+      "lib_notifications_getactivechatuserid",
+      "lib_notifications_notifycontractupdate",
+      "lib_notifications_notifymajorwarning",
+      "lib_notifications_notifynewmatch",
+      "lib_notifications_notifynewmessage",
+      "lib_notifications_registerforpushnotifications",
+      "lib_notifications_sendlocalnotification",
+      "lib_queryclient",
+      "lib_queryclient_queryclient"
+    ],
+    "20": [
+      "app_profile_id",
+      "app_profile_id_profiledetailscreen",
+      "app_profile_id_styles",
+      "app_tabs_index",
+      "app_tabs_index_homescreen",
+      "app_tabs_index_profile",
+      "app_tabs_index_styles",
+      "components_ui_mapcomponent",
+      "components_ui_mapcomponent_mapcomponent",
+      "components_ui_mapcomponent_styles",
+      "hooks_useprofilequeries_useuserprofile",
+      "utils_mathhelpers",
+      "utils_mathhelpers_getdistancefromlatloninkm",
+      "utils_mathhelpers_getsimilarityscore"
+    ],
+    "21": [
+      "app_contracts_new",
+      "app_contracts_new_listingitem",
+      "app_contracts_new_match",
+      "app_contracts_new_newcontractscreen",
+      "app_contracts_new_s",
+      "app_contracts_new_togglerow",
+      "components_contracts_contractstepmatches",
+      "components_contracts_contractstepmatches_contractstepmatches",
+      "components_contracts_contractstepmatches_contractstepmatchesprops",
+      "components_contracts_contractstepmatches_match",
+      "components_contracts_contractstepmatches_styles",
+      "hooks_usematches",
+      "hooks_usematches_usematches"
+    ],
+    "22": [
+      "app_admin_reports",
+      "app_admin_reports_adminreports",
+      "app_admin_reports_audititem",
+      "app_admin_reports_complaint_statuses",
+      "app_admin_reports_contractitem",
+      "app_admin_reports_listingitem",
+      "app_admin_reports_matchitem",
+      "app_admin_reports_profileitem",
+      "app_admin_reports_report",
+      "app_admin_reports_styles",
+      "app_admin_reports_swipeitem",
+      "app_admin_reports_tabs"
+    ],
+    "23": [
+      "app_tabs_myprofile",
+      "app_tabs_myprofile_myprofilescreen",
+      "app_tabs_myprofile_s",
+      "app_tabs_myprofile_styles",
+      "components_profile_editprofilemodal",
+      "components_profile_editprofilemodal_editprofilemodal",
+      "components_profile_editprofilemodal_editprofilemodalprops",
+      "components_profile_editprofilemodal_styles",
+      "hooks_useprofilequeries",
+      "hooks_useprofilequeries_getcurrentuserid",
+      "hooks_useprofilequeries_usemyprofile",
+      "hooks_useprofilequeries_useupdateprofilemutation"
+    ],
+    "24": [
+      "expo_font",
+      "expo_notifications",
+      "expo_splash_screen",
+      "idnumbers",
+      "package_dependencies",
+      "package_dependencies_expo_font",
+      "package_dependencies_expo_notifications",
+      "package_dependencies_expo_splash_screen",
+      "package_dependencies_idnumbers",
+      "package_dependencies_react_navigation_elements",
+      "package_dependencies_react_navigation_native",
+      "react_navigation_native"
+    ],
+    "25": [
+      "app_admin_users",
+      "app_admin_users_adminusers",
+      "app_admin_users_associationstats",
+      "app_admin_users_auditlog",
+      "app_admin_users_profile",
+      "app_admin_users_roles",
+      "app_admin_users_statuses",
+      "app_admin_users_styles",
+      "app_admin_users_userstats",
+      "app_admin_users_verifications",
+      "app_admin_users_width"
+    ],
+    "26": [
+      "lib_database_types",
+      "lib_database_types_compositetypes",
+      "lib_database_types_constants",
+      "lib_database_types_database",
+      "lib_database_types_databasewithoutinternals",
+      "lib_database_types_defaultschema",
+      "lib_database_types_enums",
+      "lib_database_types_json",
+      "lib_database_types_tables",
+      "lib_database_types_tablesinsert",
+      "lib_database_types_tablesupdate"
+    ],
+    "27": [
+      "ref_expo_env_d_ts",
+      "ref_expo_tsconfig_base",
+      "ref_expo_types_ts",
+      "ref_ts",
+      "ref_tsx",
+      "tsconfig",
+      "tsconfig_compileroptions",
+      "tsconfig_compileroptions_paths",
+      "tsconfig_compileroptions_strict",
+      "tsconfig_extends",
+      "tsconfig_include"
+    ],
+    "28": [
+      "app_admin_listings",
+      "app_admin_listings_adminlistings",
+      "app_admin_listings_listing",
+      "app_admin_listings_listingstats",
+      "app_admin_listings_ownerprofile",
+      "app_admin_listings_propertyauditlog",
+      "app_admin_listings_statuses",
+      "app_admin_listings_styles",
+      "app_admin_listings_verifications",
+      "app_admin_listings_width"
+    ],
+    "29": [
+      "app_explore_filters",
+      "app_explore_filters_budget_steps",
+      "app_explore_filters_budgetslider",
+      "app_explore_filters_default_filters",
+      "app_explore_filters_explorefilters",
+      "app_explore_filters_explorefiltersscreen",
+      "app_explore_filters_getactivefilters",
+      "app_explore_filters_optionchip",
+      "app_explore_filters_s",
+      "app_explore_filters_savedfilters"
+    ],
+    "30": [
+      "components_chat_modals_chatforwardmodal",
+      "components_chat_modals_chatforwardmodal_chatforwardmodal",
+      "components_chat_modals_chatforwardmodal_chatforwardmodalprops",
+      "components_chat_modals_chatforwardmodal_styles",
+      "components_explore_exploreswipecontrols",
+      "components_explore_exploreswipecontrols_exploreswipecontrols",
+      "components_explore_exploreswipecontrols_exploreswipecontrolsprops",
+      "components_explore_exploreswipecontrols_styles",
+      "lib_types_profile"
+    ],
+    "31": [
+      "scratch_generate_sql",
+      "scratch_generate_sql_createclient",
+      "scratch_generate_sql_female_names",
+      "scratch_generate_sql_fs",
+      "scratch_generate_sql_getthemeforuser",
+      "scratch_generate_sql_male_names",
+      "scratch_generate_sql_run",
+      "scratch_generate_sql_supabase",
+      "scratch_generate_sql_themed_sets"
+    ],
+    "32": [
+      "scripts_reset_project",
+      "scripts_reset_project_exampledirpath",
+      "scripts_reset_project_fs",
+      "scripts_reset_project_movedirectories",
+      "scripts_reset_project_olddirs",
+      "scripts_reset_project_path",
+      "scripts_reset_project_readline",
+      "scripts_reset_project_rl",
+      "scripts_reset_project_root"
+    ],
+    "33": [
+      "app_tabs_explore",
+      "app_tabs_explore_explorescreen",
+      "app_tabs_explore_styles",
+      "hooks_usedevicelocation",
+      "hooks_usedevicelocation_usedevicelocation",
+      "hooks_useexplore",
+      "hooks_useexplore_limits",
+      "hooks_useexplore_useexplore"
+    ],
+    "34": [
+      "components_explore_exploreheader",
+      "components_explore_exploreheader_exploreheader",
+      "components_explore_exploreheader_exploreheaderprops",
+      "components_explore_exploreheader_styles",
+      "components_ui_exploreicon",
+      "components_ui_exploreicon_exploreicon",
+      "components_ui_exploreicon_exploreiconprops",
+      "components_ui_exploreicon_styles"
+    ],
+    "35": [
+      "lib_types",
+      "lib_types_dbcontract",
+      "lib_types_dblisting",
+      "lib_types_dbmatch",
+      "lib_types_dbmessage",
+      "lib_types_dbprofile",
+      "lib_types_dbswipe",
+      "lib_types_dbverification"
+    ],
+    "36": [
+      "scripts_seed_profile_photos",
+      "scripts_seed_profile_photos_createclient",
+      "scripts_seed_profile_photos_female_names",
+      "scripts_seed_profile_photos_getthemeforuser",
+      "scripts_seed_profile_photos_male_names",
+      "scripts_seed_profile_photos_seed",
+      "scripts_seed_profile_photos_supabase",
+      "scripts_seed_profile_photos_themed_sets"
+    ],
+    "37": [
+      "app_api_zumper_feed_api",
+      "app_api_zumper_feed_api_get",
+      "lib_integrations_zumper_zumperfeedgenerator",
+      "lib_integrations_zumper_zumperfeedgenerator_zumperfeedgenerator",
+      "lib_integrations_zumper_zumperfeedgenerator_zumperfeedgenerator_escapexml",
+      "lib_integrations_zumper_zumperfeedgenerator_zumperfeedgenerator_generatexmlfeed",
+      "lib_integrations_zumper_zumperfeedgenerator_zumperlisting"
+    ],
+    "38": [
+      "app_tabs_layout",
+      "app_tabs_layout_tablayout",
+      "components_haptic_tab",
+      "components_haptic_tab_haptictab",
+      "components_tutorialmodal",
+      "components_tutorialmodal_styles",
+      "components_tutorialmodal_tutorialmodal"
+    ],
+    "39": [
+      "lib_integrations_yardi_config_loadconfigfromenv",
+      "lib_integrations_yardi_yardiadapter",
+      "lib_integrations_yardi_yardiadapter_tenantyardidata",
+      "lib_integrations_yardi_yardiadapter_yardiadapter",
+      "lib_integrations_yardi_yardiadapter_yardiadapter_gettenantstatus",
+      "scratch_test_yardi",
+      "scratch_test_yardi_runtests"
+    ],
+    "40": [
+      "scratch_tsconfig_test",
+      "scratch_tsconfig_test_compileroptions",
+      "scratch_tsconfig_test_compileroptions_esmoduleinterop",
+      "scratch_tsconfig_test_compileroptions_module",
+      "scratch_tsconfig_test_compileroptions_moduleresolution",
+      "scratch_tsconfig_test_compileroptions_skiplibcheck",
+      "scratch_tsconfig_test_compileroptions_target"
+    ],
+    "41": [
+      "scripts_seed_all_unique_apartment_photos",
+      "scripts_seed_all_unique_apartment_photos_allimages",
+      "scripts_seed_all_unique_apartment_photos_createclient",
+      "scripts_seed_all_unique_apartment_photos_seed",
+      "scripts_seed_all_unique_apartment_photos_supabase",
+      "scripts_seed_all_unique_apartment_photos_themedportfolios",
+      "scripts_seed_all_unique_apartment_photos_uniqueimages"
+    ],
+    "42": [
+      "scripts_seed_all_unique_photos",
+      "scripts_seed_all_unique_photos_allurls",
+      "scripts_seed_all_unique_photos_createclient",
+      "scripts_seed_all_unique_photos_seed",
+      "scripts_seed_all_unique_photos_supabase",
+      "scripts_seed_all_unique_photos_unique_themed_sets",
+      "scripts_seed_all_unique_photos_uniqueurls"
+    ],
+    "43": [
+      "scripts_seed_apartments",
+      "scripts_seed_apartments_allimages",
+      "scripts_seed_apartments_createclient",
+      "scripts_seed_apartments_seed",
+      "scripts_seed_apartments_supabase",
+      "scripts_seed_apartments_themedportfolios",
+      "scripts_seed_apartments_uniqueimages"
+    ],
+    "44": [
+      "supabase_functions_send_email_otp_index",
+      "supabase_functions_send_email_otp_index_hashcode",
+      "supabase_functions_shared_cors",
+      "supabase_functions_shared_cors_allowed_origins",
+      "supabase_functions_shared_cors_getcorsheaders",
+      "supabase_functions_verify_email_otp_index",
+      "supabase_functions_verify_email_otp_index_hashcode"
+    ],
+    "45": [
+      "app_admin_contracts",
+      "app_admin_contracts_contract",
+      "app_admin_contracts_contractauditlog",
+      "app_admin_contracts_contractstats",
+      "app_admin_contracts_status_filters",
+      "app_admin_contracts_styles"
+    ],
+    "46": [
+      "app_admin_index",
+      "app_admin_index_adminoverview",
+      "app_admin_index_recentcontract",
+      "app_admin_index_recentuser",
+      "app_admin_index_stats",
+      "app_admin_index_styles"
+    ],
+    "47": [
+      "app_admin_roles",
+      "app_admin_roles_auditlog",
+      "app_admin_roles_rolemanagementscreen",
+      "app_admin_roles_roles_list",
+      "app_admin_roles_styles",
+      "app_admin_roles_userprofile"
+    ],
+    "48": [
+      "app_activity",
+      "app_activity_activityitem",
+      "app_activity_activityscreen",
+      "app_activity_styles",
+      "app_auth_layout",
+      "app_auth_layout_authlayout",
+      "app_contracts_review",
+      "app_contracts_review_contract",
+      "app_contracts_review_reviewcontractscreen",
+      "app_contracts_review_row",
+      "app_contracts_review_s",
+      "app_contracts_review_section",
+      "app_onboarding",
+      "app_onboarding_onboardingscreen",
+      "app_onboarding_slides",
+      "app_onboarding_styles",
+      "app_onboarding_width_height",
+      "ref_expo_router"
+    ],
+    "49": [
+      "components_explore_explorecard",
+      "components_explore_explorecard_explorecard",
+      "components_explore_explorecard_explorecardprops",
+      "components_explore_explorecard_styles",
+      "utils_compatibility",
+      "utils_compatibility_calculatecompatibility"
+    ],
+    "50": [
+      "app_company_apartments",
+      "app_company_apartments_amenities_list",
+      "app_company_apartments_apartment",
+      "app_company_apartments_companyapartmentsscreen",
+      "app_company_apartments_styles"
+    ],
+    "51": [
+      "app_company_index",
+      "app_company_index_activityitem",
+      "app_company_index_companydashboardhome",
+      "app_company_index_metricitem",
+      "app_company_index_styles"
+    ],
+    "52": [
+      "app_company_messages",
+      "app_company_messages_chatthread",
+      "app_company_messages_companymessagesscreen",
+      "app_company_messages_styles",
+      "app_company_messages_templates"
+    ],
+    "53": [
+      "components_chat_modals_chatsettingsmodal",
+      "components_chat_modals_chatsettingsmodal_chatsettingsmodal",
+      "components_chat_modals_chatsettingsmodal_chatsettingsmodalprops",
+      "components_chat_modals_chatsettingsmodal_preset_wallpapers",
+      "components_chat_modals_chatsettingsmodal_styles"
+    ],
+    "54": [
+      "components_chat_modals_imageviewermodal",
+      "components_chat_modals_imageviewermodal_imageviewermodal",
+      "components_chat_modals_imageviewermodal_imageviewermodalprops",
+      "components_chat_modals_imageviewermodal_styles",
+      "components_chat_modals_imageviewermodal_width_screen_width_height_screen_height"
+    ],
+    "55": [
+      "components_ui_locationautocomplete",
+      "components_ui_locationautocomplete_costa_rica_cities",
+      "components_ui_locationautocomplete_locationautocomplete",
+      "components_ui_locationautocomplete_props",
+      "components_ui_locationautocomplete_styles"
+    ],
+    "56": [
+      "scratch_generate_listing_seeds",
+      "scratch_generate_listing_seeds_createclient",
+      "scratch_generate_listing_seeds_generate",
+      "scratch_generate_listing_seeds_supabase",
+      "scratch_generate_listing_seeds_themedportfolios"
+    ],
+    "57": [
+      "scratch_test_msg",
+      "scratch_test_msg_envstr",
+      "scratch_test_msg_supabasekey",
+      "scratch_test_msg_supabaseurl",
+      "scratch_test_msg_test"
+    ],
+    "58": [
+      "scratch_verify_rls_anon",
+      "scratch_verify_rls_anon_check",
+      "scratch_verify_rls_anon_firstid",
+      "scratch_verify_rls_anon_main",
+      "scratch_verify_rls_anon_supabase"
+    ],
+    "59": [
+      "app_company_applications",
+      "app_company_applications_application",
+      "app_company_applications_companyapplicationsscreen",
+      "app_company_applications_styles"
+    ],
+    "60": [
+      "app_company_contracts",
+      "app_company_contracts_companycontractsscreen",
+      "app_company_contracts_contract",
+      "app_company_contracts_styles"
+    ],
+    "61": [
+      "components_chat_chatheader",
+      "components_chat_chatheader_chatheader",
+      "components_chat_chatheader_chatheaderprops",
+      "components_chat_chatheader_styles"
+    ],
+    "62": [
+      "components_chat_modals_chatactionmenu",
+      "components_chat_modals_chatactionmenu_chatactionmenu",
+      "components_chat_modals_chatactionmenu_chatactionmenuprops",
+      "components_chat_modals_chatactionmenu_styles"
+    ],
+    "63": [
+      "components_chat_modals_chatattachmenu",
+      "components_chat_modals_chatattachmenu_chatattachmenu",
+      "components_chat_modals_chatattachmenu_chatattachmenuprops",
+      "components_chat_modals_chatattachmenu_styles"
+    ],
+    "64": [
+      "components_chat_modals_messageinfomodal",
+      "components_chat_modals_messageinfomodal_messageinfomodal",
+      "components_chat_modals_messageinfomodal_messageinfomodalprops",
+      "components_chat_modals_messageinfomodal_styles"
+    ],
+    "65": [
+      "lib_mockdata",
+      "lib_mockdata_mock_profiles",
+      "lib_mockdata_mockcurrentuserconfig",
+      "lib_mockdata_mockprofile"
+    ],
+    "66": [
+      "scratch_get_profiles",
+      "scratch_get_profiles_check",
+      "scratch_get_profiles_createclient",
+      "scratch_get_profiles_supabase"
+    ],
+    "67": [
+      "scratch_get_schema",
+      "scratch_get_schema_check",
+      "scratch_get_schema_createclient",
+      "scratch_get_schema_supabase"
+    ],
+    "68": [
+      "scratch_inspect_listings",
+      "scratch_inspect_listings_createclient",
+      "scratch_inspect_listings_inspect",
+      "scratch_inspect_listings_supabase"
+    ],
+    "69": [
+      "scratch_test_contracts_queries",
+      "scratch_test_contracts_queries_createclient",
+      "scratch_test_contracts_queries_run",
+      "scratch_test_contracts_queries_supabase"
+    ],
+    "70": [
+      "scratch_test_db",
+      "scratch_test_db_createclient",
+      "scratch_test_db_run",
+      "scratch_test_db_supabase"
+    ],
+    "71": [
+      "scratch_test_db2",
+      "scratch_test_db2_createclient",
+      "scratch_test_db2_run",
+      "scratch_test_db2_supabase"
+    ],
+    "72": [
+      "scratch_test_db3",
+      "scratch_test_db3_createclient",
+      "scratch_test_db3_run",
+      "scratch_test_db3_supabase"
+    ],
+    "73": [
+      "scratch_test_db4",
+      "scratch_test_db4_createclient",
+      "scratch_test_db4_run",
+      "scratch_test_db4_supabase"
+    ],
+    "74": [
+      "scratch_test_db_cols",
+      "scratch_test_db_cols_createclient",
+      "scratch_test_db_cols_run",
+      "scratch_test_db_cols_supabase"
+    ],
+    "75": [
+      "scratch_test_db_cols2",
+      "scratch_test_db_cols2_createclient",
+      "scratch_test_db_cols2_run",
+      "scratch_test_db_cols2_supabase"
+    ],
+    "76": [
+      "scratch_test_rpc",
+      "scratch_test_rpc_createclient",
+      "scratch_test_rpc_run",
+      "scratch_test_rpc_supabase"
+    ],
+    "77": [
+      "scratch_test_update",
+      "scratch_test_update_createclient",
+      "scratch_test_update_run",
+      "scratch_test_update_supabase"
+    ],
+    "78": [
+      "scripts_seed",
+      "scripts_seed_mockprofiles",
+      "scripts_seed_seed",
+      "scripts_seed_supabase"
+    ],
+    "79": [
+      "scripts_seed_more",
+      "scripts_seed_more_mockprofiles",
+      "scripts_seed_more_seed",
+      "scripts_seed_more_supabase"
+    ],
+    "80": [
+      "vercel",
+      "vercel_headers",
+      "vercel_outputdirectory",
+      "vercel_rewrites"
+    ],
+    "81": [
+      "components_ui_mapcomponent_web",
+      "components_ui_mapcomponent_web_mapcomponent",
+      "components_ui_mapcomponent_web_styles"
+    ],
+    "82": [
+      "eslint_config",
+      "eslint_config_defineconfig",
+      "eslint_config_expoconfig"
+    ],
+    "83": [
+      "scripts_signup_test",
+      "scripts_signup_test_main",
+      "scripts_signup_test_supabase"
+    ],
+    "84": [
+      "components_hello_wave",
+      "components_hello_wave_hellowave"
+    ],
+    "85": [
+      "components_ui_icon_symbol_ios",
+      "components_ui_icon_symbol_ios_iconsymbol"
+    ],
+    "86": [
+      "expo",
+      "package_dependencies_expo"
+    ],
+    "87": [
+      "expo_av",
+      "package_dependencies_expo_av"
+    ],
+    "88": [
+      "expo_blur",
+      "package_dependencies_expo_blur"
+    ],
+    "89": [
+      "expo_clipboard",
+      "package_dependencies_expo_clipboard"
+    ],
+    "90": [
+      "expo_constants",
+      "package_dependencies_expo_constants"
+    ],
+    "91": [
+      "expo_device",
+      "package_dependencies_expo_device"
+    ],
+    "92": [
+      "expo_document_picker",
+      "package_dependencies_expo_document_picker"
+    ],
+    "93": [
+      "expo_file_system",
+      "package_dependencies_expo_file_system"
+    ],
+    "94": [
+      "expo_haptics",
+      "package_dependencies_expo_haptics"
+    ],
+    "95": [
+      "expo_image",
+      "package_dependencies_expo_image"
+    ],
+    "96": [
+      "expo_image_picker",
+      "package_dependencies_expo_image_picker"
+    ],
+    "97": [
+      "expo_linear_gradient",
+      "package_dependencies_expo_linear_gradient"
+    ],
+    "98": [
+      "expo_linking",
+      "package_dependencies_expo_linking"
+    ],
+    "99": [
+      "expo_location",
+      "package_dependencies_expo_location"
+    ],
+    "100": [
+      "expo_media_library",
+      "package_dependencies_expo_media_library"
+    ],
+    "101": [
+      "expo_print",
+      "package_dependencies_expo_print"
+    ],
+    "102": [
+      "expo_router",
+      "package_dependencies_expo_router"
+    ],
+    "103": [
+      "expo_sharing",
+      "package_dependencies_expo_sharing"
+    ],
+    "104": [
+      "expo_status_bar",
+      "package_dependencies_expo_status_bar"
+    ],
+    "105": [
+      "expo_symbols",
+      "package_dependencies_expo_symbols"
+    ],
+    "106": [
+      "expo_system_ui",
+      "package_dependencies_expo_system_ui"
+    ],
+    "107": [
+      "expo_vector_icons",
+      "package_dependencies_expo_vector_icons"
+    ],
+    "108": [
+      "expo_web_browser",
+      "package_dependencies_expo_web_browser"
+    ],
+    "109": [
+      "hooks_use_color_scheme_web",
+      "hooks_use_color_scheme_web_usecolorscheme"
+    ],
+    "110": [
+      "html2pdf_js",
+      "package_dependencies_html2pdf_js"
+    ],
+    "111": [
+      "leaflet",
+      "package_dependencies_leaflet"
+    ],
+    "112": [
+      "package_dependencies_react",
+      "react"
+    ],
+    "113": [
+      "package_dependencies_react_dom",
+      "react_dom"
+    ],
+    "114": [
+      "package_dependencies_react_leaflet",
+      "react_leaflet"
+    ],
+    "115": [
+      "package_dependencies_react_native",
+      "react_native"
+    ],
+    "116": [
+      "package_dependencies_react_native_async_storage_async_storage",
+      "react_native_async_storage_async_storage"
+    ],
+    "117": [
+      "package_dependencies_react_native_deck_swiper",
+      "react_native_deck_swiper"
+    ],
+    "118": [
+      "package_dependencies_react_native_gesture_handler",
+      "react_native_gesture_handler"
+    ],
+    "119": [
+      "package_dependencies_react_native_google_places_autocomplete",
+      "react_native_google_places_autocomplete"
+    ],
+    "120": [
+      "package_dependencies_react_native_maps",
+      "react_native_maps"
+    ],
+    "121": [
+      "package_dependencies_react_native_reanimated",
+      "react_native_reanimated"
+    ],
+    "122": [
+      "package_dependencies_react_native_safe_area_context",
+      "react_native_safe_area_context"
+    ],
+    "123": [
+      "package_dependencies_react_native_screens",
+      "react_native_screens"
+    ],
+    "124": [
+      "package_dependencies_react_native_web",
+      "react_native_web"
+    ],
+    "125": [
+      "package_dependencies_react_native_worklets",
+      "react_native_worklets"
+    ],
+    "126": [
+      "package_dependencies_react_navigation_bottom_tabs",
+      "react_navigation_bottom_tabs"
+    ],
+    "127": [
+      "package_dependencies_shopify_flash_list",
+      "shopify_flash_list"
+    ],
+    "128": [
+      "package_dependencies_supabase_ssr",
+      "supabase_ssr"
+    ],
+    "129": [
+      "package_dependencies_supabase_supabase_js",
+      "supabase_supabase_js"
+    ],
+    "130": [
+      "package_dependencies_tanstack_react_query",
+      "tanstack_react_query"
+    ],
+    "131": [
+      "components_mapviewwrapper_native"
+    ]
+  },
+  "cohesion": {
+    "0": 0.08505747126436781,
+    "1": 0.08906882591093117,
+    "2": 0.05555555555555555,
+    "3": 0.09401709401709402,
+    "4": 0.07407407407407407,
+    "5": 0.08695652173913043,
+    "6": 0.21645021645021645,
+    "7": 0.15714285714285714,
+    "8": 0.1619047619047619,
+    "9": 0.12631578947368421,
+    "10": 0.18421052631578946,
+    "11": 0.19298245614035087,
+    "12": 0.10526315789473684,
+    "13": 0.1437908496732026,
+    "14": 0.15833333333333333,
+    "15": 0.18095238095238095,
+    "16": 0.17142857142857143,
+    "17": 0.17582417582417584,
+    "18": 0.17582417582417584,
+    "19": 0.26373626373626374,
+    "20": 0.24175824175824176,
+    "21": 0.1794871794871795,
+    "22": 0.16666666666666666,
+    "23": 0.25757575757575757,
+    "24": 0.18181818181818182,
+    "25": 0.18181818181818182,
+    "26": 0.18181818181818182,
+    "27": 0.18181818181818182,
+    "28": 0.2,
+    "29": 0.2222222222222222,
+    "30": 0.2777777777777778,
+    "31": 0.25,
+    "32": 0.2222222222222222,
+    "33": 0.39285714285714285,
+    "34": 0.2857142857142857,
+    "35": 0.25,
+    "36": 0.2857142857142857,
+    "37": 0.38095238095238093,
+    "38": 0.38095238095238093,
+    "39": 0.38095238095238093,
+    "40": 0.2857142857142857,
+    "41": 0.2857142857142857,
+    "42": 0.2857142857142857,
+    "43": 0.2857142857142857,
+    "44": 0.42857142857142855,
+    "45": 0.3333333333333333,
+    "46": 0.3333333333333333,
+    "47": 0.4,
+    "48": 0.1111111111111111,
+    "49": 0.4666666666666667,
+    "50": 0.4,
+    "51": 0.4,
+    "52": 0.4,
+    "53": 0.4,
+    "54": 0.4,
+    "55": 0.4,
+    "56": 0.4,
+    "57": 0.4,
+    "58": 0.6,
+    "59": 0.5,
+    "60": 0.5,
+    "61": 0.5,
+    "62": 0.5,
+    "63": 0.5,
+    "64": 0.5,
+    "65": 0.5,
+    "66": 0.5,
+    "67": 0.5,
+    "68": 0.5,
+    "69": 0.5,
+    "70": 0.5,
+    "71": 0.5,
+    "72": 0.5,
+    "73": 0.5,
+    "74": 0.5,
+    "75": 0.5,
+    "76": 0.5,
+    "77": 0.5,
+    "78": 0.5,
+    "79": 0.5,
+    "80": 0.5,
+    "81": 0.6666666666666666,
+    "82": 0.6666666666666666,
+    "83": 0.6666666666666666,
+    "84": 1.0,
+    "85": 1.0,
+    "86": 1.0,
+    "87": 1.0,
+    "88": 1.0,
+    "89": 1.0,
+    "90": 1.0,
+    "91": 1.0,
+    "92": 1.0,
+    "93": 1.0,
+    "94": 1.0,
+    "95": 1.0,
+    "96": 1.0,
+    "97": 1.0,
+    "98": 1.0,
+    "99": 1.0,
+    "100": 1.0,
+    "101": 1.0,
+    "102": 1.0,
+    "103": 1.0,
+    "104": 1.0,
+    "105": 1.0,
+    "106": 1.0,
+    "107": 1.0,
+    "108": 1.0,
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0,
+    "121": 1.0,
+    "122": 1.0,
+    "123": 1.0,
+    "124": 1.0,
+    "125": 1.0,
+    "126": 1.0,
+    "127": 1.0,
+    "128": 1.0,
+    "129": 1.0,
+    "130": 1.0,
+    "131": 1.0
+  },
+  "gods": [
+    {
+      "id": "context_languagecontext_usetranslation",
+      "label": "useTranslation()",
+      "degree": 91
+    },
+    {
+      "id": "lib_supabase_supabase",
+      "label": "supabase",
+      "degree": 54
+    },
+    {
+      "id": "ref_expo_router",
+      "label": "expo-router",
+      "degree": 45
+    },
+    {
+      "id": "context_adminthemecontext_useadmintheme",
+      "label": "useAdminTheme()",
+      "degree": 41
+    },
+    {
+      "id": "lib_integrations_yardi_provider_yardiintegrationprovider",
+      "label": "YardiIntegrationProvider",
+      "degree": 25
+    },
+    {
+      "id": "lib_integrations_yardi_client_yardiapiclient",
+      "label": "YardiApiClient",
+      "degree": 22
+    },
+    {
+      "id": "lib_integrations_pms_interface_ipmsintegrationprovider",
+      "label": "IPmsIntegrationProvider",
+      "degree": 21
+    },
+    {
+      "id": "components_ui_icon_symbol_iconsymbol",
+      "label": "IconSymbol()",
+      "degree": 16
+    },
+    {
+      "id": "app_expo",
+      "label": "expo",
+      "degree": 14
+    },
+    {
+      "id": "lib_integrations_yardi_sync_yardisyncmanager",
+      "label": "YardiSyncManager",
+      "degree": 13
+    }
+  ],
+  "surprises": [
+    {
+      "source": "AgreementsHubScreen()",
+      "target": "useTranslation()",
+      "source_files": [
+        "app/contracts/index.tsx",
+        "context/LanguageContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `AgreementsHubScreen()` unexpectedly reaches hub `useTranslation()`"
+    },
+    {
+      "source": "ReviewContractScreen()",
+      "target": "useTranslation()",
+      "source_files": [
+        "app/contracts/review.tsx",
+        "context/LanguageContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `ReviewContractScreen()` unexpectedly reaches hub `useTranslation()`"
+    },
+    {
+      "source": "FollowersScreen()",
+      "target": "useTranslation()",
+      "source_files": [
+        "app/followers.tsx",
+        "context/LanguageContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `FollowersScreen()` unexpectedly reaches hub `useTranslation()`"
+    },
+    {
+      "source": "BlockedUsersScreen()",
+      "target": "useTranslation()",
+      "source_files": [
+        "app/settings/blocked.tsx",
+        "context/LanguageContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `BlockedUsersScreen()` unexpectedly reaches hub `useTranslation()`"
+    },
+    {
+      "source": "SettingsScreen()",
+      "target": "useTranslation()",
+      "source_files": [
+        "app/settings/index.tsx",
+        "context/LanguageContext.tsx"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `SettingsScreen()` unexpectedly reaches hub `useTranslation()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `useTranslation()` connect `useTranslation` to `supabase.ts`, `trust/index.tsx`, `YardiIntegrationProvider`, `preferences.tsx`, `useAdminTheme`, `YardiApiClient`, `inbox.tsx`, `LanguageContext.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `profile/[id].tsx`, `new.tsx`, `reports.tsx`, `myprofile.tsx`, `users.tsx`, `listings.tsx`, `filters.tsx`, `useExplore.ts`, `(tabs)/_layout.tsx`, `(admin)/contracts.tsx`, `(admin)/index.tsx`, `roles.tsx`, `expo-router`, `apartments.tsx`, `(company)/index.tsx`, `messages.tsx`, `applications.tsx`, `(company)/contracts.tsx`?",
+      "why": "High betweenness centrality (0.170) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `AdminContracts()` connect `YardiIntegrationProvider` to `useAdminTheme`, `useTranslation`, `(admin)/contracts.tsx`?",
+      "why": "High betweenness centrality (0.097) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `expo-router` connect `expo-router` to `supabase.ts`, `expo`, `icon-symbol.tsx`, `trust/index.tsx`, `preferences.tsx`, `useTranslation`, `inbox.tsx`, `LanguageContext.tsx`, `ExploreMapView.tsx`, `AdminThemeContext.tsx`, `chat/[id].tsx`, `app/_layout.tsx`, `profile/[id].tsx`, `new.tsx`, `myprofile.tsx`, `filters.tsx`, `useExplore.ts`, `ExploreHeader.tsx`, `(tabs)/_layout.tsx`, `(admin)/index.tsx`, `ExploreCard.tsx`?",
+      "why": "High betweenness centrality (0.093) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `name`, `slug`, `version` to the rest of the system?",
+      "why": "394 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `supabase.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08505747126436781 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `mappers.ts` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.08906882591093117 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `expo` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

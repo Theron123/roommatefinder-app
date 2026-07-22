@@ -1,12 +1,14 @@
-import { zumperFeedGenerator } from '../../lib/integrations/zumper/ZumperFeedGenerator';
+import { zumperFeedGenerator, getMockZumperListings } from '../../lib/integrations/zumper/ZumperFeedGenerator';
 
 /**
- * Endpoint público de Zumper para consumir el Feed XML.
- * Ruta accesible en: https://tu-dominio.com/api/zumper-feed
+ * Endpoint de Zumper para pruebas en dev local únicamente — sirve datos mock.
+ * NO corre en producción (deploy es SPA estática, estas rutas +api.ts no se
+ * ejecutan). El feed real de producción es la Edge Function
+ * supabase/functions/zumper-feed/index.ts, que sí lee `listings` real.
  */
 export async function GET(request: Request) {
   try {
-    const xmlContent = await zumperFeedGenerator.generateXMLFeed();
+    const xmlContent = await zumperFeedGenerator.generateXMLFeed(getMockZumperListings());
 
     return new Response(xmlContent, {
       status: 200,
