@@ -84,6 +84,7 @@ const BULK_PLACEHOLDER = `[
   }
 ]`;
 
+// Pantalla admin de gestión de alojamientos: moderación, importación masiva y staging de proveedores externos
 export default function AdminListings() {
   const [tab, setTab] = useState<'list' | 'import' | 'staging'>('list');
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -128,6 +129,7 @@ export default function AdminListings() {
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
+  // Muestra un mensaje toast temporal en pantalla
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -135,6 +137,7 @@ export default function AdminListings() {
     }, 3000);
   };
 
+  // Muestra una alerta o toast según el tipo de mensaje (éxito, error o info)
   const showAlert = (title: string, message: string) => {
     const isError = title.toLowerCase() === 'error';
     const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
@@ -173,6 +176,7 @@ export default function AdminListings() {
     active: accentColor, inactive: '#888', pending: '#f97316',
   };
 
+  // Traduce el estado del alojamiento a una etiqueta legible según el idioma
   const translateStatus = (st: string) => {
     if (st === 'active') return locale === 'es' ? 'Activo' : 'Active';
     if (st === 'inactive') return locale === 'es' ? 'Inactivo' : 'Inactive';
@@ -180,6 +184,7 @@ export default function AdminListings() {
     return st;
   };
 
+  // Traduce el rol del usuario a una etiqueta legible según el idioma
   const translateRole = (role: string) => {
     if (role === 'seeker') return locale === 'es' ? 'Roommate' : 'Roommate';
     if (role === 'host') return locale === 'es' ? 'Roommate' : 'Roommate';
@@ -414,6 +419,7 @@ export default function AdminListings() {
     fetchStats();
   }, [fetchListings]);
 
+  // Refresca la lista de alojamientos y las estadísticas (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchListings();
@@ -669,6 +675,7 @@ export default function AdminListings() {
     }
   };
 
+  // Aprueba un listing en staging: lo publica como alojamiento real y marca el registro como aprobado
   const approveStaging = async (item: StagingListing) => {
     setReviewingId(item.id);
     try {
@@ -717,6 +724,7 @@ export default function AdminListings() {
     }
   };
 
+  // Rechaza un listing en staging, marcándolo como rechazado sin publicarlo
   const rejectStaging = async (item: StagingListing) => {
     setReviewingId(item.id);
     try {
@@ -743,6 +751,7 @@ export default function AdminListings() {
     }
   };
 
+  // Formatea una fecha ISO a un string legible según el idioma
   const formatDate = (iso: string) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
@@ -809,6 +818,7 @@ export default function AdminListings() {
     );
   };
 
+  // Renderiza el toast flotante si hay uno activo
   const renderToast = () => {
     if (!toast) return null;
     return (

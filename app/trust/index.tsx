@@ -12,6 +12,7 @@ import TrustBadgeDetailModal from '@/components/trust/TrustBadgeDetailModal';
 import TrustAlertModal from '@/components/trust/TrustAlertModal';
 import { VERIFY_CONFIG } from '@/constants/verifyConfig';
 
+// Hub del Trust Center: muestra el trust score, estado de verificaciones y accesos a tips/reportes
 export default function TrustAndSafetyHub() {
   const { t, locale } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
@@ -33,6 +34,7 @@ export default function TrustAndSafetyHub() {
     }, [])
   );
 
+  // Carga el perfil y sus verificaciones, recalcula el trust score dinámicamente y lo sincroniza con Supabase si cambió
   const fetchData = async () => {
     if (!profile) setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -78,6 +80,7 @@ export default function TrustAndSafetyHub() {
     setCustomAlertVisible(true);
   };
 
+  // Pide confirmación y, si se acepta, elimina la verificación indicada, recalcula el score y refresca los datos
   const handleRevoke = async (type: string) => {
     triggerAlert(
       t('general.confirm') || 'Confirmar',
@@ -129,6 +132,7 @@ export default function TrustAndSafetyHub() {
     );
   };
 
+  // Herramienta de prueba: pide confirmación y borra todas las verificaciones, reiniciando el trust score a 20
   const handleResetAll = async () => {
     triggerAlert(
       locale === 'es' ? 'Restablecer Todas las Verificaciones' : 'Reset All Verifications',
@@ -184,6 +188,7 @@ export default function TrustAndSafetyHub() {
   const score = profile?.trust_score || 20;
   const scoreColor = score >= 80 ? '#34C759' : score >= 40 ? '#FFD60A' : '#FF453A';
 
+  // Tarjeta de un tipo de verificación: abre el detalle si ya está verificado, o navega a /trust/verify si no
   const VerificationItem = ({ icon, title, desc, verified, type }: any) => {
     const activeColor = VERIFY_CONFIG[type]?.color || '#34C759';
     return (

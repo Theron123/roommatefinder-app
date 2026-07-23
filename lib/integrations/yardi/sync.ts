@@ -14,6 +14,7 @@ export interface EntityMappingRecord {
   lastSyncedAt?: string;
 }
 
+// Gestiona el mapeo de entidades locales <-> Yardi, resolución de conflictos y eventos de sincronización
 export class YardiSyncManager {
   private client: YardiApiClient;
   private companyConfigId?: string;

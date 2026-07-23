@@ -42,6 +42,7 @@ const ROLES_LIST = [
   { value: 'seeker', label: 'Standard User (Roommate)', labelEs: 'Usuario Estándar (Roommate)', color: '#49C788', icon: 'account-outline' },
 ];
 
+// Pantalla admin para gestionar la jerarquía/rol de cada usuario de la plataforma
 export default function RoleManagementScreen() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ export default function RoleManagementScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Adjunta un correo (guardado localmente o generado) a cada perfil de usuario
   const fetchEmailsForUsers = async (profilesList: UserProfile[]) => {
     const updated = await Promise.all(
       profilesList.map(async (u) => {
@@ -71,6 +73,7 @@ export default function RoleManagementScreen() {
     return updated;
   };
 
+  // Consulta usuarios de Supabase filtrados por búsqueda y les añade su email
   const fetchUsers = useCallback(async () => {
     try {
       let query = supabase
@@ -101,11 +104,13 @@ export default function RoleManagementScreen() {
     fetchUsers();
   }, [fetchUsers]);
 
+  // Refresca la lista de usuarios (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchUsers();
   };
 
+  // Registra un log de auditoría local para cambios de rol de un usuario
   const addAuditLog = async (userId: string, action: string) => {
     try {
       const auditKey = `admin_user_audit:${userId}`;
@@ -122,12 +127,14 @@ export default function RoleManagementScreen() {
     }
   };
 
+  // Abre el modal selector de rol para el usuario elegido
   const handleRoleChange = (user: UserProfile) => {
     setSelectedUser(user);
     setTargetRole(user.role || 'seeker');
     setPickerModalVisible(true);
   };
 
+  // Pide confirmación y aplica el cambio de rol seleccionado, dejando registro de auditoría
   const confirmRoleChange = async () => {
     if (!selectedUser) return;
     setPickerModalVisible(false);
@@ -185,6 +192,7 @@ export default function RoleManagementScreen() {
     }
   };
 
+  // Renderiza el badge visual correspondiente al rol de un usuario
   const getRoleBadge = (roleName: string | null) => {
     const current = ROLES_LIST.find(r => r.value === (roleName || 'seeker')) || ROLES_LIST[3];
     return (

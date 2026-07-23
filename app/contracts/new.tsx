@@ -26,6 +26,7 @@ type ListingItem = {
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 
+// Wizard multi-paso para crear un nuevo contrato: tipo, propiedad, participantes, finanzas, reglas y cláusulas opcionales
 export default function NewContractScreen() {
   const [step, setStep]             = useState(0);
   const [loading, setLoading]       = useState(false);
@@ -45,6 +46,7 @@ export default function NewContractScreen() {
   const [selectedUsers, setSelectedUsers] = useState<Match[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Agrega o quita un participante seleccionado, sin permitir desmarcar al dueño de la propiedad
   const handleToggleUser = (user: Match) => {
     setSelectedUsers(prev => {
       // Si el usuario es el dueño de la propiedad, no permitimos desmarcarlo ya que debe estar obligado
@@ -65,6 +67,7 @@ export default function NewContractScreen() {
   const [deposit, setDeposit]           = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
 
+  // Formatea la entrada de texto como fecha DD/MM/AAAA a medida que el usuario escribe
   const handleDateChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
     let formatted = '';
@@ -120,6 +123,7 @@ export default function NewContractScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, matches.length]);
 
+  // Carga los matches del usuario para elegir como participantes del contrato
   const loadMatches = async () => {
     setLoadingMatches(true);
     const loaded = await fetchMatches();
@@ -131,6 +135,7 @@ export default function NewContractScreen() {
     setLoadingMatches(false);
   };
 
+  // Agrega o quita una cláusula opcional del contrato
   const toggleOptional = (key: string) => {
     setSelectedOptional(prev =>
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
@@ -155,6 +160,7 @@ export default function NewContractScreen() {
     { key: 'internet_split',      label: locale === 'es' ? 'Internet compartido' : 'Shared Internet',           desc: locale === 'es' ? 'El pago del servicio se divide por partes iguales.' : 'The payment is split equally.' },
   ];
 
+  // Simula una sugerencia de cláusulas generada por IA (mock con timeout, sin llamada real)
   const handleAIGenerate = () => {
     setAiLoading(true);
     setTimeout(() => {
@@ -164,6 +170,7 @@ export default function NewContractScreen() {
     }, 1200);
   };
 
+  // Selecciona la propiedad, precarga renta/depósito según su precio y agrega al propietario como participante obligatorio
   const selectProperty = (item: ListingItem) => {
     setSelectedListing(item);
     
@@ -181,6 +188,7 @@ export default function NewContractScreen() {
     }
   };
 
+  // Valida todos los campos, arma las cláusulas y crea el contrato (pending_authorization) junto con sus participantes en Supabase
   const handleSubmit = async () => {
     if (!selectedListing) {
       Alert.alert(locale === 'es' ? 'Propiedad requerida' : 'Property required', locale === 'es' ? 'Por favor, selecciona un alojamiento.' : 'Please select an accommodation first.');
@@ -260,6 +268,7 @@ export default function NewContractScreen() {
     router.replace(`/contracts/${newContract.id}`);
   };
 
+  // Valida si el paso actual del wizard tiene los datos mínimos para avanzar
   const canNext = () => {
     if (step === 0) return !!contractType;
     if (step === 1) return !!selectedListing;
@@ -570,6 +579,7 @@ export default function NewContractScreen() {
 }
 
 // ── Helper component ─────────────────────────────────────────────────────────
+// Fila reutilizable de un switch on/off con ícono y etiqueta, usada en el paso de reglas
 function ToggleRow({ label, icon, value, onToggle }: { label: string; icon: string; value: boolean; onToggle: (v: boolean) => void }) {
   return (
     <View style={s.toggleRow}>

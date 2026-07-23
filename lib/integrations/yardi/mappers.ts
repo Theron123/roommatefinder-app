@@ -11,6 +11,7 @@ import { YardiMappingError } from './errors';
 // MAPEO DE PROPIEDADES Y UNIDADES
 // =====================================================================
 
+// Convierte una propiedad interna (PMS) al formato esperado por Yardi
 export function mapPropertyToYardi(pmsProp: Omit<PmsProperty, 'externalId'>): Omit<YardiProperty, 'PropertyCode'> {
   // Extrae y limpia la dirección
   const addressParts = pmsProp.address.split(',');
@@ -29,6 +30,7 @@ export function mapPropertyToYardi(pmsProp: Omit<PmsProperty, 'externalId'>): Om
   };
 }
 
+// Convierte una propiedad de Yardi al modelo interno (PMS)
 export function mapYardiToProperty(yardiProp: YardiProperty, internalId: string): PmsProperty {
   if (!yardiProp.PropertyCode) {
     throw new YardiMappingError('PropertyCode de Yardi es obligatorio para mapear a propiedad interna.');
@@ -52,6 +54,7 @@ export function mapYardiToProperty(yardiProp: YardiProperty, internalId: string)
   };
 }
 
+// Convierte una unidad interna (PMS) al formato esperado por Yardi
 export function mapUnitToYardi(pmsUnit: Omit<PmsUnit, 'externalId'>): Omit<YardiUnit, 'UnitCode'> {
   return {
     PropertyCode: pmsUnit.propertyExternalId,
@@ -66,6 +69,7 @@ export function mapUnitToYardi(pmsUnit: Omit<PmsUnit, 'externalId'>): Omit<Yardi
   };
 }
 
+// Convierte una unidad de Yardi al modelo interno (PMS)
 export function mapYardiToUnit(yardiUnit: YardiUnit, internalId: string): PmsUnit {
   if (!yardiUnit.UnitCode) {
     throw new YardiMappingError('UnitCode de Yardi es obligatorio para mapear a unidad interna.');
@@ -87,6 +91,7 @@ export function mapYardiToUnit(yardiUnit: YardiUnit, internalId: string): PmsUni
 // MAPEO DE RESIDENTES / INQUILINOS
 // =====================================================================
 
+// Convierte un residente interno (PMS) al formato esperado por Yardi
 export function mapResidentToYardi(pmsRes: Omit<PmsResident, 'externalId'>, propertyCode: string, unitCode: string): Omit<YardiResident, 'TenantCode'> {
   return {
     PropertyCode: propertyCode,
@@ -101,6 +106,7 @@ export function mapResidentToYardi(pmsRes: Omit<PmsResident, 'externalId'>, prop
   };
 }
 
+// Convierte un residente de Yardi al modelo interno (PMS)
 export function mapYardiToResident(yardiRes: YardiResident, internalId: string): PmsResident {
   if (!yardiRes.TenantCode) {
     throw new YardiMappingError('TenantCode de Yardi es obligatorio para mapear a residente interno.');
@@ -121,6 +127,7 @@ export function mapYardiToResident(yardiRes: YardiResident, internalId: string):
 // MAPEO DE CONTRATOS Y ARRENDAMIENTOS (LEASES)
 // =====================================================================
 
+// Convierte un contrato interno (PMS) al formato de arrendamiento esperado por Yardi
 export function mapLeaseToYardi(pmsLease: Omit<PmsLease, 'externalId'>): Omit<YardiLease, 'LeaseID'> {
   return {
     TenantCode: pmsLease.residentExternalId,
@@ -135,6 +142,7 @@ export function mapLeaseToYardi(pmsLease: Omit<PmsLease, 'externalId'>): Omit<Ya
   };
 }
 
+// Convierte un arrendamiento de Yardi al modelo interno de contrato (PMS)
 export function mapYardiToLease(yardiLease: YardiLease, internalId: string): PmsLease {
   if (!yardiLease.LeaseID) {
     throw new YardiMappingError('LeaseID de Yardi es obligatorio para mapear a contrato interno.');
@@ -157,6 +165,7 @@ export function mapYardiToLease(yardiLease: YardiLease, internalId: string): Pms
 // MAPEO DE ÓRDENES DE TRABAJO Y PROVEEDORES
 // =====================================================================
 
+// Convierte una orden de trabajo interna (PMS) al formato esperado por Yardi, mapeando prioridad y estado
 export function mapWorkOrderToYardi(pmsWO: Omit<PmsWorkOrder, 'externalId'>): Omit<YardiWorkOrder, 'WorkOrderNumber'> {
   // Mapear prioridad interna a la esperada por Yardi
   const priorityMap: Record<string, 'Low' | 'Medium' | 'High' | 'Emergency'> = {
@@ -190,6 +199,7 @@ export function mapWorkOrderToYardi(pmsWO: Omit<PmsWorkOrder, 'externalId'>): Om
   };
 }
 
+// Convierte una orden de trabajo de Yardi al modelo interno (PMS), mapeando prioridad y estado
 export function mapYardiToWorkOrder(yardiWO: YardiWorkOrder, internalId: string): PmsWorkOrder {
   if (!yardiWO.WorkOrderNumber) {
     throw new YardiMappingError('WorkOrderNumber de Yardi es obligatorio para mapear a orden de trabajo.');
@@ -226,6 +236,7 @@ export function mapYardiToWorkOrder(yardiWO: YardiWorkOrder, internalId: string)
   };
 }
 
+// Convierte un proveedor interno (PMS) al formato esperado por Yardi
 export function mapVendorToYardi(pmsVendor: Omit<PmsVendor, 'externalId'>): Omit<YardiVendor, 'VendorCode'> {
   return {
     VendorName: pmsVendor.name,
@@ -237,6 +248,7 @@ export function mapVendorToYardi(pmsVendor: Omit<PmsVendor, 'externalId'>): Omit
   };
 }
 
+// Convierte un proveedor de Yardi al modelo interno (PMS)
 export function mapYardiToVendor(yardiVendor: YardiVendor, internalId: string): PmsVendor {
   if (!yardiVendor.VendorCode) {
     throw new YardiMappingError('VendorCode de Yardi es obligatorio para mapear a proveedor.');
@@ -258,6 +270,7 @@ export function mapYardiToVendor(yardiVendor: YardiVendor, internalId: string): 
 // MAPEO DE DOCUMENTOS
 // =====================================================================
 
+// Convierte un documento interno (PMS) al formato esperado por Yardi
 export function mapDocumentToYardi(pmsDoc: Omit<PmsDocument, 'externalId'>): Omit<YardiDocument, 'AttachmentID'> {
   const entityTypeMap: Record<string, 'Tenant' | 'Lease' | 'Property' | 'WorkOrder'> = {
     property: 'Property',
@@ -279,6 +292,7 @@ export function mapDocumentToYardi(pmsDoc: Omit<PmsDocument, 'externalId'>): Omi
   };
 }
 
+// Convierte un documento de Yardi al modelo interno (PMS)
 export function mapYardiToDocument(yardiDoc: YardiDocument, internalId: string): PmsDocument {
   if (!yardiDoc.AttachmentID) {
     throw new YardiMappingError('AttachmentID de Yardi es obligatorio para mapear a documento.');

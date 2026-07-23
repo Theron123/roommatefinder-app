@@ -7,6 +7,7 @@ interface ExploreIconProps {
   color: string;
 }
 
+// Íconos personalizados dibujados con Views (sin librería de iconos) usados en la pantalla de Explore
 export function ExploreIcon({ name, size, color }: ExploreIconProps) {
   switch (name) {
     case 'close': {

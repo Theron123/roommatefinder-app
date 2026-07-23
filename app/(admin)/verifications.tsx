@@ -38,6 +38,7 @@ const PROFILE_FLAG: Record<string, string> = {
   references: 'is_references_verified',
 };
 
+// Pantalla admin de verificaciones: revisa, aprueba o rechaza solicitudes de verificación de usuarios
 export default function AdminVerifications() {
   const [items, setItems]           = useState<Verification[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -75,6 +76,7 @@ export default function AdminVerifications() {
   const [modalType, setModalType] = useState<'confirm' | 'alert'>('confirm');
   const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
 
+  // Muestra el modal personalizado en modo alerta (un solo botón OK)
   const showCustomAlert = (title: string, message: string) => {
     setModalTitle(title);
     setModalMessage(message);
@@ -83,6 +85,7 @@ export default function AdminVerifications() {
     setModalVisible(true);
   };
 
+  // Muestra el modal personalizado en modo confirmación (cancelar/confirmar) con una acción a ejecutar
   const showCustomConfirm = (title: string, message: string, action: () => void) => {
     setModalTitle(title);
     setModalMessage(message);
@@ -91,6 +94,7 @@ export default function AdminVerifications() {
     setModalVisible(true);
   };
 
+  // Traduce el tipo de verificación a una etiqueta legible según el idioma
   const translateType = (type: string) => {
     if (type === 'identity') return locale === 'es' ? 'Identidad' : 'Identity';
     if (type === 'background') return locale === 'es' ? 'Antecedentes' : 'Background';
@@ -103,6 +107,7 @@ export default function AdminVerifications() {
     return type;
   };
 
+  // Carga los conteos de verificaciones por estado (total, pendientes, aprobadas, rechazadas)
   const fetchStats = async () => {
     try {
       const [totalRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
@@ -123,6 +128,7 @@ export default function AdminVerifications() {
     }
   };
 
+  // Consulta las verificaciones de Supabase filtradas por estado
   const fetchData = useCallback(async () => {
     let query = supabase
       .from('verifications')
@@ -142,8 +148,10 @@ export default function AdminVerifications() {
 
   useEffect(() => { setLoading(true); fetchData(); }, [fetchData]);
 
+  // Refresca la lista de verificaciones (pull-to-refresh)
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
+  // Pide confirmación y aplica la decisión (aprobar/rechazar), actualizando también el flag del perfil
   const decide = (id: string, userId: string, type: string, decision: 'approved' | 'rejected') => {
     const title = decision === 'approved' 
       ? t('admin.verifications.approve_title', 'Approve Verification') 
@@ -192,9 +200,11 @@ export default function AdminVerifications() {
     showCustomConfirm(title, msg, handleAction);
   };
 
+  // Formatea una fecha ISO a un string legible según el idioma
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(t('settings.locale', 'en-US'), { month: 'short', day: 'numeric', year: 'numeric' });
 
+  // Renderiza los metadatos específicos de la verificación (ID nacional, universidad, email/usuario)
   const renderMetadata = (item: Verification) => {
     if (!item.metadata) return null;
     const { national_id, country_code, university, input } = item.metadata;
@@ -221,6 +231,7 @@ export default function AdminVerifications() {
     );
   };
 
+  // Renderiza la tarjeta de una solicitud de verificación con sus acciones de aprobar/rechazar
   const renderItem = ({ item }: { item: Verification }) => {
     const meta = VERIFY_META[item.type] || { icon: 'help-circle', color: '#888' };
     const userName = item.profiles?.name || (locale === 'es' ? 'Usuario' : 'User');

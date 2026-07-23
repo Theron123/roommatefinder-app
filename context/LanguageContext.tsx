@@ -20,6 +20,7 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+// Provee el idioma actual y las funciones de traducción a toda la app
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locale, setLocaleState] = useState<Locale>('en');
 
@@ -27,6 +28,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     loadLanguage();
   }, []);
 
+  // Carga el idioma guardado previamente en AsyncStorage
   const loadLanguage = async () => {
     try {
       const savedLocale = await AsyncStorage.getItem('@user_locale');
@@ -38,6 +40,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Cambia el idioma activo y lo persiste en AsyncStorage
   const setLocale = async (newLocale: Locale) => {
     setLocaleState(newLocale);
     try {
@@ -47,6 +50,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Busca una clave (con soporte para rutas anidadas tipo 'profile.title') en las traducciones del idioma actual
   const t = (key: string, fallback?: string): string => {
     const activeTranslations = translations[locale] as Record<string, string>;
     if (!activeTranslations) return fallback || key;
@@ -65,6 +69,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return typeof current === 'string' ? current : (fallback || key);
   };
 
+  // Traduce el nombre de un hobby, tolerando emojis y variaciones de mayúsculas
   const translateHobby = (hobby: string): string => {
     if (!hobby) return hobby;
     const cleanHobby = hobby.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "").trim();
@@ -92,6 +97,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return hobby;
   };
 
+  // Traduce un "dealbreaker", tolerando emojis y variaciones de mayúsculas
   const translateDealbreaker = (db: string): string => {
     if (!db) return db;
     const cleanDb = db.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "").trim();
@@ -119,6 +125,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return db;
   };
 
+  // Traduce la clave de una preferencia de estilo de vida
   const translateLifestyleKey = (key: string): string => {
     if (!key) return key;
     const dict = translations[locale]?.lifestyle;
@@ -129,6 +136,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return foundKey ? dict[foundKey] : key;
   };
 
+  // Traduce el valor de una preferencia de estilo de vida, preservando el emoji si lo tiene
   const translateLifestyleVal = (val: string): string => {
     if (!val) return val;
     const cleanVal = val.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "").trim();
@@ -159,6 +167,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return val;
   };
 
+  // Traduce el nombre de un idioma (ej. "Spanish") al idioma activo
   const translateLanguage = (lang: string): string => {
     if (!lang) return lang;
     const dict: Record<string, { en: string; es: string }> = {
@@ -172,16 +181,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return dict[lang]?.[locale] || lang;
   };
 
+  // Traduce una lista de hobbies separada por comas
   const translateHobbiesList = (listStr: string): string => {
     if (!listStr) return listStr;
     return listStr.split(', ').map(item => translateHobby(item)).join(', ');
   };
 
+  // Traduce una lista de dealbreakers separada por comas
   const translateDealbreakersList = (listStr: string): string => {
     if (!listStr) return listStr;
     return listStr.split(', ').map(item => translateDealbreaker(item)).join(', ');
   };
 
+  // Traduce una lista de preferencias probando estilo de vida, hobby y dealbreaker en orden
   const translatePreferencesList = (listStr: string): string => {
     if (!listStr) return listStr;
     return listStr.split(', ').map(item => {
@@ -220,6 +232,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
+// Hook para acceder al idioma actual y a las funciones de traducción
 export const useTranslation = () => {
   const context = useContext(LanguageContext);
   if (!context) {

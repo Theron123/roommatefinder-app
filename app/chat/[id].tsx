@@ -28,6 +28,7 @@ import MessageInfoModal from '@/components/chat/modals/MessageInfoModal';
 import ChatHeader from '@/components/chat/ChatHeader';
 import ChatInputBar from '@/components/chat/ChatInputBar';
 
+// Pantalla de chat 1:1: mensajes en tiempo real, adjuntos multimedia, notas de voz, reenvíos y personalización de fondo
 export default function ChatScreen() {
   const { t } = useTranslation();
   const { id: rawId } = useLocalSearchParams();
@@ -123,6 +124,7 @@ export default function ChatScreen() {
     loadWallpaper();
   }, []);
 
+  // Abre la galería para elegir una foto como fondo de chat personalizado y la guarda en AsyncStorage
   const pickCustomWallpaper = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -144,6 +146,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Aplica un fondo de chat predefinido y lo persiste en AsyncStorage
   const selectPresetWallpaper = async (value: string) => {
     try {
       setWallpaper(value);
@@ -219,6 +222,7 @@ export default function ChatScreen() {
     };
   }, [id, myId]);
 
+  // Carga el perfil del otro usuario, el historial de mensajes entre ambos y la lista de perfiles disponibles para reenviar
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -244,6 +248,7 @@ export default function ChatScreen() {
     if (profiles) setAllProfiles(profiles);
   };
 
+  // Envía el texto del input como mensaje optimista (estado pending) y lo confirma/marca error tras la respuesta de Supabase
   const sendMessage = async () => {
     if (!inputText.trim() || !myId) return;
     const textToSend = inputText.trim();
@@ -275,6 +280,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Oculta un mensaje solo para el usuario actual, guardando su id en AsyncStorage
   const deleteForMe = async (msgId: string) => {
     try {
       const updated = [...deletedMsgsForMe, msgId];
@@ -286,6 +292,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Elimina el mensaje definitivamente de Supabase para ambos participantes
   const deleteForEveryone = async (msgId: string) => {
     try {
       await supabase.from('messages').delete().eq('id', msgId);
@@ -296,6 +303,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Inicia la grabación de una nota de voz (Web MediaRecorder + AnalyserNode, o expo-av en nativo) y anima el waveform en vivo según el volumen del micrófono
   const startRecording = async () => {
     try {
       setLiveWaveform(new Array(20).fill(4));
@@ -401,6 +409,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Detiene la grabación activa (web o nativo), libera recursos de audio y sube el archivo resultante
   const stopRecording = async () => {
     if (durationTimerRef.current) clearInterval(durationTimerRef.current);
     setIsRecording(false);
@@ -443,6 +452,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Sube el archivo de audio grabado a Supabase Storage y crea el mensaje correspondiente, con estado optimista
   const uploadAudioFile = async (uri: string, extensionOverride?: string) => {
     const tempId = `temp_${Date.now()}`;
     try {
@@ -472,6 +482,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Reproduce o pausa una nota de voz, actualizando el progreso de reproducción en tiempo real
   const playAudio = async (url: string, msgId: string) => {
     try {
       if (playingId === msgId) {
@@ -507,6 +518,7 @@ export default function ChatScreen() {
     } catch (e) { console.error('playAudio error', e); setPlayingId(null); }
   };
 
+  // Abre la galería para elegir una imagen o video y lo sube como adjunto del chat
   const pickMedia = async () => {
     setShowAttachMenu(false);
     if (!myId) return;
@@ -520,6 +532,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Abre el selector de archivos del sistema y sube el documento elegido, detectando su tipo (audio/video/imagen/archivo)
   const pickDocument = async () => {
     setShowAttachMenu(false);
     if (!myId) return;
@@ -544,6 +557,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Sube un archivo genérico (imagen/video/documento) a Supabase Storage y crea el mensaje asociado, con estado optimista
   const uploadFile = async (uri: string, mediaType: string, contentText: string, filename?: string, mimeType?: string) => {
     const tempId = `temp_${Date.now()}`;
     try {
@@ -574,6 +588,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Descarga una imagen del chat a la galería del dispositivo (o la abre en nueva pestaña en web)
   const downloadImage = async (url: string) => {
     if (Platform.OS === 'web') {
       window.open(url, '_blank');
@@ -596,6 +611,7 @@ export default function ChatScreen() {
     }
   };
 
+  // Prepara el contenido a reenviar y abre el modal de selección de destinatario
   const openForward = (content: { url?: string; text?: string }) => {
     setForwardContent(content);
     setShowForwardModal(true);
@@ -605,6 +621,7 @@ export default function ChatScreen() {
     setZoomOffset({ x: 0, y: 0 });
   };
 
+  // Envía el contenido preparado (texto o imagen) como un nuevo mensaje al usuario destino elegido
   const sendForward = async (targetUserId: string) => {
     if (!myId || !forwardContent) return;
     setShowForwardModal(false);
@@ -621,16 +638,19 @@ export default function ChatScreen() {
     Alert.alert('✅ Forwarded!', 'Message forwarded successfully.');
   };
 
+  // Abre el menú de acciones (responder, reenviar, copiar, eliminar, etc.) para el mensaje presionado
   const handleLongPress = useCallback((item: any) => {
     setActiveMessage(item);
     setShowDeleteOptions(false);
     setShowActionMenu(true);
   }, []);
 
+  // Busca en los mensajes cargados el mensaje original al que se está respondiendo, para mostrarlo como preview
   const getReplyPreview = useCallback((replyId: string) => {
     return messages.find(m => m.id === replyId);
   }, [messages]);
 
+  // Renderiza una burbuja de mensaje individual dentro de la lista del chat
   const renderMessage = ({ item }: { item: any }) => {
     return (
       <ChatMessageItem

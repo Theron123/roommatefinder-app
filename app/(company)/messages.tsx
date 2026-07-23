@@ -32,6 +32,7 @@ const TEMPLATES = [
   { key: 't3', title: 'Apartamento Arrendado', text: 'Hola. Agradecemos mucho tu postulación, pero te informamos que la unidad ya ha sido arrendada. Te avisaremos si liberamos otra similar.' },
 ];
 
+// Pantalla de bandeja de mensajes: administra conversaciones con postulantes, archivado y respuestas rápidas
 export default function CompanyMessagesScreen() {
   const [activeTab, setActiveTab] = useState<'inbox' | 'archived'>('inbox');
   const [threads, setTracks] = useState<ChatThread[]>([
@@ -48,12 +49,14 @@ export default function CompanyMessagesScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Abre el modal de conversación para el hilo seleccionado y limpia el campo de respuesta
   const handleOpenChat = (thread: ChatThread) => {
     setSelectedThread(thread);
     setReplyText('');
     setModalVisible(true);
   };
 
+  // Envía la respuesta escrita, actualiza el hilo como leído y cierra el modal
   const handleSend = () => {
     if (!replyText.trim()) return;
     Alert.alert(locale === 'es' ? 'Mensaje Enviado' : 'Message Sent', replyText);
@@ -67,12 +70,14 @@ export default function CompanyMessagesScreen() {
     setModalVisible(false);
   };
 
+  // Alterna el estado archivado/no archivado de un hilo de conversación
   const handleArchive = (id: string) => {
     setTracks(
       threads.map(t => t.id === id ? { ...t, archived: !t.archived } : t)
     );
   };
 
+  // Rellena el campo de respuesta con el texto de una plantilla rápida
   const selectTemplate = (text: string) => {
     setReplyText(text);
   };

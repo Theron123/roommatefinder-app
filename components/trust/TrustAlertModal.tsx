@@ -16,6 +16,7 @@ interface TrustAlertModalProps {
   onClose: () => void;
 }
 
+// Modal de alerta genérico estilo nativo con título, mensaje y botones configurables (usado por el Trust Center)
 export default function TrustAlertModal({
   visible,
   title,

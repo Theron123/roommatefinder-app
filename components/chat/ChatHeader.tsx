@@ -10,6 +10,7 @@ interface ChatHeaderProps {
   onPressSettings: () => void;
 }
 
+// Encabezado del chat: muestra avatar y nombre del otro usuario, botón de volver y acceso a ajustes
 export default function ChatHeader({ otherUser, onBack, onPressUser, onPressSettings }: ChatHeaderProps) {
   return (
     <View style={styles.header}>

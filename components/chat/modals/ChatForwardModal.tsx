@@ -8,6 +8,7 @@ interface ChatForwardModalProps {
   onSendForward: (userId: string) => void;
 }
 
+// Modal para reenviar un mensaje: lista de perfiles a los que se puede enviar el contenido reenviado
 export default function ChatForwardModal({
   visible,
   profiles,

@@ -190,9 +190,11 @@ export async function notifyMajorWarning(title: string, message: string, data?: 
 
 // Shared active chat state to prevent notifying when already chatting with the sender
 let _activeChatUserId: string | null = null;
+// Marca qué chat está abierto actualmente (o null si ninguno)
 export function setActiveChatUserId(id: string | null) {
   _activeChatUserId = id;
 }
+// Devuelve el id del usuario con el que se está chateando actualmente
 export function getActiveChatUserId(): string | null {
   return _activeChatUserId;
 }

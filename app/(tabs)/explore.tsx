@@ -11,6 +11,7 @@ import ExploreMapView from '@/components/explore/ExploreMapView';
 import ExploreSwipeControls from '@/components/explore/ExploreSwipeControls';
 import { Profile } from '@/lib/types';
 
+// Pantalla de exploración con swiper de perfiles/mapa para encontrar roommates
 export default function ExploreScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const btnBigSize = Math.min(Math.max(screenWidth * 0.15, 55), 65);
@@ -47,6 +48,7 @@ export default function ExploreScreen() {
     onSwipedAll,
   } = useExplore();
 
+  // Renderiza la tarjeta de perfil mostrada en el swiper
   const renderCard = (card: Profile | null) => (
     <ExploreCard
       card={card}

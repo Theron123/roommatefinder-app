@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '../context/LanguageContext';
 
+// Pantalla de seguidores recientes: lista usuarios que dieron like al perfil propio
 export default function FollowersScreen() {
   const router = useRouter();
   const { locale, t } = useTranslation();
@@ -18,6 +19,7 @@ export default function FollowersScreen() {
     fetchRealFollowers();
   }, []);
 
+  // Obtiene swipes con like recibidos por el usuario, cruza con perfiles y arma la lista de seguidores ordenada por fecha
   const fetchRealFollowers = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -76,6 +78,7 @@ export default function FollowersScreen() {
     }
   };
 
+  // Formatea una fecha como tiempo relativo corto, según el idioma activo
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 86400;

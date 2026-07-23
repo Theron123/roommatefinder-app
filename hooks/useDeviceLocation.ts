@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import * as Location from 'expo-location';
 
+// Hook para solicitar y obtener la ubicación actual del dispositivo
 export function useDeviceLocation() {
   const [location, setLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Pide permiso de ubicación y obtiene coordenadas (usa la última posición conocida como atajo rápido)
   const requestLocation = useCallback(async () => {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();

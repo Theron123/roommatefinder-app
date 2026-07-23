@@ -4,11 +4,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Pantalla "Acerca de": muestra branding, versión y enlaces legales de la app
 export default function AboutScreen() {
   const router = useRouter();
   const { locale } = useTranslation();
   const isEs = locale === 'es';
 
+  // Muestra un alert con las licencias de código abierto usadas por la app
   const handleShowLicensing = () => {
     Alert.alert(
       isEs ? "Licencias de Código Abierto" : "Open Source Licenses",
@@ -19,6 +21,7 @@ export default function AboutScreen() {
     );
   };
 
+  // Fila reutilizable de opción con icono, título y flecha para navegar
   const OptionRow = ({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) => (
     <Pressable 
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]} 

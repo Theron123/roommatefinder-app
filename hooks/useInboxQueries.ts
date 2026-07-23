@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCurrentUserId } from './useProfileQueries';
 
+// Consulta y arma la bandeja de entrada: combina mensajes y matches en conversaciones y "nuevos matches"
 export function useInboxData() {
   return useQuery({
     queryKey: ['inbox'],

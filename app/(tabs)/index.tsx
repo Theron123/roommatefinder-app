@@ -32,6 +32,7 @@ type Profile = {
   role?: 'landlord' | 'host' | 'seeker';
 };
 
+// Pantalla principal (Home): feed de perfiles compatibles y de apartamentos disponibles
 export default function HomeScreen() {
   const { t, translateHobby } = useTranslation();
   const { width } = useWindowDimensions();
@@ -47,6 +48,7 @@ export default function HomeScreen() {
 
   const avatarRef = useRef<any>(null);
 
+  // Mide la posición del avatar en pantalla para posicionar el tutorial guiado
   const measureAvatar = () => {
     if (avatarRef.current && typeof avatarRef.current.measureInWindow === 'function') {
       avatarRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
@@ -71,6 +73,7 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // Obtiene la foto de perfil del usuario actual para mostrarla en el header
   const fetchCurrentUserPhoto = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -88,6 +91,7 @@ export default function HomeScreen() {
     }
   };
 
+  // Consulta perfiles compatibles excluyendo bloqueados/landlords, calcula distancia y similitud, y los ordena
   const fetchMatches = async (isRefresh = false) => {
     if (profiles.length === 0 && !isRefresh) {
       setLoading(true);
@@ -184,6 +188,7 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
+  // Consulta y filtra alojamientos de Supabase para el feed de apartamentos
   const fetchListings = async (isRefresh = false) => {
     if (listings.length === 0 && !isRefresh) setLoading(true);
     if (isRefresh) setRefreshing(true);
@@ -210,6 +215,7 @@ export default function HomeScreen() {
     }, [feedMode])
   );
 
+  // Renderiza la tarjeta de un perfil en el feed, incluyendo blur premium a partir del quinto resultado
   const renderProfile = useCallback(({ item, index }: { item: Profile, index: number }) => {
     const isBlurred = index >= 5 && !isPremium;
     const distanceText = item.distance != null ? `${item.distance.toFixed(1)} ${t('explore.away')}` : t('explore.loc_unknown');
@@ -331,6 +337,7 @@ export default function HomeScreen() {
     );
   }, [isPremium, router, t, translateHobby]);
 
+  // Renderiza la tarjeta de un listado de apartamento en el feed
   const renderListing = useCallback(({ item }: { item: any }) => (
     <Pressable 
       style={styles.listingCardContainer}

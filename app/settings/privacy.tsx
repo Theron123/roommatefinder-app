@@ -6,6 +6,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 
+// Pantalla de privacidad y seguridad: visibilidad del perfil, biometría y bloqueo de usuarios
 export default function PrivacyScreen() {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -20,6 +21,7 @@ export default function PrivacyScreen() {
     loadPrivacySettings();
   }, []);
 
+  // Carga las preferencias de privacidad del perfil (visibilidad, read receipts, badges, biometría)
   const loadPrivacySettings = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -41,6 +43,7 @@ export default function PrivacyScreen() {
     }
   };
 
+  // Actualiza un campo booleano de privacidad en el perfil del usuario
   const updateSetting = async (key: string, val: boolean) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -58,11 +61,13 @@ export default function PrivacyScreen() {
 
   const isEs = locale === 'es';
 
+  // Abre el modal de confirmación para eliminar la cuenta
   const handleDeleteAccount = () => {
     setDeleteModalVisible(true);
   };
 
-  const ToggleItem = ({ 
+  // Fila reutilizable con switch on/off para una preferencia de privacidad
+  const ToggleItem = ({
     icon, 
     title, 
     description, 

@@ -13,6 +13,7 @@ interface ImageViewerModalProps {
   onZoomChange: (scale: number, offset: { x: number; y: number }) => void;
 }
 
+// Visor de imagen a pantalla completa con zoom táctil, reenviar y descargar
 export default function ImageViewerModal({
   visible,
   selectedImage,

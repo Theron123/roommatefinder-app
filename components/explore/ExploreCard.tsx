@@ -18,6 +18,7 @@ interface ExploreCardProps {
   translateDealbreakersList: (breaks: string) => string;
 }
 
+// Tarjeta de perfil en Explore: carrusel de fotos, compatibilidad, estado de disponibilidad e info del candidato
 export default function ExploreCard({
   card,
   currentUser,

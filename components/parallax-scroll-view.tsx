@@ -18,6 +18,7 @@ type Props = PropsWithChildren<{
   headerBackgroundColor: { dark: string; light: string };
 }>;
 
+// ScrollView con efecto parallax en la imagen de cabecera (se desplaza y escala según el scroll)
 export default function ParallaxScrollView({
   children,
   headerImage,

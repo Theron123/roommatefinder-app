@@ -64,6 +64,7 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// Convierte una fila de `listings` al shape ZumperListing que espera el generador de XML.
 function mapRowToZumperListing(row: ListingRow): ZumperListing {
   const address = row.address || '';
   const { city, state, zipCode } = splitAddress(address);
@@ -86,6 +87,8 @@ function mapRowToZumperListing(row: ListingRow): ZumperListing {
   };
 }
 
+// Endpoint público (protegido por token) que arma y sirve el feed XML de Zumper
+// a partir de los listings activos y verificados.
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);

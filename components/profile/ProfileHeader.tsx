@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
   onDashboardPress?: () => void;
 }
 
+// Encabezado del perfil: avatar, nombre/edad, insignias de confianza y accesos a editar/ajustes/dashboard
 export default function ProfileHeader({
   profile,
   insets,

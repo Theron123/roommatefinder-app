@@ -17,6 +17,7 @@ type ActivityItem = {
   timestamp: Date;
 };
 
+// Pantalla de actividad reciente: combina matches y mensajes en una lista cronológica
 export default function ActivityScreen() {
   const router = useRouter();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -34,6 +35,7 @@ export default function ActivityScreen() {
     updateActivitySeen();
   }, []);
 
+  // Trae matches y mensajes del usuario desde Supabase, los cruza con perfiles y arma la lista de actividad ordenada por fecha
   const fetchActivity = async () => {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -123,6 +125,7 @@ export default function ActivityScreen() {
     setLoading(false);
   };
 
+  // Formatea una fecha como tiempo relativo corto (d/h/m/now)
   const getTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
     let interval = seconds / 86400;

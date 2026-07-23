@@ -1,5 +1,6 @@
 import Animated from 'react-native-reanimated';
 
+// Emoji de saludo animado que rota repetidamente como efecto de "wave"
 export function HelloWave() {
   return (
     <Animated.Text

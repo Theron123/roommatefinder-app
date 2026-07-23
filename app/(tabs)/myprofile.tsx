@@ -17,6 +17,7 @@ import ProfileLifestyleDetails from '@/components/profile/ProfileLifestyleDetail
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Pantalla del perfil propio: muestra info, fotos, listado, lifestyle, trust score y contratos
 export default function MyProfileScreen() {
   const { t, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -58,6 +59,7 @@ export default function MyProfileScreen() {
     }, [refetch])
   );
 
+  // Guarda los cambios de nombre, bio y edad usando la mutación de perfil
   const handleSaveProfile = async () => {
     try {
       await updateProfileMutation.mutateAsync({
@@ -72,6 +74,7 @@ export default function MyProfileScreen() {
     }
   };
 
+  // Actualiza el estado de disponibilidad del perfil (looking_urgent, exploring, have_room)
   const updateStatus = async (newStatus: string) => {
     setStatus(newStatus);
     try {
@@ -83,6 +86,7 @@ export default function MyProfileScreen() {
     }
   };
 
+  // Selecciona una imagen de la galería, la sube a Supabase Storage y actualiza el slot de fotos del perfil
   const pickImage = async (slotIndex?: number) => {
     const targetIdx = typeof slotIndex === 'number' ? slotIndex : 0;
     
@@ -146,6 +150,7 @@ export default function MyProfileScreen() {
     }
   };
 
+  // Cierra la sesión del usuario y redirige a la pantalla de login
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login');
@@ -191,6 +196,7 @@ export default function MyProfileScreen() {
     cooking: { label: 'Cooking', emoji: '🍳' },
   };
 
+  // Navega al dashboard de owner/company según el rol del perfil, ajustando el viewMode guardado
   const handleDashboardPress = async () => {
     if (!profile) return;
     

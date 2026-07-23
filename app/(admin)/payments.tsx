@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 
+// Pantalla admin de pagos/suscripciones: muestra métricas simuladas y la hoja de ruta hacia pagos reales
 export default function AdminPayments() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading]       = useState(true);
@@ -17,6 +18,7 @@ export default function AdminPayments() {
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Carga el conteo total de usuarios registrados
   const fetchStats = async () => {
     const { count } = await supabase
       .from('profiles')
@@ -27,6 +29,7 @@ export default function AdminPayments() {
   };
 
   useEffect(() => { fetchStats(); }, []);
+  // Refresca las estadísticas (pull-to-refresh)
   const onRefresh = () => { setRefreshing(true); fetchStats(); };
 
   const PLAN_FEATURES = locale === 'es' ? [

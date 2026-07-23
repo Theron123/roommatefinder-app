@@ -13,6 +13,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 const CODE_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
 
+// Hashea el código de 6 dígitos con SHA-256 antes de guardarlo (nunca en texto plano).
 async function hashCode(code: string): Promise<string> {
   const data = new TextEncoder().encode(code);
   const digest = await crypto.subtle.digest('SHA-256', data);
@@ -21,6 +22,8 @@ async function hashCode(code: string): Promise<string> {
     .join('');
 }
 
+// Endpoint que genera un código de 6 dígitos, lo guarda hasheado en email_otp_codes
+// (con cooldown anti-spam y expiración) y lo envía por correo vía Resend.
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') {

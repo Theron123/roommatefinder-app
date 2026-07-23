@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Pantalla principal de ajustes: idioma, cuenta, rol de usuario, soporte y cierre/eliminación de cuenta
 export default function SettingsScreen() {
   const router = useRouter();
   const { locale, setLocale, t } = useTranslation();
@@ -21,6 +22,7 @@ export default function SettingsScreen() {
   const [successModalIconColor, setSuccessModalIconColor] = useState('#49C788');
 
   useEffect(() => {
+    // Carga el rol actual del usuario desde Supabase para mostrarlo en la sección de cuenta
     const fetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -37,6 +39,7 @@ export default function SettingsScreen() {
     fetchProfile();
   }, []);
 
+  // Cambia el rol del usuario en el perfil, actualiza el viewMode local y muestra un modal explicativo del nuevo rol
   const handleRoleChange = async (newRole: 'seeker' | 'host' | 'landlord') => {
     if (userRole === newRole) {
       setRoleModalVisible(false);
@@ -124,6 +127,7 @@ export default function SettingsScreen() {
     }
   };
 
+  // Cambia el idioma de la app mostrando un breve loader mientras se aplica
   const handleLanguageChange = async (newLocale: Locale) => {
     if (locale === newLocale) return;
     setLoading(true);
@@ -133,16 +137,19 @@ export default function SettingsScreen() {
     }, 400);
   };
 
+  // Cierra la sesión del usuario y redirige a la pantalla de login
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login');
   };
 
+  // Abre el modal de confirmación para eliminar la cuenta
   const handleDeleteAccount = () => {
     setDeleteModalVisible(true);
   };
 
-  const SettingsItem = ({ 
+  // Fila reutilizable de opción de ajustes con icono, título y flecha (oculta en logout/eliminar cuenta)
+  const SettingsItem = ({
     icon, 
     title, 
     onPress, 

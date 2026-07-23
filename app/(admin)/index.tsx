@@ -36,6 +36,7 @@ type RecentContract = {
   initiator: { name: string } | null;
 };
 
+// Pantalla de resumen del panel admin: KPIs, usuarios/contratos recientes y accesos rápidos
 export default function AdminOverview() {
   const [stats, setStats]                 = useState<Stats | null>(null);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
@@ -48,6 +49,7 @@ export default function AdminOverview() {
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Carga estadísticas del sistema (admin) o del propietario, más usuarios y contratos recientes
   const fetchData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -199,6 +201,7 @@ export default function AdminOverview() {
     fetchData();
   }, [fetchData]);
 
+  // Refresca las estadísticas del dashboard (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
@@ -218,12 +221,14 @@ export default function AdminOverview() {
     terminated: '#FF4B4B',
   };
 
+  // Traduce el tipo de contrato a una etiqueta legible según el idioma
   const translateContractType = (type: string) => {
     if (type === 'roommate_agreement') return locale === 'es' ? 'Acuerdo Roommate' : 'Roommate Agreement';
     if (type === 'rental_agreement') return locale === 'es' ? 'Contrato Renta' : 'Rental Agreement';
     return type;
   };
 
+  // Formatea una fecha ISO a mes y día abreviados según el idioma
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric' });
 

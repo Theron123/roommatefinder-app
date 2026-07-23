@@ -7,6 +7,7 @@ export async function getCurrentUserId() {
   return session?.user?.id || null;
 }
 
+// Consulta el perfil, listing y contratos del usuario autenticado
 export function useMyProfile() {
   return useQuery({
     queryKey: ['myProfile'],
@@ -55,6 +56,7 @@ export function useMyProfile() {
   });
 }
 
+// Mutación para actualizar el perfil del usuario autenticado e invalidar el cache de myProfile
 export function useUpdateProfileMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -85,6 +87,7 @@ export function useUpdateProfileMutation() {
   });
 }
 
+// Consulta el perfil y listing público de un usuario específico por id
 export function useUserProfile(userId: string) {
   return useQuery({
     queryKey: ['profile', userId],

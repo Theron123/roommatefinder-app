@@ -30,6 +30,7 @@ type ActivityItem = {
   color: string;
 };
 
+// Pantalla principal del panel de empresa: muestra métricas del portafolio, gráficos de rendimiento y actividad reciente
 export default function CompanyDashboardHome() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,6 +50,7 @@ export default function CompanyDashboardHome() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Calcula métricas del dashboard (inmuebles, contratos, postulaciones) y arma la lista de actividad reciente
   const loadData = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -125,6 +127,7 @@ export default function CompanyDashboardHome() {
     loadData();
   }, []);
 
+  // Refresca las métricas del dashboard mediante pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     loadData();

@@ -11,6 +11,7 @@ interface TrustInstagramModalProps {
   triggerAlert: (title: string, message: string) => void;
 }
 
+// Simula el flujo OAuth de Instagram (login falso, carga y éxito) para vincular la cuenta al Trust Center
 export default function TrustInstagramModal({
   visible,
   locale,
@@ -30,6 +31,7 @@ export default function TrustInstagramModal({
     onClose();
   };
 
+  // Valida el usuario ingresado y simula el login/autorización de Instagram con delays antes de reportar éxito
   const handleLogin = () => {
     if (!username.trim()) {
       triggerAlert('Error', locale === 'es' ? 'Por favor ingresa tu usuario.' : 'Please enter your username.');

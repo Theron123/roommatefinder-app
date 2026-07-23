@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
 
+// Define el stack de navegación para las pantallas de autenticación (login, signup, index)
 export default function AuthLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>

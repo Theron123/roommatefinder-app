@@ -1,3 +1,4 @@
+// Tipos generados automáticamente por Supabase a partir del esquema de la base de datos
 export type Json =
   | string
   | number

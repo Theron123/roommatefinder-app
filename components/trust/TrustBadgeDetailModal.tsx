@@ -23,6 +23,7 @@ interface TrustBadgeDetailModalProps {
   onRevoke: (type: string) => void;
 }
 
+// Modal de detalle de una insignia de confianza: muestra metadata, beneficios obtenidos y opción de revocarla
 export default function TrustBadgeDetailModal({
   visible,
   selectedBadge,

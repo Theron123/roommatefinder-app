@@ -18,6 +18,7 @@ interface ChatMessageItemProps {
   setZoomOffset: (offset: { x: number; y: number }) => void;
 }
 
+// Renderiza una burbuja de mensaje individual (texto, imagen, video, audio o archivo) con su estado de lectura
 const ChatMessageItemComponent = ({
   item,
   myId,
@@ -72,6 +73,7 @@ const ChatMessageItemComponent = ({
           </Pressable>
         ) : item.media_type === 'audio' && item.media_url ? (
           (() => {
+            // Genera alturas de barra pseudoaleatorias (determinísticas por id) para simular la forma de onda del audio
             const getMessageWaveform = (msgId: string) => {
               const wave: number[] = [];
               const idStr = msgId || 'default';
@@ -149,6 +151,7 @@ const ChatMessageItemComponent = ({
   );
 };
 
+// Envuelve el componente en memo con comparación personalizada para evitar renders innecesarios en la lista de chat
 export const ChatMessageItem = memo(ChatMessageItemComponent, (prevProps, nextProps) => {
   // Check if item reference or internal state changed
   if (prevProps.item.status !== nextProps.item.status) return false;

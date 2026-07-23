@@ -43,6 +43,7 @@ const COUNTRIES = [
   { code: 'ITA', flag: '🇮🇹', name: 'Italy', placeholder: 'ID' },
 ];
 
+// Pantalla de registro: crea la cuenta, valida la identificación nacional y guarda el perfil inicial
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +57,7 @@ export default function SignUpScreen() {
 
   const selectedCountry = COUNTRIES.find(c => c.code === countryCode) || COUNTRIES[0];
 
+  // Valida campos e ID nacional, registra al usuario en Supabase y crea su perfil y solicitud de verificación
   const handleSignUp = async () => {
     setMessage({ text: '', type: '' });
     if (!email || !password || !name || !nationalId || !countryCode) {

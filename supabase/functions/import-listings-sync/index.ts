@@ -33,6 +33,7 @@ interface ExternalListing {
 
 const SOURCE = 'zumper';
 
+// Genera listings de ejemplo para el modo mock (mientras no haya credenciales reales de Zumper).
 function getMockListings(): ExternalListing[] {
   return [
     {
@@ -88,6 +89,8 @@ async function getRealListings(feedUrl: string, apiToken: string): Promise<Exter
   }));
 }
 
+// Endpoint admin-only que jala el inventario externo (mock o real según los secrets
+// configurados) y lo hace upsert en `listings_staging` para revisión manual.
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') {

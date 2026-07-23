@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Role = 'landlord' | 'host' | 'seeker' | 'company' | 'admin';
 
+// Pantalla de selección de rol (host/seeker/landlord/company) en el onboarding, con animaciones entre pasos
 export default function RoleSelectScreen() {
   const [step, setStep] = useState<1 | 2>(1);
   const [saving, setSaving] = useState(false);
@@ -25,6 +26,7 @@ export default function RoleSelectScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+  // Anima el fade/slide de salida, ejecuta el callback (cambio de paso) y luego anima la entrada
   const animateTransition = (callback: () => void) => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -55,6 +57,7 @@ export default function RoleSelectScreen() {
     });
   };
 
+  // Crea o actualiza el perfil con el rol elegido, asegura el registro de verificación de identidad y navega a la siguiente pantalla según el rol
   const saveRoleAndContinue = async (role: Role) => {
     setSaving(true);
 
@@ -136,22 +139,27 @@ export default function RoleSelectScreen() {
     }
   };
 
+  // Avanza al paso 2 (elegir entre buscar inquilinos o roommate)
   const handleHasPlace = () => {
     animateTransition(() => setStep(2));
   };
 
+  // Guarda el rol 'seeker' y continúa el flujo
   const handleNoPlace = () => {
     saveRoleAndContinue('seeker');
   };
 
+  // Guarda el rol 'landlord' y continúa el flujo
   const handleFindTenants = () => {
     saveRoleAndContinue('landlord');
   };
 
+  // Guarda el rol 'host' y continúa el flujo
   const handleFindRoommate = () => {
     saveRoleAndContinue('host');
   };
 
+  // Vuelve al paso 1 con animación de transición
   const handleGoBack = () => {
     animateTransition(() => setStep(1));
   };
@@ -175,6 +183,7 @@ export default function RoleSelectScreen() {
   }, [entranceFade, entranceSlide]);
 
   useEffect(() => {
+    // Si el usuario ya tiene rol admin, redirige directo al panel de admin
     const checkAdmin = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();

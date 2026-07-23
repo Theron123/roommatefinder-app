@@ -49,6 +49,7 @@ export function getMockZumperListings(): ZumperListing[] {
   ];
 }
 
+// Genera el feed XML de listados en el formato esperado por Zumper
 export class ZumperFeedGenerator {
 
   /**
@@ -88,6 +89,7 @@ export class ZumperFeedGenerator {
     return xml;
   }
 
+  // Escapa caracteres especiales para incrustar texto de forma segura en el XML
   private escapeXML(unsafe: string): string {
     return unsafe.replace(/[<>&'"]/g, (c) => {
       switch (c) {

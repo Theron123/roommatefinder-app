@@ -16,6 +16,7 @@ export const unstable_settings = {
   anchor: 'onboarding',
 };
 
+// Layout raíz de la app: configura providers globales, navegación por Stack y listeners de notificaciones push/realtime
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function RootLayout() {
     // Realtime global messages subscriber for notifications
     let globalMsgChannel: any = null;
     
+    // Suscribe un canal realtime a inserts en 'messages' para disparar notificaciones locales
     const setupGlobalMsgListener = () => {
       if (globalMsgChannel) {
         supabase.removeChannel(globalMsgChannel);

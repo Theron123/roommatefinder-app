@@ -20,12 +20,14 @@ const WebVideo = (props: any) => {
   return <VideoTag {...props} />;
 };
 
+// Envuelve un <canvas> nativo del DOM (solo Web) usado para capturar el frame de la webcam
 const WebCanvas = (props: any) => {
   if (Platform.OS !== 'web') return null;
   const CanvasTag = 'canvas' as any;
   return <CanvasTag {...props} />;
 };
 
+// Wizard de verificación de confianza: maneja los flujos de identity, background, social (Instagram) y phone (OTP por email)
 export default function VerificationWizard() {
   const { t, locale } = useTranslation();
   const { type } = useLocalSearchParams<{ type: string }>();
@@ -73,6 +75,7 @@ export default function VerificationWizard() {
     });
   }, [type]);
 
+  // Muestra el modal de alerta personalizado con título, mensaje y botones dados
   const triggerAlert = (title: string, message: string, buttons?: { text: string; onPress?: () => void; style?: string }[]) => {
     setCustomAlertTitle(title);
     setCustomAlertMessage(message);
@@ -80,6 +83,7 @@ export default function VerificationWizard() {
     setCustomAlertVisible(true);
   };
 
+  // Pide permiso y activa la cámara web del navegador para la captura de selfie de identidad
   const startWebcam = async () => {
     if (Platform.OS !== 'web') return;
     try {
@@ -99,6 +103,7 @@ export default function VerificationWizard() {
     }
   };
 
+  // Detiene todos los tracks del stream de la webcam y limpia el estado
   const stopWebcam = () => {
     if (Platform.OS !== 'web' || !videoRef.current) return;
     const stream = videoRef.current.srcObject as MediaStream;
@@ -109,6 +114,7 @@ export default function VerificationWizard() {
     }
   };
 
+  // Dibuja el frame actual del video en el canvas oculto y lo convierte en imagen (dataURL) para la verificación
   const captureWebcam = () => {
     if (Platform.OS !== 'web' || !videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
@@ -124,6 +130,7 @@ export default function VerificationWizard() {
     }
   };
 
+  // Devuelve título, ícono, descripción, color y texto de botón según el tipo de verificación solicitado
   const getVerifyConfig = (vType: string) => {
     switch (vType) {
       case 'identity':
@@ -172,6 +179,7 @@ export default function VerificationWizard() {
 
   const config = getVerifyConfig(type || 'identity');
 
+  // Calcula la etiqueta del botón principal según el paso actual del flujo (foto tomada, código enviado, etc.)
   const getBtnLabel = () => {
     if (type === 'identity' && imageUri) {
       return locale === 'es' ? 'Enviar Verificación' : 'Submit Verification';
@@ -182,6 +190,7 @@ export default function VerificationWizard() {
     return config.btnLabel;
   };
 
+  // Maneja el botón principal según el tipo de verificación: captura/sube foto de ID, valida datos de background check, abre el modal de Instagram, o envía/valida el código OTP por email
   const handleAction = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
@@ -302,6 +311,7 @@ export default function VerificationWizard() {
     }
   };
 
+  // Crea el registro de verificación en Supabase (aprobado automáticamente o pendiente, según config de admin) y actualiza el trust score
   const submitVerification = async (imgUri?: string, customInput?: string) => {
     setLoading(true);
     try {

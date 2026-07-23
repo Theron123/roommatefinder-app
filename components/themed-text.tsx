@@ -8,6 +8,7 @@ export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
 };
 
+// Texto que aplica el color de tema (claro/oscuro) y variantes tipográficas predefinidas
 export function ThemedText({
   style,
   lightColor,

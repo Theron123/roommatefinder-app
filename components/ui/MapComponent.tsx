@@ -1,6 +1,7 @@
 import MapView, { Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { StyleSheet, View } from 'react-native';
 
+// Mapa nativo no interactivo que muestra un círculo aproximado alrededor de una coordenada (vista previa de ubicación)
 export default function MapComponent({ lat, lng }: { lat: number, lng: number }) {
   return (
     <View style={styles.mapContainer}>

@@ -30,6 +30,7 @@ const COMPANY_NAV_ITEMS = [
   { key: 'notifications',icon: 'bell-ring-outline'      as const, path: '/(company)/notifications' },
 ];
 
+// Layout principal del panel de empresa: verifica el rol, muestra el sidebar de navegación y renderiza el contenido de cada pantalla
 function CompanyLayoutContent() {
   const [checking, setChecking] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -40,6 +41,7 @@ function CompanyLayoutContent() {
 
   useEffect(() => { verifyCompanyRole(); }, []);
 
+  // Verifica sesión y rol del usuario; redirige según corresponda si no es una cuenta de empresa
   const verifyCompanyRole = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -70,6 +72,7 @@ function CompanyLayoutContent() {
     }
   };
 
+  // Cierra la sesión del usuario y lo redirige al login
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login' as any);
@@ -88,6 +91,7 @@ function CompanyLayoutContent() {
 
   const isExpanded = Platform.OS === 'web';
 
+  // Traduce la clave de un ítem del menú al idioma actual (es/en)
   const translateKey = (key: string) => {
     const dict: Record<string, { es: string; en: string }> = {
       dashboard: { es: 'Dashboard', en: 'Dashboard' },
@@ -191,6 +195,7 @@ function CompanyLayoutContent() {
   );
 }
 
+// Envuelve el layout de empresa con el proveedor de tema del panel admin
 export default function CompanyLayout() {
   return (
     <AdminThemeProvider>

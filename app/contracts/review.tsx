@@ -23,6 +23,7 @@ type Contract = {
   contract_participants: { user: { name: string } | null }[];
 };
 
+// Pantalla de revisión de un contrato en borrador: muestra sus cláusulas, permite descargar el PDF y enviarlo a autorización
 export default function ReviewContractScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [contract, setContract] = useState<Contract | null>(null);
@@ -32,6 +33,7 @@ export default function ReviewContractScreen() {
   const [generating, setGenerating] = useState(false);
   const { t, locale } = useTranslation();
 
+  // Traduce la clave de una cláusula opcional del contrato a su etiqueta localizada
   const getOptionalClauseLabel = (key: string) => {
     const dict: Record<string, { en: string; es: string }> = {
       no_subletting:       { en: 'No subletting', es: 'Sin subarrendamiento' },
@@ -47,6 +49,7 @@ export default function ReviewContractScreen() {
     return dict[key]?.[locale] || key;
   };
 
+  // Traduce el tipo de contrato a su etiqueta localizada
   const getContractTypeLabel = (type: string) => {
     if (type === 'roommate_agreement') {
       return locale === 'es' ? 'Acuerdo de Roommate' : 'Roommate Agreement';
@@ -57,6 +60,7 @@ export default function ReviewContractScreen() {
     return type;
   };
 
+  // Devuelve etiqueta, color e ícono según el estado del contrato
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { label: string; color: string; bg: string; icon: string }> = {
       draft:                 { label: locale === 'es' ? 'Borrador' : 'Draft',   color: '#888',    bg: '#111',                    icon: 'pencil-outline' },
@@ -70,6 +74,7 @@ export default function ReviewContractScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) fetchContract(); }, [id]);
 
+  // Carga el contrato por id junto con el iniciador y los participantes
   const fetchContract = async () => {
     const { data } = await supabase
       .from('contracts')
@@ -80,6 +85,7 @@ export default function ReviewContractScreen() {
     setLoading(false);
   };
 
+  // Arma el HTML detallado del contrato y lo exporta como PDF (descarga directa en web, share sheet en nativo)
   const handleGenerateAndDownload = async () => {
     if (!contract) return;
     setGenerating(true);
@@ -457,6 +463,7 @@ export default function ReviewContractScreen() {
     }
   };
 
+  // Valida la aceptación de términos y cambia el estado del contrato a pending_authorization
   const handleSendForAuthorization = async () => {
     if (!agreeTos) {
       Alert.alert(t('contracts.tos_req'), t('contracts.tos_req_desc'));
@@ -634,6 +641,7 @@ export default function ReviewContractScreen() {
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
+// Bloque de sección con título y contenedor de filas, usado para agrupar cláusulas del contrato
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={s.section}>
@@ -643,6 +651,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// Fila simple de etiqueta/valor dentro de una Section
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={s.row}>

@@ -15,6 +15,7 @@ interface ExploreMapViewProps {
   t: (key: string) => string;
 }
 
+// Vista de mapa de Explore: ubica al usuario actual, candidatos y matches con marcadores y callouts
 export default function ExploreMapView({
   profiles,
   matchedProfiles,

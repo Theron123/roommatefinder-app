@@ -16,6 +16,7 @@ interface ChatInputBarProps {
   onStartRecording: () => void;
 }
 
+// Barra inferior del chat: banner de respuesta, adjuntar, grabación de audio y campo de texto/envío
 export default function ChatInputBar({
   replyingTo,
   onCancelReply,

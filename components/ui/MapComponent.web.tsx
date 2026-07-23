@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 
+// Versión web de MapComponent: como los mapas nativos no están disponibles, muestra solo las coordenadas en texto
 export default function MapComponent({ lat, lng }: { lat: number, lng: number }) {
   return (
     <View style={styles.mapContainer}>

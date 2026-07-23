@@ -9,6 +9,7 @@ interface InboxConversationItemProps {
   onPress: (id: string) => void;
 }
 
+// Renderiza una fila de conversación del inbox: avatar, nombre, último mensaje y estado de leído/no leído
 const InboxConversationItemComponent = ({ item, currentUserId, onPress }: InboxConversationItemProps) => {
   const isUnread = item.unreadCount > 0;
   const sentByMe = item.lastMsgSenderId === currentUserId;
@@ -61,6 +62,7 @@ const InboxConversationItemComponent = ({ item, currentUserId, onPress }: InboxC
   );
 };
 
+// Versión memoizada del item de conversación; evita re-render si id, último mensaje o estado de leído no cambian
 export const InboxConversationItem = memo(InboxConversationItemComponent, (prevProps, nextProps) => {
   return (
     prevProps.item.id === nextProps.item.id &&

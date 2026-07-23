@@ -7,6 +7,7 @@ interface ChatAttachMenuProps {
   onPickDocument: () => void;
 }
 
+// Menú modal para elegir el tipo de adjunto a enviar: foto/video de galería o audio/documento
 export default function ChatAttachMenu({ visible, onClose, onPickMedia, onPickDocument }: ChatAttachMenuProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

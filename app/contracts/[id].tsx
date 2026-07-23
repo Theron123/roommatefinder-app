@@ -38,6 +38,7 @@ type Contract = {
   } | null;
 };
 
+// Pantalla de detalle de un contrato: muestra sus cláusulas y permite aceptar, descargar el PDF firmado o terminarlo
 export default function ContractDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [contract, setContract]   = useState<Contract | null>(null);
@@ -47,6 +48,7 @@ export default function ContractDetailScreen() {
 
   const { t, locale } = useTranslation();
 
+  // Traduce la clave de una cláusula opcional del contrato a su etiqueta localizada
   const getOptionalClauseLabel = (key: string) => {
     const dict: Record<string, { en: string; es: string }> = {
       no_subletting:       { en: 'No subletting', es: 'Sin subarrendamiento' },
@@ -62,6 +64,7 @@ export default function ContractDetailScreen() {
     return dict[key]?.[locale] || key;
   };
 
+  // Traduce el tipo de contrato a su etiqueta localizada
   const getContractTypeLabel = (type: string) => {
     if (type === 'roommate_agreement') {
       return locale === 'es' ? 'Acuerdo de Roommate' : 'Roommate Agreement';
@@ -72,6 +75,7 @@ export default function ContractDetailScreen() {
     return type;
   };
 
+  // Devuelve etiqueta, color e ícono según el estado del contrato
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { label: string; color: string; bg: string; icon: string }> = {
       draft:                 { label: locale === 'es' ? 'Borrador' : 'Draft',   color: '#888',    bg: '#111',                    icon: 'pencil-outline' },
@@ -85,6 +89,7 @@ export default function ContractDetailScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) fetchContract(); }, [id]);
 
+  // Carga el contrato por id, incluyendo iniciador, participantes y el listado asociado
   const fetchContract = async () => {
     if (!contract) setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -100,6 +105,7 @@ export default function ContractDetailScreen() {
     setLoading(false);
   };
 
+  // Arma el documento HTML detallado del contrato (cláusulas, partes, firmas) para exportarlo a PDF
   const generateContractHTML = (contractData: Contract, activeStatus: string) => {
     const c = contractData.clauses || {};
     const initiatorName = contractData.initiator?.name ?? (locale === 'es' ? 'Parte Iniciadora' : 'Initiating Party');
@@ -422,6 +428,7 @@ export default function ContractDetailScreen() {
     `;
   };
 
+  // Pide confirmación, activa el contrato, genera su PDF firmado y lo sube al bucket privado 'contracts'
   const handleAccept = async () => {
     Alert.alert(
       t('contracts.accept_confirm_title'),
@@ -499,6 +506,7 @@ export default function ContractDetailScreen() {
     );
   };
 
+  // Pide confirmación y marca el contrato como terminado, registrando la fecha de terminación
   const handleTerminate = async () => {
     Alert.alert(
       t('contracts.terminate_confirm_title'),
@@ -517,6 +525,7 @@ export default function ContractDetailScreen() {
     );
   };
 
+  // Descarga/comparte el PDF del contrato: usa la URL firmada si ya existe un pdf_url guardado, o lo genera al vuelo (y lo sube si el contrato está activo)
   const handleGenerateAndDownload = async () => {
     if (!contract) return;
     setGenerating(true);
@@ -781,6 +790,7 @@ export default function ContractDetailScreen() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+// Bloque de sección con título y contenedor de filas, usado para agrupar cláusulas del contrato
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={s.section}>
@@ -790,6 +800,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// Fila simple de etiqueta/valor dentro de una Section
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <View style={s.row}>

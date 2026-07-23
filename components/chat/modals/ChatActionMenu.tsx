@@ -15,6 +15,7 @@ interface ChatActionMenuProps {
   onDeleteForEveryone: (id: string) => void;
 }
 
+// Menú de acciones (bottom sheet) sobre un mensaje: responder, reenviar, copiar, ver info o eliminar
 export default function ChatActionMenu({
   visible,
   activeMessage,

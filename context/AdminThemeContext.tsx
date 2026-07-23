@@ -8,6 +8,7 @@ type AdminThemeContextType = {
 
 const AdminThemeContext = createContext<AdminThemeContextType | undefined>(undefined);
 
+// Provee el color de acento del tema admin y lo persiste en AsyncStorage
 export const AdminThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accentColor, setAccentColor] = useState('#49C788');
 
@@ -15,6 +16,7 @@ export const AdminThemeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     loadTheme();
   }, []);
 
+  // Carga el color de acento guardado previamente en AsyncStorage
   const loadTheme = async () => {
     try {
       const savedColor = await AsyncStorage.getItem('@admin_accent_color');
@@ -26,6 +28,7 @@ export const AdminThemeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  // Actualiza el color de acento en estado y lo guarda en AsyncStorage
   const changeAccentColor = async (color: string) => {
     try {
       setAccentColor(color);
@@ -42,6 +45,7 @@ export const AdminThemeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
+// Hook para acceder al contexto del tema admin (color de acento)
 export const useAdminTheme = () => {
   const context = useContext(AdminThemeContext);
   if (!context) {

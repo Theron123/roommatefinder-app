@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
+// Pantalla de inicio de sesión con email y contraseña
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +22,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
 
+  // Consulta el rol del perfil y redirige al usuario a la sección correspondiente (admin, empresa, tabs o selección de rol)
   const checkProfileAndRedirect = async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
@@ -39,6 +41,7 @@ export default function LoginScreen() {
     }
   };
 
+  // Valida los campos, autentica al usuario con Supabase y redirige según su perfil
   const handleSignIn = async () => {
     setMessage({ text: '', type: '' });
     if (!email || !password) {

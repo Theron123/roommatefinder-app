@@ -14,6 +14,7 @@ import { useInboxData } from '@/hooks/useInboxQueries';
 import { InboxConversationItem } from '@/components/inbox/InboxConversationItem';
 import { InboxMatchItem } from '@/components/inbox/InboxMatchItem';
 
+// Pantalla de bandeja de entrada: lista conversaciones, matches nuevos y búsqueda de usuarios
 export default function InboxScreen() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function InboxScreen() {
     }
   }, [searchQuery]);
 
+  // Busca perfiles por nombre en Supabase para la barra de búsqueda
   const searchProfiles = async (query: string) => {
     const { data: profiles } = await supabase
       .from('profiles')
@@ -55,6 +57,7 @@ export default function InboxScreen() {
   useEffect(() => {
     let inboxChannel: any = null;
 
+    // Suscribe al canal de mensajes en tiempo real e invalida la query de inbox cuando llega uno nuevo
     const setupInboxSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -81,10 +84,12 @@ export default function InboxScreen() {
     };
   }, [queryClient]);
 
+  // Navega a la pantalla de chat de la conversación seleccionada
   const handleConversationPress = useCallback((id: string) => {
     router.push(`/chat/${id}` as any);
   }, [router]);
 
+  // Renderiza un item de la lista de conversaciones
   const renderConversation = useCallback(({ item }: { item: any }) => {
     return (
       <InboxConversationItem
@@ -95,6 +100,7 @@ export default function InboxScreen() {
     );
   }, [currentUserId, handleConversationPress]);
 
+  // Renderiza un resultado de búsqueda de usuarios como enlace al perfil
   const renderSearchItem = useCallback(({ item }: { item: any }) => (
     <Pressable onPress={() => router.push(`/profile/${item.id}` as any)} style={styles.row}>
       <Image source={{ uri: item.photoUrl }} style={styles.avatar} contentFit="cover" transition={200} cachePolicy="memory-disk" />
@@ -110,10 +116,12 @@ export default function InboxScreen() {
     </Pressable>
   ), [router, t]);
 
+  // Navega al chat correspondiente al hacer tap en un match nuevo
   const handleMatchPress = useCallback((id: string) => {
     router.push(`/chat/${id}` as any);
   }, [router]);
 
+  // Renderiza un item de la fila horizontal de nuevos matches
   const renderMatchItem = useCallback(({ item }: { item: any }) => (
     <InboxMatchItem item={item} onPress={handleMatchPress} />
   ), [handleMatchPress]);

@@ -9,6 +9,7 @@ interface MessageInfoModalProps {
   onClose: () => void;
 }
 
+// Modal de detalles de un mensaje: vista previa de la burbuja, fecha/hora de envío y estado de lectura
 export default function MessageInfoModal({
   visible,
   message,
@@ -24,6 +25,7 @@ export default function MessageInfoModal({
   const dateStr = date.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
 
+  // Traduce el tipo de multimedia del mensaje a una etiqueta legible con emoji
   const getMediaLabel = () => {
     if (!message.media_type) return null;
     switch (message.media_type) {

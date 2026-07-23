@@ -54,11 +54,13 @@ const SLIDES = [
   },
 ];
 
+// Carrusel de bienvenida (onboarding) con slides explicativos; redirige a usuarios ya logueados según su rol
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { force } = useLocalSearchParams<{ force?: string }>();
 
   useEffect(() => {
+    // Si ya hay sesión activa con rol definido, salta el onboarding y redirige a la sección correspondiente
     const checkActiveSessionOnMount = async () => {
       if (force === 'true') return;
       try {
@@ -87,6 +89,7 @@ export default function OnboardingScreen() {
     checkActiveSessionOnMount();
   }, [force]);
 
+  // Decide a dónde navegar al terminar/saltar el onboarding, según sesión, rol de perfil y si se forzó la vista
   const navigateNextOrHome = async () => {
     if (force === 'true') {
       if (router.canGoBack()) {
@@ -141,6 +144,7 @@ export default function OnboardingScreen() {
     }
   };
 
+  // Avanza al siguiente slide o, si es el último, navega fuera del onboarding
   const handleNext = async () => {
     if (currentIndex < SLIDES.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -149,12 +153,14 @@ export default function OnboardingScreen() {
     }
   };
 
+  // Salta el onboarding directamente
   const handleSkip = async () => {
     await navigateNextOrHome();
   };
 
   const currentSlide = SLIDES[currentIndex];
 
+  // Devuelve el bloque gráfico decorativo (mock cards) correspondiente al slide actual según su id
   const renderSlideGraphic = (id: string) => {
     switch (id) {
       case '1':

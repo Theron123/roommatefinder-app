@@ -3,6 +3,7 @@
  * Facilita el diagnóstico, reporte y recuperación de fallos en producción.
  */
 
+// Clase base para todos los errores de la integración con Yardi
 export class YardiIntegrationError extends Error {
   public readonly timestamp: Date;
 

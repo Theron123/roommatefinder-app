@@ -30,6 +30,7 @@ type Contract = {
   created_at: string | null;
 };
 
+// Pantalla de contratos: lista, filtra y gestiona el ciclo de vida de los contratos de arrendamiento
 export default function CompanyContractsScreen() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +45,7 @@ export default function CompanyContractsScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Combina contratos reales de Supabase (unidos a los listings) con contratos locales simulados (borradores/pendientes)
   const loadContracts = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -141,11 +143,13 @@ export default function CompanyContractsScreen() {
     loadContracts();
   }, [loadContracts]);
 
+  // Refresca la lista de contratos mediante pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     loadContracts();
   };
 
+  // Actualiza el estado de un contrato (local o en Supabase según su origen) y refresca la lista
   const handleUpdateStatus = async (contractId: string, newStatus: Contract['status']) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -181,6 +185,7 @@ export default function CompanyContractsScreen() {
     return matchesSearch && matchesStatus;
   });
 
+  // Devuelve la etiqueta traducida y el color asociados al estado del contrato
   const getStatusLabel = (status: Contract['status']) => {
     const labels = {
       draft: { es: 'Borrador', en: 'Draft', color: '#888' },

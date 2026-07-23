@@ -5,6 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// Pantalla que simula el estado de suscripción premium (toggle mock) para probar el paywall
 export default function SubscriptionsScreen() {
   const router = useRouter();
   const [isPremium, setIsPremium] = useState(false);
@@ -14,6 +15,7 @@ export default function SubscriptionsScreen() {
     fetchSubscriptionStatus();
   }, []);
 
+  // Lee de Supabase si el usuario tiene activado share_badges_enabled (flag mock de premium)
   const fetchSubscriptionStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -31,6 +33,7 @@ export default function SubscriptionsScreen() {
     setLoading(false);
   };
 
+  // Actualiza el estado premium local y lo persiste en el perfil de Supabase
   const toggleSubscription = async (value: boolean) => {
     setIsPremium(value);
     try {

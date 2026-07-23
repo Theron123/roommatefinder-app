@@ -23,6 +23,7 @@ type CalendarEvent = {
   color: string;
 };
 
+// Pantalla de agenda comercial: muestra visitas, mudanzas, expiraciones y recordatorios filtrables por tipo
 export default function CompanyCalendarScreen() {
   const [filterType, setFilterType] = useState<string>('all');
   const { locale } = useTranslation();
@@ -84,6 +85,7 @@ export default function CompanyCalendarScreen() {
     return e.type === filterType;
   });
 
+  // Devuelve el ícono correspondiente al tipo de evento del calendario
   const getEventIcon = (type: CalendarEvent['type']) => {
     const icons = {
       visit: 'eye-outline',
@@ -95,6 +97,7 @@ export default function CompanyCalendarScreen() {
     return icons[type] || 'calendar';
   };
 
+  // Muestra un detalle emergente con la fecha, departamento y descripción del evento seleccionado
   const handleEventPress = (event: CalendarEvent) => {
     Alert.alert(
       event.title,

@@ -13,6 +13,7 @@ interface ContractStepMatchesProps {
   t: any;
 }
 
+// Paso del wizard de contratos: busca y selecciona los roommates (matches) que firmarán el contrato
 export default function ContractStepMatches({
   matches,
   selectedUsers,

@@ -18,6 +18,7 @@ const CONFLICT_REASONS = [
   { id: 'other', icon: 'alert-circle-outline' }
 ];
 
+// Pantalla para abrir un ticket de disputa/reporte contra otro usuario (Trust Center)
 export default function ConflictResolutionCenter() {
   const { t, locale } = useTranslation();
   const { userId, userName } = useLocalSearchParams<{ userId?: string, userName?: string, contractId?: string }>();
@@ -33,6 +34,7 @@ export default function ConflictResolutionCenter() {
   const [customAlertMessage, setCustomAlertMessage] = useState('');
   const [customAlertButtons, setCustomAlertButtons] = useState<any[]>([]);
 
+  // Traduce el id de una razón de conflicto a su etiqueta localizada
   const getReasonLabel = (id: string) => {
     switch (id) {
       case 'noise': return t('report.reasons.noise');
@@ -53,6 +55,7 @@ export default function ConflictResolutionCenter() {
     setCustomAlertVisible(true);
   };
 
+  // Valida la razón seleccionada e inserta el reporte/disputa en user_reports, mostrando alerta de éxito o error
   const handleSubmit = async () => {
     if (!selectedReason) {
       triggerAlert(t('general.error') || 'Error', t('report.category_err'));
@@ -97,6 +100,7 @@ export default function ConflictResolutionCenter() {
     }
   };
 
+  // Alterna el estado local de "evidencia adjunta" (mock, sin subida real de archivo)
   const handleAttachEvidence = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setEvidenceAttached(!evidenceAttached);

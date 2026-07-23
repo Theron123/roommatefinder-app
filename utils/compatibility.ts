@@ -1,3 +1,4 @@
+// Calcula el porcentaje de compatibilidad de estilo de vida entre dos usuarios comparando campos clave
 export const calculateCompatibility = (user1: any, user2: any) => {
   if (!user1?.lifestyle || !user2?.lifestyle) return null;
   

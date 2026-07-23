@@ -40,6 +40,7 @@ const LIFESTYLE_OPTIONS = [
 
 const LANGUAGES = ['Spanish', 'English', 'French', 'German', 'Portuguese', 'Italian'];
 
+// Pantalla de preferencias: gestiona ubicación, fotos, hobbies, dealbreakers, estilo de vida e idiomas del perfil
 export default function PreferencesScreen() {
   const { t, locale, translateHobby, translateDealbreaker, translateLifestyleKey, translateLifestyleVal, translateLanguage } = useTranslation();
 
@@ -68,6 +69,7 @@ export default function PreferencesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Carga el perfil existente desde Supabase y precarga fotos, likes, dealbreakers, estilo de vida y ubicación (con reverse geocoding)
   const loadExistingPreferences = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -147,6 +149,7 @@ export default function PreferencesScreen() {
     }
   };
 
+  // Abre el picker de imágenes, sube la foto al slot indicado a Supabase Storage y actualiza el perfil
   const pickImage = async (slotIndex: number) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -219,6 +222,7 @@ export default function PreferencesScreen() {
     }
   };
 
+  // Agrega o quita un ítem de un Set de selección múltiple (hobbies/dealbreakers/idiomas)
   const toggleSelection = (item: string, setObj: Set<string>, setFn: (val: Set<string>) => void) => {
     const newSet = new Set(setObj);
     if (newSet.has(item)) {
@@ -229,11 +233,13 @@ export default function PreferencesScreen() {
     setFn(newSet);
   };
 
+  // Actualiza un campo individual del objeto de estilo de vida
   const setLifestyleField = (key: string, value: string) => {
     setLifestyleData(prev => ({ ...prev, [key]: value }));
   };
 
-  const ChipGroup = ({ 
+  // Grupo de chips de selección múltiple (toggle) para listas como hobbies o dealbreakers
+  const ChipGroup = ({
     items, 
     selectedSet, 
     setFn, 
@@ -263,7 +269,8 @@ export default function PreferencesScreen() {
     </View>
   );
 
-  const SingleChoiceGroup = ({ 
+  // Grupo de chips de selección única para opciones de estilo de vida
+  const SingleChoiceGroup = ({
     options, 
     selectedValue, 
     onSelect, 
@@ -293,6 +300,7 @@ export default function PreferencesScreen() {
     </View>
   );
 
+  // Valida datos requeridos (ubicación y foto), arma el payload de preferencias y crea/actualiza el perfil en Supabase
   const handleSave = async () => {
     setLoading(true);
 

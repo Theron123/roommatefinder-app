@@ -2,11 +2,13 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/lib/types';
 
+// Hook para obtener los matches del usuario junto con los perfiles asociados
 export function useMatches() {
   const [matches, setMatches] = useState<Profile[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [errorMatches, setErrorMatches] = useState<string | null>(null);
 
+  // Consulta los matches del usuario actual (o el id pasado) y sus perfiles de Supabase
   const fetchMatches = useCallback(async (currentUserId: string | undefined = undefined) => {
     setLoadingMatches(true);
     setErrorMatches(null);

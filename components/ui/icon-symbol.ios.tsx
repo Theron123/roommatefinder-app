@@ -1,6 +1,7 @@
 import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { StyleProp, ViewStyle } from 'react-native';
 
+// Ícono nativo iOS: envuelve SymbolView para renderizar SF Symbols con tamaño, color y peso configurables
 export function IconSymbol({
   name,
   size = 24,

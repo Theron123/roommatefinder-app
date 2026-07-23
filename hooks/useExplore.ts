@@ -14,6 +14,7 @@ import { Image } from 'expo-image';
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
 const LIMITS = { like: 30, reject: 30, skip: 5 };
 
+// Hook principal de la pantalla Explore: maneja perfiles candidatos, swipes, matches y cuotas de uso
 export function useExplore() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
@@ -30,6 +31,7 @@ export function useExplore() {
   const { fetchMatches } = useMatches();
   const { requestLocation } = useDeviceLocation();
 
+  // Consulta el número de mensajes no leídos del usuario actual
   const fetchUnreadCount = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,6 +91,7 @@ export function useExplore() {
     };
   }, []);
 
+  // Carga los perfiles candidatos para explorar, aplicando filtros activos y excluyendo ya swipeados
   const fetchProfiles = async () => {
     setLoading(true);
     setAllSwiped(false);
@@ -177,6 +180,7 @@ export function useExplore() {
     }
   };
 
+  // Obtiene los perfiles con match y les asigna coordenadas de mapa listas para mostrar
   const fetchMatchedProfiles = async () => {
     try {
       const loadedProfiles = await fetchMatches();
@@ -231,8 +235,10 @@ export function useExplore() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Callback vacío para el evento genérico de swipe del componente Swiper
   const onSwiped = () => {};
 
+  // Verifica y actualiza la cuota horaria de swipes (like/reject/skip); revierte el swipe si se excede el límite
   const checkQuota = async (type: 'like' | 'reject' | 'skip') => {
     try {
       const raw = await AsyncStorage.getItem(QUOTA_KEY);
@@ -257,6 +263,7 @@ export function useExplore() {
     }
   };
 
+  // Guarda un swipe (like o reject) en la tabla swipes
   const recordSwipe = async (targetId: string, liked: boolean) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -273,6 +280,7 @@ export function useExplore() {
     }
   };
 
+  // Maneja el swipe hacia la izquierda (rechazo), respetando la cuota
   const onSwipedLeft = async (index: number) => {
     const allowed = await checkQuota('reject');
     if (allowed) {
@@ -282,6 +290,7 @@ export function useExplore() {
     }
   };
 
+  // Maneja el swipe hacia la derecha (like): registra el swipe y crea/detecta el match mutuo, notificando al usuario
   const onSwipedRight = async (index: number) => {
     const allowed = await checkQuota('like');
     if (allowed) {
@@ -350,17 +359,20 @@ export function useExplore() {
     }
   };
 
+  // Maneja el swipe hacia abajo (saltar perfil), respetando la cuota
   const onSwipedBottom = async (index: number) => {
     const allowed = await checkQuota('skip');
     if (allowed) console.log('Skipped', profiles[index].id);
   };
 
+  // Maneja el swipe hacia arriba: navega directo al chat con ese perfil
   const onSwipedTop = (index: number) => {
     if (index < profiles.length) {
       router.push(`/chat/${profiles[index].id}`);
     }
   };
 
+  // Marca que ya no quedan perfiles por mostrar
   const onSwipedAll = () => {
     setAllSwiped(true);
   };

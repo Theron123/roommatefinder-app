@@ -11,6 +11,7 @@ interface ExploreSwipeControlsProps {
   btnSmallSize: number;
 }
 
+// Botones flotantes de acción del swiper: saltar, rechazar, dar like y mensaje directo
 export default function ExploreSwipeControls({
   swiperRef,
   btnBigSize,

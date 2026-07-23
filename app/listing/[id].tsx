@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 
+// Pantalla de detalle de un listado (propiedad): galería de fotos, info del host y acciones de contacto/renta
 export default function ListingDetailScreen() {
   const { id: rawId } = useLocalSearchParams();
   const id = Array.isArray(rawId) ? rawId[0] : (rawId || '');
@@ -34,6 +35,7 @@ export default function ListingDetailScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Carga el listado por id y el perfil del host asociado; si no existe, avisa y vuelve atrás
   const fetchListingDetails = async () => {
     setLoading(true);
     
@@ -71,6 +73,7 @@ export default function ListingDetailScreen() {
     setLoading(false);
   };
 
+  // Navega al chat con el host, evitando que el usuario se mensajee a sí mismo
   const handleMessageHost = () => {
     if (!host) return;
     if (host.id === myId) {
@@ -80,6 +83,7 @@ export default function ListingDetailScreen() {
     router.push(`/chat/${host.id}`);
   };
 
+  // Muestra confirmación mock de solicitud de renta enviada (no crea registro real)
   const handleRentNow = () => {
     Alert.alert(
       'Rent Request Sent!',

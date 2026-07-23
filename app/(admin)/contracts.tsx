@@ -49,6 +49,7 @@ type ContractAuditLog = {
 
 const STATUS_FILTERS = ['all', 'pending_authorization', 'active', 'terminated'];
 
+// Pantalla admin de moderación de contratos: lista, filtra y gestiona el ciclo de vida de contratos
 export default function AdminContracts() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +74,7 @@ export default function AdminContracts() {
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Muestra un mensaje toast temporal en pantalla
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -80,6 +82,7 @@ export default function AdminContracts() {
     }, 3000);
   };
 
+  // Muestra una alerta o toast según el tipo de mensaje (éxito, error o info)
   const showAlert = (title: string, message: string) => {
     const isError = title.toLowerCase() === 'error';
     const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
@@ -104,6 +107,7 @@ export default function AdminContracts() {
     terminated: { label: locale === 'es' ? 'Terminado' : 'Terminated', color: '#FF4B4B', bg: 'rgba(255,75,75,0.08)', icon: 'close-circle-outline' },
   };
 
+  // Traduce el tipo de contrato a una etiqueta legible según el idioma
   const getContractTypeLabel = (type: string) => {
     if (type === 'roommate_agreement') {
       return locale === 'es' ? 'Acuerdo de Roommate' : 'Roommate Agreement';
@@ -286,12 +290,14 @@ export default function AdminContracts() {
     fetchStats();
   }, [fetchContracts]);
 
+  // Refresca la lista de contratos y las estadísticas (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchContracts();
     fetchStats();
   };
 
+  // Abre el modal de detalle de un contrato y carga sus metadatos locales
   const openContractDetail = (contract: Contract) => {
     setSelectedContract(contract);
     loadAdminMetadata(contract.id);
@@ -371,6 +377,7 @@ export default function AdminContracts() {
     }
   };
 
+  // Formatea una fecha ISO a un string legible según el idioma
   const formatDate = (iso: string) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
@@ -390,6 +397,7 @@ export default function AdminContracts() {
     return initMatch || hostMatch || propMatch;
   });
 
+  // Renderiza la tarjeta de un contrato en la lista (tipo, estado, partes y propiedad)
   const renderContract = ({ item }: { item: Contract }) => {
     const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.draft;
     const tenantName = item.initiator?.name || (locale === 'es' ? 'Inquilino' : 'Tenant');
@@ -442,6 +450,7 @@ export default function AdminContracts() {
     );
   };
 
+  // Renderiza el toast flotante si hay uno activo
   const renderToast = () => {
     if (!toast) return null;
     return (

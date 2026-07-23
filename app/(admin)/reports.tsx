@@ -68,6 +68,7 @@ type AuditItem = {
 const COMPLAINT_STATUSES = ['pending', 'reviewed', 'resolved', 'dismissed'];
 const TABS = ['overview', 'users', 'accommodations', 'contracts', 'roommates', 'complaints', 'audit', 'insights'];
 
+// Pantalla admin de reportes/analíticas: dashboard, tablas y exportación CSV por sección
 export default function AdminReports() {
   const [activeTab, setActiveTab] = useState('overview');
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -232,6 +233,7 @@ export default function AdminReports() {
     }
   };
 
+  // Orquesta la carga de datos analíticos con estados de loading/refreshing
   const loadData = async () => {
     setLoading(true);
     await fetchAnalyticsData();
@@ -243,6 +245,7 @@ export default function AdminReports() {
     loadData();
   }, []);
 
+  // Refresca todos los datos analíticos (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
@@ -407,12 +410,14 @@ export default function AdminReports() {
     });
   };
 
+  // Formatea una fecha ISO a fecha y hora abreviadas según el idioma
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
       month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit',
     });
 
+  // Traduce la clave de una pestaña a su etiqueta legible según el idioma
   const translateType = (tabKey: string) => {
     const dict: Record<string, string> = {
       overview: locale === 'es' ? 'Resumen' : 'Dashboard',

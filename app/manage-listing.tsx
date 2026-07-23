@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+// Pantalla para crear/editar/eliminar el listado (anuncio) de propiedad del usuario actual
 export default function ManageListingScreen() {
   useLocalSearchParams();
   const [loading, setLoading] = useState(true);
@@ -26,6 +27,7 @@ export default function ManageListingScreen() {
     fetchListing();
   }, []);
 
+  // Carga el listado existente del usuario (si lo hay) y precarga el formulario con sus datos
   const fetchListing = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -53,6 +55,7 @@ export default function ManageListingScreen() {
     }
   };
 
+  // Valida campos requeridos y crea o actualiza el listado en Supabase según exista listingId
   const handleSave = async () => {
     if (!title || !price) {
       Alert.alert('Error', 'Title and Price are required.');
@@ -93,6 +96,7 @@ export default function ManageListingScreen() {
     setSaving(false);
   };
 
+  // Pide confirmación y elimina el listado actual de Supabase
   const handleDelete = async () => {
     if (!listingId) return;
     Alert.alert('Delete Listing', 'Are you sure?', [
@@ -106,6 +110,7 @@ export default function ManageListingScreen() {
     ]);
   };
 
+  // Abre el picker de imágenes, sube la foto elegida a Supabase Storage y guarda su URL pública en el slot correspondiente
   const pickImage = async (slotIndex?: number) => {
     const targetIdx = typeof slotIndex === 'number' ? slotIndex : 0;
     let result = await ImagePicker.launchImageLibraryAsync({

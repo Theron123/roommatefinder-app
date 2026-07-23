@@ -8,6 +8,8 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:8081',
 ]);
 
+// Devuelve los headers CORS a usar en la respuesta, reflejando el origin de la
+// request solo si está en la allowlist; si no, cae al dominio de producción.
 export function getCorsHeaders(origin: string | null) {
   const allowOrigin = origin && ALLOWED_ORIGINS.has(origin) ? origin : 'https://roomiemates.com';
   return {

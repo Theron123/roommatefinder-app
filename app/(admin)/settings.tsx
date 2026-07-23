@@ -26,6 +26,7 @@ const THEME_COLORS = [
   { name: 'gold',    value: '#FFD60A' },
 ];
 
+// Pantalla admin de ajustes: idioma, tema, configuración del sistema, integraciones y perfil
 export default function AdminSettings() {
   const { locale, setLocale, t } = useTranslation();
   const { accentColor, changeAccentColor } = useAdminTheme();
@@ -49,6 +50,7 @@ export default function AdminSettings() {
   const [testingYardi, setTestingYardi]       = useState(false);
   const [yardiTestLogs, setYardiTestLogs]     = useState<string[] | null>(null);
 
+  // Ejecuta una prueba de conexión simulada contra la integración de Yardi Voyager, mostrando logs paso a paso
   const handleTestYardi = async () => {
     setTestingYardi(true);
     setYardiTestLogs([]);
@@ -100,6 +102,7 @@ export default function AdminSettings() {
     loadSystemConfigs();
   }, []);
 
+  // Carga el perfil del usuario y las configuraciones del sistema guardadas localmente
   const loadSystemConfigs = async () => {
     setLoading(true);
     try {
@@ -137,6 +140,7 @@ export default function AdminSettings() {
     }
   };
 
+  // Cambia el idioma de la app con una pequeña transición de carga
   const handleLanguageChange = async (newLocale: Locale) => {
     if (locale === newLocale) return;
     setLoading(true);
@@ -146,6 +150,7 @@ export default function AdminSettings() {
     }, 400);
   };
 
+  // Guarda la configuración del sistema (admin) o el perfil (empresa/propietario) según el rol
   const handleSaveConfigs = async () => {
     setSaving(true);
     try {

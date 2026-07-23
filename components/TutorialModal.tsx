@@ -9,6 +9,7 @@ import { useTranslation } from '../context/LanguageContext';
 
 const TUTORIAL_VERSION = 'v1.0.0';
 
+// Modal de tutorial guiado (spotlight/onboarding) que resalta cada tab de la app paso a paso
 export default function TutorialModal() {
   const { width, height } = useWindowDimensions();
   const [visible, setVisible] = useState(false);
@@ -130,6 +131,7 @@ export default function TutorialModal() {
       setRegisteredCoords(prev => ({ ...prev, [key]: coords }));
     });
 
+    // Atajo de teclado (solo web) para reabrir el tutorial desde el inicio con la tecla "+"
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === '+' || e.key === 'Add' || e.code === 'NumpadAdd') {
         setVisible(true);
@@ -181,6 +183,7 @@ export default function TutorialModal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, currentIndex]);
 
+  // Genera la clave de AsyncStorage para recordar la versión de tutorial vista, por usuario si hay sesión
   const getStorageKey = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -191,6 +194,7 @@ export default function TutorialModal() {
     }
   };
 
+  // Comprueba si el usuario ya vio la versión actual del tutorial; si no, lo muestra
   const checkTutorial = async () => {
     try {
       const storageKey = await getStorageKey();
@@ -203,6 +207,7 @@ export default function TutorialModal() {
     }
   };
 
+  // Avanza al siguiente paso del tutorial (navegando a su ruta y animando el fade) o finaliza si es el último
   const handleNext = () => {
     if (currentIndex < steps.length - 1) {
       const nextIndex = currentIndex + 1;
@@ -230,6 +235,7 @@ export default function TutorialModal() {
     }
   };
 
+  // Marca el tutorial como completado (guarda la versión en AsyncStorage) y cierra el modal
   const handleFinish = async () => {
     try {
       const storageKey = await getStorageKey();

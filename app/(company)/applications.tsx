@@ -29,6 +29,7 @@ type Application = {
   notes?: string;
 };
 
+// Pantalla de postulaciones: filtra, revisa y decide sobre las solicitudes de inquilinos
 export default function CompanyApplicationsScreen() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +43,7 @@ export default function CompanyApplicationsScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Carga las postulaciones guardadas localmente, o inicializa datos de ejemplo si no existen
   const loadApplications = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -74,11 +76,13 @@ export default function CompanyApplicationsScreen() {
     loadApplications();
   }, [loadApplications]);
 
+  // Refresca la lista de postulaciones mediante pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     loadApplications();
   };
 
+  // Actualiza el estado de una postulación (pendiente/aceptada/rechazada) y registra el cambio en la bitácora
   const updateAppStatus = async (appId: string, newStatus: Application['status']) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -115,6 +119,7 @@ export default function CompanyApplicationsScreen() {
     }
   };
 
+  // Notifica al usuario que se envió una solicitud de información adicional al postulante
   const handleRequestInfo = () => {
     Alert.alert(
       locale === 'es' ? 'Solicitar Información' : 'Request Info',
@@ -124,6 +129,7 @@ export default function CompanyApplicationsScreen() {
     );
   };
 
+  // Notifica al usuario que se abrió un canal de chat con el postulante seleccionado
   const handleContact = () => {
     Alert.alert(
       locale === 'es' ? 'Contacto PMS' : 'PMS Contact',
@@ -138,6 +144,7 @@ export default function CompanyApplicationsScreen() {
     return a.status === filterTab;
   });
 
+  // Renderiza la insignia de color según el estado de la postulación
   const getStatusBadge = (status: Application['status']) => {
     const config = {
       pending: { color: '#ff9f0a', bg: 'rgba(255,159,10,0.12)', es: 'Pendiente', en: 'Pending' },
@@ -153,6 +160,7 @@ export default function CompanyApplicationsScreen() {
     );
   };
 
+  // Renderiza la insignia de verificación de identidad del postulante
   const getVerifBadge = (status: Application['verifStatus']) => {
     const isV = status === 'verified';
     return (

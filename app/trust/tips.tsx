@@ -7,6 +7,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 
+// Pantalla estática con consejos de seguridad para usuarios (Trust Center)
 export default function SecurityTipsScreen() {
   const { t } = useTranslation();
 
@@ -77,6 +78,7 @@ export default function SecurityTipsScreen() {
   );
 }
 
+// Tarjeta reutilizable que muestra un ícono, título y descripción de un consejo de seguridad
 const TipCard = ({ icon, title, desc }: any) => (
   <BlurView intensity={10} tint="dark" style={s.card}>
     <View style={s.iconWrap}>

@@ -24,6 +24,7 @@ type Contract = {
   contract_participants: { user: { name: string } | null }[];
 };
 
+// Hub de contratos: lista acuerdos, reglas de convivencia del contrato activo y disputas, con tabs y modal para reportar
 export default function AgreementsHubScreen() {
   const { t, locale } = useTranslation();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -48,6 +49,7 @@ export default function AgreementsHubScreen() {
     sublease:           locale === 'es' ? 'Subarrendamiento' : 'Sublease',
   };
 
+  // Traduce la clave de una cláusula opcional del contrato a su etiqueta localizada
   const getOptionalClauseLabel = (key: string) => {
     const dict: Record<string, { en: string; es: string }> = {
       no_subletting:       { en: 'No subletting', es: 'Sin subarrendamiento' },
@@ -63,6 +65,7 @@ export default function AgreementsHubScreen() {
     return dict[key]?.[locale] || key;
   };
 
+  // Traduce el id de una razón de disputa a su etiqueta localizada
   const getReasonLabel = (id: string) => {
     switch (id) {
       case 'noise': return t('report.reasons.noise');
@@ -75,6 +78,7 @@ export default function AgreementsHubScreen() {
     }
   };
 
+  // Devuelve el ícono correspondiente a una razón de disputa
   const getReasonIcon = (id: string) => {
     switch (id) {
       case 'noise': return 'volume-high';
@@ -86,6 +90,7 @@ export default function AgreementsHubScreen() {
     }
   };
 
+  // Devuelve etiqueta y color según el estado de una disputa/reporte
   const getDisputeStatusConfig = (status: string) => {
     switch (status) {
       case 'pending':
@@ -109,6 +114,7 @@ export default function AgreementsHubScreen() {
     }, [])
   );
 
+  // Carga los contratos del usuario (como iniciador o participante), sus reportes de disputas y los roommates emparejados
   const fetchContracts = async () => {
     if (contracts.length === 0) {
       setLoading(true);
@@ -176,6 +182,7 @@ export default function AgreementsHubScreen() {
   const pendingCount = contracts.filter(c => c.status === 'pending_authorization').length;
   const activeContract = contracts.find(c => c.status === 'active');
 
+  // Abre el modal para elegir con qué roommate iniciar una disputa, o avisa si no hay matches
   const handleOpenReport = () => {
     if (roommates.length === 0) {
       Alert.alert(
@@ -189,6 +196,7 @@ export default function AgreementsHubScreen() {
     setShowReportModal(true);
   };
 
+  // Cierra el modal de selección y navega a la pantalla de reporte con el roommate elegido
   const handleSelectRoommateToReport = (roommateId: string, roommateName: string) => {
     setShowReportModal(false);
     router.push(`/trust/report?userId=${roommateId}&userName=${encodeURIComponent(roommateName)}`);

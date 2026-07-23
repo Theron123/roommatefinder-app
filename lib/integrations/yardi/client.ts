@@ -1,6 +1,7 @@
 import { YardiConfig } from './config';
 import { YardiApiError } from './errors';
 
+// Cliente HTTP/SOAP para comunicarse con la API de Yardi Voyager, con soporte de reintentos, auth y modo simulación
 export class YardiApiClient {
   private config: YardiConfig;
   private token: string | null = null;
@@ -205,6 +206,7 @@ export class YardiApiClient {
     return fetch(url, options);
   }
 
+  // Intenta parsear la respuesta como JSON y, si falla, cae a texto plano o null
   private async safeParseJson(response: Response): Promise<any> {
     try {
       return await response.json();
@@ -265,6 +267,7 @@ export class YardiApiClient {
    * Habilita pruebas locales sin necesidad de credenciales reales.
    * ==================================================================== */
 
+  // Devuelve respuestas REST simuladas según el endpoint solicitado (modo simulación)
   private simulateRestResponse<T>(url: string, options: RequestInit): T {
     console.log(`[YARDI API REST SIMULATOR] ${options.method} | URL: ${url}`);
     
@@ -454,6 +457,7 @@ export class YardiApiClient {
     return { success: true, simulated: true } as any;
   }
 
+  // Devuelve una respuesta SOAP XML simulada según la acción solicitada (modo simulación)
   private simulateSoapResponse(action: string): string {
     if (action.includes('ImportResidentScreening') || action.includes('GetResidentDetails')) {
       return `<?xml version="1.0" encoding="utf-8"?>

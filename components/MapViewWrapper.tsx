@@ -31,6 +31,7 @@ if (typeof window !== 'undefined') {
   });
 }
 
+// Marcador equivalente a react-native-maps pero implementado sobre Leaflet para la versión web
 export function Marker(props: any) {
   if (typeof window === 'undefined' || !props.coordinate) return null;
   const position = [props.coordinate.latitude, props.coordinate.longitude];
@@ -41,6 +42,7 @@ export function Marker(props: any) {
   );
 }
 
+// Globo/callout equivalente al de react-native-maps, renderizado como un Popup de Leaflet
 export function Callout(props: any) {
   if (typeof window === 'undefined') return null;
   return (
@@ -50,6 +52,7 @@ export function Callout(props: any) {
   );
 }
 
+// Componente auxiliar que recentra y hace zoom en el mapa de Leaflet cuando cambian center/zoom
 function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -60,6 +63,7 @@ function ChangeView({ center, zoom }: { center: [number, number], zoom: number }
   return null;
 }
 
+// Stub de MapView para web: monta un mapa de Leaflet/OpenStreetMap con la misma API que react-native-maps
 export default function MapView(props: any) {
   const { style, children, region, initialRegion } = props;
   const [mounted, setMounted] = useState(false);

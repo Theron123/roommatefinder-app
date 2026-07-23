@@ -5,6 +5,7 @@ import * as mappers from './mappers';
 import { YardiProperty, YardiUnit, YardiResident, YardiLease, YardiWorkOrder, YardiVendor, YardiDocument, YardiFinancialSummary } from './types';
 import { YardiApiError, YardiMappingError } from './errors';
 
+// Implementación del proveedor PMS genérico para Yardi Voyager: sincroniza entidades locales con la API de Yardi
 export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   public readonly providerName = 'Yardi Voyager';
   private client: YardiApiClient;
@@ -19,6 +20,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // PROPIEDADES Y UNIDADES
   // =====================================================================
 
+  // Crea o actualiza una propiedad en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncProperty(property: Omit<PmsProperty, 'externalId'>): Promise<PmsProperty> {
     const payload = mappers.mapPropertyToYardi(property);
     let externalCode = await this.syncManager.getExternalCode(property.id, 'property');
@@ -65,6 +67,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene una propiedad de Yardi por su código externo (null si no existe)
   public async getProperty(externalId: string): Promise<PmsProperty | null> {
     try {
       const response = await this.client.get<YardiProperty>(`/properties/${externalId}`);
@@ -77,11 +80,13 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Lista todas las propiedades registradas en Yardi, mapeadas al modelo interno
   public async listProperties(): Promise<PmsProperty[]> {
     const response = await this.client.get<YardiProperty[]>('/properties');
     return response.map((p) => mappers.mapYardiToProperty(p, '00000000-0000-0000-0000-000000000000'));
   }
 
+  // Crea o actualiza una unidad en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncUnit(unit: Omit<PmsUnit, 'externalId'>): Promise<PmsUnit> {
     const payload = mappers.mapUnitToYardi(unit);
     let externalCode = await this.syncManager.getExternalCode(unit.id, 'unit');
@@ -126,6 +131,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene una unidad de Yardi por su código externo (null si no existe)
   public async getUnit(externalId: string): Promise<PmsUnit | null> {
     try {
       const response = await this.client.get<YardiUnit>(`/units/${externalId}`);
@@ -141,6 +147,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // RESIDENTES E INQUILINOS
   // =====================================================================
 
+  // Crea o actualiza un residente en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncResident(resident: Omit<PmsResident, 'externalId'>): Promise<PmsResident> {
     // Para Yardi necesitamos códigos de propiedad y unidad externos.
     // En este diseño base, los obtenemos asumiendo valores mock o consultando mapeos si estuvieran vinculados.
@@ -189,6 +196,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene un residente de Yardi por su código externo (null si no existe)
   public async getResident(externalId: string): Promise<PmsResident | null> {
     try {
       const response = await this.client.get<YardiResident>(`/residents/${externalId}`);
@@ -204,6 +212,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // CONTRATOS Y ARRENDAMIENTOS (LEASES)
   // =====================================================================
 
+  // Crea o actualiza un contrato/arrendamiento en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncLease(lease: Omit<PmsLease, 'externalId'>): Promise<PmsLease> {
     const payload = mappers.mapLeaseToYardi(lease);
     let externalCode = await this.syncManager.getExternalCode(lease.id, 'lease');
@@ -253,6 +262,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene un contrato/arrendamiento de Yardi por su código externo (null si no existe)
   public async getLease(externalId: string): Promise<PmsLease | null> {
     try {
       const response = await this.client.get<YardiLease>(`/leases/${externalId}`);
@@ -268,6 +278,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // MANTENIMIENTO Y ÓRDENES DE TRABAJO
   // =====================================================================
 
+  // Crea o actualiza una orden de trabajo en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncWorkOrder(workOrder: Omit<PmsWorkOrder, 'externalId'>): Promise<PmsWorkOrder> {
     const payload = mappers.mapWorkOrderToYardi(workOrder);
     let externalCode = await this.syncManager.getExternalCode(workOrder.id, 'work_order');
@@ -312,6 +323,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene una orden de trabajo de Yardi por su código externo (null si no existe)
   public async getWorkOrder(externalId: string): Promise<PmsWorkOrder | null> {
     try {
       const response = await this.client.get<YardiWorkOrder>(`/workorders/${externalId}`);
@@ -323,6 +335,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Lista las órdenes de trabajo de Yardi asociadas a una propiedad
   public async listWorkOrders(propertyExternalId: string): Promise<PmsWorkOrder[]> {
     const response = await this.client.get<YardiWorkOrder[]>('/workorders', { propertyCode: propertyExternalId });
     return response.map((wo) => mappers.mapYardiToWorkOrder(wo, '00000000-0000-0000-0000-000000000000'));
@@ -332,6 +345,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // PROVEEDORES
   // =====================================================================
 
+  // Crea o actualiza un proveedor en Yardi a partir del modelo interno, registrando el resultado en el log de sync
   public async syncVendor(vendor: Omit<PmsVendor, 'externalId'>): Promise<PmsVendor> {
     const payload = mappers.mapVendorToYardi(vendor);
     let externalCode = await this.syncManager.getExternalCode(vendor.id, 'vendor');
@@ -376,6 +390,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Obtiene un proveedor de Yardi por su código externo (null si no existe)
   public async getVendor(externalId: string): Promise<PmsVendor | null> {
     try {
       const response = await this.client.get<YardiVendor>(`/vendors/${externalId}`);
@@ -391,6 +406,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // DOCUMENTOS
   // =====================================================================
 
+  // Sube un documento a Yardi (como adjunto Base64) y guarda el mapeo del ID externo resultante
   public async uploadDocument(document: Omit<PmsDocument, 'externalId'>): Promise<PmsDocument> {
     const payload = mappers.mapDocumentToYardi(document);
     let response: YardiDocument;
@@ -437,6 +453,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     }
   }
 
+  // Lista los documentos de Yardi asociados a una entidad (propiedad, unidad, inquilino, etc.)
   public async listDocuments(entityType: string, entityExternalId: string): Promise<PmsDocument[]> {
     const response = await this.client.get<YardiDocument[]>('/documents', {
       entityType,
@@ -449,6 +466,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
   // DATOS FINANCIEROS (FUTURO-LISTO)
   // =====================================================================
 
+  // Obtiene el resumen financiero (saldo y transacciones) de un contrato desde Yardi
   public async getFinancialSummary(leaseExternalId: string): Promise<PmsFinancialSummary> {
     const response = await this.client.get<YardiFinancialSummary>(`/financials/${leaseExternalId}`);
     
@@ -469,6 +487,7 @@ export class YardiIntegrationProvider implements IPmsIntegrationProvider {
     };
   }
 
+  // Registra un pago en Yardi para un contrato y devuelve el ID de transacción externo
   public async postPayment(payment: {
     leaseExternalId: string;
     amount: number;

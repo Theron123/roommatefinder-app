@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { key: 'settings',      icon: 'cog-outline'            as const, path: '/(admin)/settings', roles: ['admin', 'landlord'] },
 ];
 
+// Layout raíz del panel admin, envuelve el contenido con el proveedor de tema
 export default function AdminLayout() {
   return (
     <AdminThemeProvider>
@@ -38,6 +39,7 @@ export default function AdminLayout() {
   );
 }
 
+// Verifica el rol del usuario, muestra la barra lateral de navegación y renderiza la pantalla activa
 function AdminLayoutContent() {
   const [checking, setChecking] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -47,6 +49,7 @@ function AdminLayoutContent() {
 
   useEffect(() => { verifyAdmin(); }, []);
 
+  // Comprueba la sesión activa y el rol del perfil, redirigiendo según corresponda
   const verifyAdmin = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,6 +92,7 @@ function AdminLayoutContent() {
     }
   }, [pathname, userRole, checking]);
 
+  // Cierra la sesión del usuario y redirige al login
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.replace('/(auth)/login' as any);

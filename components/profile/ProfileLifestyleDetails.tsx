@@ -18,6 +18,7 @@ interface ProfileLifestyleDetailsProps {
   t: any;
 }
 
+// Muestra las secciones de hobbies, estilo de vida, idiomas y dealbreakers del perfil, con accesos para editarlas
 export default function ProfileLifestyleDetails({
   likesArr,
   prefsArr,

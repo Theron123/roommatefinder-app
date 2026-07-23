@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
+// Pantalla de preferencias de notificaciones (matches, mensajes, contratos, verificaciones, sonido)
 export default function NotificationsScreen() {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -19,7 +20,8 @@ export default function NotificationsScreen() {
 
   const isEs = locale === 'es';
 
-  const ToggleItem = ({ 
+  // Fila reutilizable con switch on/off para una preferencia de notificación
+  const ToggleItem = ({
     title, 
     description, 
     value, 

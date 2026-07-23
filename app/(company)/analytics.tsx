@@ -19,6 +19,7 @@ type TopAptItem = {
   conversion: string;
 };
 
+// Pantalla de analíticas de empresa: muestra KPIs, rendimiento por departamento y recomendaciones
 export default function CompanyAnalyticsScreen() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -34,6 +35,7 @@ export default function CompanyAnalyticsScreen() {
   const { accentColor } = useAdminTheme();
 
   useEffect(() => {
+    // Carga los listados de la empresa y genera estadísticas de vistas, leads y conversión
     const loadAnalytics = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();

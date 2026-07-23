@@ -8,6 +8,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 
 const MAX_ATTEMPTS = 5;
 
+// Hashea el código de 6 dígitos con SHA-256 para compararlo sin guardar el código en texto plano.
 async function hashCode(code: string): Promise<string> {
   const data = new TextEncoder().encode(code);
   const digest = await crypto.subtle.digest('SHA-256', data);
@@ -16,6 +17,9 @@ async function hashCode(code: string): Promise<string> {
     .join('');
 }
 
+// Endpoint que recibe el código de 6 dígitos, lo valida contra el registro pendiente
+// en email_otp_codes y, si es correcto, marca el perfil del usuario como email-verificado
+// y recalcula su trust_score.
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') {
@@ -69,6 +73,7 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // Atajo para responder con un fallo de validación (200, no 4xx/5xx) junto con el motivo.
     const fail = (message: string) =>
       new Response(JSON.stringify({ success: false, message }), {
         status: 200,

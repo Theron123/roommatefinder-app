@@ -12,6 +12,7 @@ interface ExploreHeaderProps {
   t: (key: string) => string;
 }
 
+// Encabezado de Explore: título, acceso a inbox con contador de no leídos, filtros y toggle vista swipe/mapa
 export default function ExploreHeader({
   viewMode,
   setViewMode,

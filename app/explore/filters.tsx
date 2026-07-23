@@ -32,10 +32,12 @@ const DEFAULT_FILTERS: ExploreFilters = {
 
 // Exposed so Explore screen can import it
 let _savedFilters: ExploreFilters = { ...DEFAULT_FILTERS };
+// Devuelve los filtros actualmente guardados para que la pantalla Explore los consuma
 export const getActiveFilters = () => _savedFilters;
 
 const BUDGET_STEPS = [0, 2000, 3000, 4000, 5000, 6000, 8000, 10000, 15000, 20000];
 
+// Control tipo slider por pasos para elegir un valor de presupuesto (min o max) con botones +/-
 function BudgetSlider({
   value, max, min, onIncrease, onDecrease, label,
 }: { value: number; max: number; min: number; onIncrease: () => void; onDecrease: () => void; label: string }) {
@@ -60,6 +62,7 @@ function BudgetSlider({
   );
 }
 
+// Chip seleccionable individual usado en las filas de opciones de filtro
 function OptionChip({
   label, selected, onPress,
 }: { label: string; selected: boolean; onPress: () => void }) {
@@ -73,6 +76,7 @@ function OptionChip({
   );
 }
 
+// Pantalla modal para configurar y aplicar los filtros de búsqueda de Explore
 export default function ExploreFiltersScreen() {
   const { t, locale } = useTranslation();
   const [filters, setFilters] = useState<ExploreFilters>({ ..._savedFilters });
@@ -90,20 +94,24 @@ export default function ExploreFiltersScreen() {
 
   const stepIndex = (val: number) => BUDGET_STEPS.indexOf(val);
 
+  // Sube el presupuesto mínimo al siguiente paso, sin superar el máximo actual
   const increaseMin = () => {
     const i = stepIndex(filters.minBudget);
     if (i < BUDGET_STEPS.length - 1 && BUDGET_STEPS[i + 1] < filters.maxBudget) {
       setFilters(f => ({ ...f, minBudget: BUDGET_STEPS[i + 1] }));
     }
   };
+  // Baja el presupuesto mínimo al paso anterior
   const decreaseMin = () => {
     const i = stepIndex(filters.minBudget);
     if (i > 0) setFilters(f => ({ ...f, minBudget: BUDGET_STEPS[i - 1] }));
   };
+  // Sube el presupuesto máximo al siguiente paso
   const increaseMax = () => {
     const i = stepIndex(filters.maxBudget);
     if (i < BUDGET_STEPS.length - 1) setFilters(f => ({ ...f, maxBudget: BUDGET_STEPS[i + 1] }));
   };
+  // Baja el presupuesto máximo al paso anterior, sin bajar del mínimo actual
   const decreaseMax = () => {
     const i = stepIndex(filters.maxBudget);
     if (i > 0 && BUDGET_STEPS[i - 1] > filters.minBudget) {
@@ -111,11 +119,13 @@ export default function ExploreFiltersScreen() {
     }
   };
 
+  // Guarda los filtros seleccionados como los filtros activos y vuelve a la pantalla anterior
   const applyFilters = () => {
     _savedFilters = { ...filters };
     router.back();
   };
 
+  // Restablece los filtros locales y guardados a sus valores por defecto
   const resetFilters = () => {
     setFilters({ ...DEFAULT_FILTERS });
     _savedFilters = { ...DEFAULT_FILTERS };

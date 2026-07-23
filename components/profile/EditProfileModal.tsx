@@ -15,6 +15,7 @@ interface EditProfileModalProps {
   t: any;
 }
 
+// Modal para editar nombre, edad y bio del perfil del usuario
 export default function EditProfileModal({
   visible,
   onClose,

@@ -60,6 +60,7 @@ const ROLES = ['all', 'seeker', 'landlord', 'company', 'admin'];
 const STATUSES = ['all', 'active', 'pending', 'suspended', 'disabled'];
 const VERIFICATIONS = ['all', 'verified', 'unverified'];
 
+// Pantalla admin de gestión de usuarios: lista, filtra, edita roles/estado y verificaciones
 export default function AdminUsers() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,7 @@ export default function AdminUsers() {
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
+  // Muestra un mensaje toast temporal en pantalla
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -105,6 +107,7 @@ export default function AdminUsers() {
     }, 3000);
   };
 
+  // Muestra una alerta o toast según el tipo de mensaje (éxito, error o info)
   const showAlert = (title: string, message: string) => {
     const isError = title.toLowerCase() === 'error';
     const isSuccess = title.toLowerCase() === 'éxito' || title.toLowerCase() === 'success';
@@ -136,6 +139,7 @@ export default function AdminUsers() {
     active: '#22c55e', pending: '#eab308', suspended: '#ef4444', disabled: '#6b7280'
   };
 
+  // Traduce el rol del usuario a una etiqueta legible según el idioma
   const translateRole = (role: string) => {
     if (role === 'seeker') return locale === 'es' ? 'Roommate' : 'Roommate';
     if (role === 'host') return locale === 'es' ? 'Roommate (Legacy Host)' : 'Roommate (Legacy Host)';
@@ -145,6 +149,7 @@ export default function AdminUsers() {
     return role;
   };
 
+  // Traduce el estado de la cuenta a una etiqueta legible según el idioma
   const translateStatus = (status: string) => {
     if (status === 'active') return locale === 'es' ? 'Activo' : 'Active';
     if (status === 'pending') return locale === 'es' ? 'Pendiente' : 'Pending';
@@ -412,6 +417,7 @@ export default function AdminUsers() {
     fetchStats();
   }, [fetchUsers]);
 
+  // Refresca la lista de usuarios y las estadísticas (pull-to-refresh)
   const onRefresh = () => {
     setRefreshing(true);
     fetchUsers();
@@ -445,6 +451,7 @@ export default function AdminUsers() {
 
 
 
+  // Formatea una fecha ISO a un string legible según el idioma
   const formatDate = (iso: string) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString(locale === 'es' ? 'es-ES' : 'en-US', {
@@ -540,13 +547,14 @@ export default function AdminUsers() {
     );
   };
 
+  // Renderiza el toast flotante si hay uno activo
   const renderToast = () => {
     if (!toast) return null;
     return (
       <View style={styles.toastOuterContainer}>
         <View style={[styles.toastCard, toast.type === 'error' ? styles.toastCardError : styles.toastCardSuccess]}>
-          <MaterialCommunityIcons 
-            name={toast.type === 'success' ? "check-circle" : "alert-circle"} 
+          <MaterialCommunityIcons
+            name={toast.type === 'success' ? "check-circle" : "alert-circle"}
             size={18} 
             color={toast.type === 'success' ? "#22c55e" : "#ef4444"} 
           />

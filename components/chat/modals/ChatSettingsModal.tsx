@@ -18,6 +18,7 @@ interface ChatSettingsModalProps {
   onSelectPreset: (value: string) => void;
 }
 
+// Modal para personalizar el fondo del chat: elegir foto de galería o un color sólido predefinido
 export default function ChatSettingsModal({
   visible,
   wallpaper,

@@ -54,6 +54,7 @@ const AMENITIES_LIST = [
   { key: 'pets', label: 'Mascotas Permitidas', icon: 'dog' },
 ];
 
+// Pantalla de gestión de departamentos: listar, buscar, crear, editar, duplicar y eliminar anuncios
 export default function CompanyApartmentsScreen() {
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,7 @@ export default function CompanyApartmentsScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Obtiene los departamentos de la empresa desde Supabase y los enriquece con métricas simuladas en cache local
   const fetchApartments = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -141,11 +143,13 @@ export default function CompanyApartmentsScreen() {
     fetchApartments();
   }, [fetchApartments]);
 
+  // Refresca la lista de departamentos mediante pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     fetchApartments();
   };
 
+  // Abre el modal de formulario precargando los datos del departamento a editar, o vacío para crear uno nuevo
   const handleOpenForm = (apt: Apartment | null = null) => {
     setSelectedApartment(apt);
     if (apt) {
@@ -187,6 +191,7 @@ export default function CompanyApartmentsScreen() {
     setModalVisible(true);
   };
 
+  // Valida y guarda (crea o actualiza) el departamento en Supabase junto con su metadata PMS y bitácora de auditoría
   const handleSave = async () => {
     if (!formTitle.trim() || !formPrice.trim()) {
       Alert.alert(locale === 'es' ? 'Error' : 'Error', locale === 'es' ? 'El título y el precio son obligatorios.' : 'Title and Price are required.');
@@ -273,7 +278,9 @@ export default function CompanyApartmentsScreen() {
     }
   };
 
+  // Pide confirmación y duplica un anuncio de departamento, incluyendo su metadata y media asociada
   const handleDuplicate = async (apt: Apartment) => {
+    // Crea la copia del listado en Supabase y replica su metadata PMS
     const performDuplicate = async () => {
       try {
         setLoading(true);
@@ -345,7 +352,9 @@ export default function CompanyApartmentsScreen() {
     }
   };
 
+  // Pide confirmación y elimina permanentemente un departamento junto con su metadata almacenada
   const handleDelete = async (id: string, title: string) => {
+    // Elimina el listado en Supabase y limpia su metadata en AsyncStorage
     const performDelete = async () => {
       try {
         setLoading(true);
@@ -385,6 +394,7 @@ export default function CompanyApartmentsScreen() {
     }
   };
 
+  // Agrega o quita una comodidad de la lista seleccionada en el formulario
   const toggleAmenity = (key: string) => {
     if (selectedAmenities.includes(key)) {
       setSelectedAmenities(selectedAmenities.filter(k => k !== key));

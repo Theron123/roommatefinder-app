@@ -6,6 +6,7 @@ import { useTranslation } from '../../context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
 
+// Pantalla de ayuda y soporte: FAQs desplegables y formulario de contacto con adjuntos
 export default function HelpScreen() {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -47,6 +48,7 @@ export default function HelpScreen() {
     }
   ];
 
+  // Abre el selector de documentos y guarda el archivo elegido para adjuntarlo al ticket
   const handlePickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -66,6 +68,7 @@ export default function HelpScreen() {
     }
   };
 
+  // Valida y simula el envío del ticket de soporte, mostrando confirmación al usuario
   const handleSendTicket = () => {
     if (!message.trim() && !attachedDoc) {
       Alert.alert(
@@ -95,6 +98,7 @@ export default function HelpScreen() {
     }, 1200);
   };
 
+  // Componente de acordeón para una pregunta frecuente expandible
   const FaqItem = ({ index, q, a }: { index: number; q: string; a: string }) => {
     const isExpanded = expandedIndex === index;
     return (

@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import React, { useRef, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 
+// Botón de tab con feedback háptico en iOS que además mide y registra su posición para el tutorial guiado
 export function HapticTab(props: BottomTabBarButtonProps) {
   const pressableRef = useRef<any>(null);
 
@@ -20,6 +21,7 @@ export function HapticTab(props: BottomTabBarButtonProps) {
     tabKey = 'tab_3';
   }
 
+  // Mide la posición/tamaño del tab en pantalla y la emite para que TutorialModal la use como spotlight
   const measureAndRegister = () => {
     if (pressableRef.current && typeof pressableRef.current.measureInWindow === 'function') {
       pressableRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {

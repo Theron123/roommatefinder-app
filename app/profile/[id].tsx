@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 import { useMyProfile, useUserProfile } from '@/hooks/useProfileQueries';
 
+// Pantalla de detalle de perfil de otro usuario: fotos, compatibilidad, distancia, listado asociado y acciones (chat/bloquear)
 export default function ProfileDetailScreen() {
   const { t, locale, translateLanguage, translateHobbiesList, translateDealbreakersList, translatePreferencesList } = useTranslation();
   const { id: rawId } = useLocalSearchParams();
@@ -33,6 +34,7 @@ export default function ProfileDetailScreen() {
   const [isLightboxVisible, setIsLightboxVisible] = useState(false);
   const [lightboxPhotoIdx, setLightboxPhotoIdx] = useState(0);
 
+  // Pide confirmación y, al aceptar, inserta el bloqueo en user_blocks y elimina cualquier match existente con ese usuario
   const handleBlockUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;

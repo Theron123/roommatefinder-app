@@ -71,6 +71,7 @@ const COSTA_RICA_CITIES = [
   { display_name: 'Cahuita, Talamanca, Limón, Costa Rica', lat: '9.7369', lon: '-82.8428', place_id: 'cr_li_cah' },
 ];
 
+// Campo de búsqueda de ubicación con autocompletado (ciudades de Costa Rica + Nominatim) y selección de resultado
 export default function LocationAutocomplete({ apiKey, placeholder, onSelect, style }: Props) {
   const [query, setQuery] = useState('');
   const [predictions, setPredictions] = useState<any[]>([]);
@@ -97,6 +98,7 @@ export default function LocationAutocomplete({ apiKey, placeholder, onSelect, st
     return () => clearTimeout(delayDebounceFn);
   }, [query]);
 
+  // Busca coincidencias combinando la base local de ciudades de Costa Rica con resultados de la API de Nominatim
   const fetchPredictions = async (text: string) => {
     try {
       setLoading(true);
@@ -161,6 +163,7 @@ export default function LocationAutocomplete({ apiKey, placeholder, onSelect, st
     }
   };
 
+  // Aplica la selección de una predicción: actualiza el campo de texto y notifica lat/lng al padre
   const handleSelect = (latStr: string, lonStr: string, description: string) => {
     isSelecting.current = true;
     setQuery(description);

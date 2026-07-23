@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../context/LanguageContext';
 import { translations } from '../constants/translations';
 
+// Pantalla de Términos y Condiciones, renderiza secciones traducidas desde el diccionario de idiomas
 export default function TermsScreen() {
   const { t, locale } = useTranslation();
 

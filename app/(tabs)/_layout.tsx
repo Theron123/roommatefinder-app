@@ -8,11 +8,13 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import TutorialModal from '@/components/TutorialModal';
 
+// Layout de las pestañas principales; verifica el rol del usuario y redirige a admin/company si aplica
 export default function TabLayout() {
   const router = useRouter();
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
+    // Comprueba sesión y rol del perfil para redirigir a admin/company o dejar pasar a los tabs normales
     const checkAdmin = async () => {
       setChecking(true);
       try {

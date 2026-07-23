@@ -14,6 +14,7 @@ type BlockedUser = {
   photoUrl: string | null;
 };
 
+// Pantalla de gestión de usuarios bloqueados: permite ver, buscar, bloquear y desbloquear usuarios
 export default function BlockedUsersScreen() {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -28,6 +29,7 @@ export default function BlockedUsersScreen() {
     fetchBlockedUsers();
   }, []);
 
+  // Carga la lista de usuarios bloqueados por el usuario actual desde Supabase
   const fetchBlockedUsers = async () => {
     setLoading(true);
     try {
@@ -61,6 +63,7 @@ export default function BlockedUsersScreen() {
     }
   };
 
+  // Elimina el registro de bloqueo para desbloquear a un usuario
   const handleUnblock = async (blockedId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -81,6 +84,7 @@ export default function BlockedUsersScreen() {
     }
   };
 
+  // Busca perfiles por nombre para poder bloquearlos, excluyendo a los ya bloqueados
   const handleSearchUsers = async (text: string) => {
     setSearchQuery(text);
     if (!text.trim()) {
@@ -116,6 +120,7 @@ export default function BlockedUsersScreen() {
     }
   };
 
+  // Bloquea a un usuario, elimina cualquier match existente entre ambos y refresca la lista
   const handleBlock = async (targetId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -147,6 +152,7 @@ export default function BlockedUsersScreen() {
     }
   };
 
+  // Renderiza una fila de la lista de usuarios bloqueados con botón para desbloquear
   const renderBlockedItem = ({ item }: { item: BlockedUser }) => (
     <View style={s.userCard}>
       {item.photoUrl ? (
@@ -168,6 +174,7 @@ export default function BlockedUsersScreen() {
     </View>
   );
 
+  // Renderiza una fila de resultado de búsqueda con botón para bloquear
   const renderSearchItem = ({ item }: { item: BlockedUser }) => (
     <View style={s.userCard}>
       {item.photoUrl ? (

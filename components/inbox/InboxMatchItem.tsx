@@ -8,6 +8,7 @@ interface InboxMatchItemProps {
   onPress: (id: string) => void;
 }
 
+// Renderiza el avatar circular de un match en el carrusel superior del inbox
 const InboxMatchItemComponent = ({ item, onPress }: InboxMatchItemProps) => {
   return (
     <Pressable style={styles.matchItem} onPress={() => onPress(item.id)}>
@@ -24,6 +25,7 @@ const InboxMatchItemComponent = ({ item, onPress }: InboxMatchItemProps) => {
   );
 };
 
+// Versión memoizada del item de match; evita re-render si id o foto no cambian
 export const InboxMatchItem = memo(InboxMatchItemComponent, (prevProps, nextProps) => {
   return prevProps.item.id === nextProps.item.id && prevProps.item.photoUrl === nextProps.item.photoUrl;
 });

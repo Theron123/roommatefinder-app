@@ -21,6 +21,7 @@ type NotificationItem = {
   unread: boolean;
 };
 
+// Pantalla de notificaciones comerciales: lista alertas de postulaciones, contratos y visitas
 export default function CompanyNotificationsScreen() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
@@ -64,10 +65,12 @@ export default function CompanyNotificationsScreen() {
   const { locale } = useTranslation();
   const { accentColor } = useAdminTheme();
 
+  // Marca todas las notificaciones como leídas
   const handleMarkAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, unread: false })));
   };
 
+  // Alterna el estado leído/no leído de una notificación individual
   const handleToggleRead = (id: string) => {
     setNotifications(
       notifications.map(n => n.id === id ? { ...n, unread: !n.unread } : n)

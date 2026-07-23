@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 
+// Pantalla de perfil corporativo: edita datos de la empresa, muestra puntaje de calidad y sugerencias
 export default function CompanyProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -38,6 +39,7 @@ export default function CompanyProfileScreen() {
   const { accentColor } = useAdminTheme();
 
   useEffect(() => {
+    // Carga el perfil de empresa desde Supabase y su metadata extendida (dirección, teléfono, puntajes) desde cache local
     const loadProfile = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -79,6 +81,7 @@ export default function CompanyProfileScreen() {
     loadProfile();
   }, []);
 
+  // Valida y guarda los datos del perfil de empresa en Supabase y su metadata extendida en cache local
   const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert(locale === 'es' ? 'Error' : 'Error', locale === 'es' ? 'El nombre es obligatorio.' : 'Name is required.');
