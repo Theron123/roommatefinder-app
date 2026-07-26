@@ -133,6 +133,9 @@
   "131": "MapViewWrapper.native.tsx",
   "132": "expo-blur",
   "133": "20260712202000_assign_super_admin.sql",
+  "134": "signup.tsx",
+  "135": "analytics.tsx",
+  "136": "contracts/index.tsx",
   "137": "20260712164902_rename_phone_to_email_verification.sql",
   "138": "20260712203127_fix_profiles_privilege_escalation.sql",
   "139": "@react-navigation/elements",
@@ -146,5 +149,8 @@
   "147": "20260712201000_role_hierarchy_permissions.sql",
   "148": "20260712204303_fix_roommate_bucket_public_write.sql",
   "149": "20260712205300_fix_contracts_bucket_private_signed_urls.sql",
-  "150": "20260712210218_fix_contract_participants_idor.sql"
+  "150": "20260712210218_fix_contract_participants_idor.sql",
+  "151": "deno.json",
+  "152": "jest.config.js",
+  "153": "profiles_role_security_test.sql"
 }

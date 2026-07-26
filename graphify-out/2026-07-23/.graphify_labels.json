@@ -131,6 +131,7 @@
   "129": "@supabase/supabase-js",
   "130": "@tanstack/react-query",
   "131": "MapViewWrapper.native.tsx",
+  "132": "expo-blur",
   "133": "20260712202000_assign_super_admin.sql",
   "137": "20260712164902_rename_phone_to_email_verification.sql",
   "138": "20260712203127_fix_profiles_privilege_escalation.sql",

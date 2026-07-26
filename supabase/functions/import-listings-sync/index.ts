@@ -15,79 +15,12 @@
 // es al revés: tú les mandas un feed, ver lib/integrations/zumper/
 // ZumperFeedGenerator.ts). Confirmar con su equipo de partnerships que este
 // endpoint de importación existe antes de asumir que solo falta el secret.
+//
+// La lógica de mock/fetch/mapeo vive en helpers.ts para poder testearla con
+// `deno test` sin depender de Deno.serve — ver helpers.test.ts.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-interface ExternalListing {
-  external_id: string;
-  title: string;
-  address: string;
-  description?: string;
-  price: number;
-  currency?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  utilities_included?: boolean;
-  images?: string[];
-}
-
-const SOURCE = 'zumper';
-
-// Genera listings de ejemplo para el modo mock (mientras no haya credenciales reales de Zumper).
-function getMockListings(): ExternalListing[] {
-  return [
-    {
-      external_id: 'zumper-mock-001',
-      title: 'Cuarto privado cerca del centro (mock)',
-      address: '123 Main St, New York, NY 10001',
-      description: 'Listing de ejemplo generado en modo mock — no es un dato real de Zumper.',
-      price: 850,
-      currency: 'USD',
-      latitude: 40.7128,
-      longitude: -74.006,
-      utilities_included: true,
-      images: [],
-    },
-    {
-      external_id: 'zumper-mock-002',
-      title: 'Apartamento de 1 habitación (mock)',
-      address: '456 Oak Ave, Brooklyn, NY 11201',
-      description: 'Listing de ejemplo generado en modo mock — no es un dato real de Zumper.',
-      price: 1600,
-      currency: 'USD',
-      latitude: 40.6928,
-      longitude: -73.9903,
-      utilities_included: false,
-      images: [],
-    },
-  ];
-}
-
-async function getRealListings(feedUrl: string, apiToken: string): Promise<ExternalListing[]> {
-  // Implementación de referencia — ajustar al shape real del feed cuando se
-  // confirme con Zumper. Asume JSON con un array de propiedades; si el feed
-  // real es XML habría que parsearlo aquí en vez de response.json().
-  const response = await fetch(feedUrl, {
-    headers: { Authorization: `Bearer ${apiToken}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Zumper feed respondió ${response.status}: ${await response.text()}`);
-  }
-  const body = await response.json();
-  const items = Array.isArray(body) ? body : body.listings || [];
-  return items.map((item: any) => ({
-    external_id: String(item.id ?? item.external_id),
-    title: item.title,
-    address: item.address,
-    description: item.description,
-    price: Number(item.price),
-    currency: item.currency || 'USD',
-    latitude: item.latitude ?? null,
-    longitude: item.longitude ?? null,
-    utilities_included: Boolean(item.utilities_included),
-    images: item.images || [],
-  }));
-}
+import { SOURCE, getMockListings, getRealListings } from './helpers.ts';
 
 // Endpoint admin-only que jala el inventario externo (mock o real según los secrets
 // configurados) y lo hace upsert en `listings_staging` para revisión manual.

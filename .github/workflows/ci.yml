@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Typecheck, lint y tests unitarios de la app (Expo/React Native). Rápido,
+  # corre en cada push/PR sin necesitar Docker ni Supabase.
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+  # Typecheck y tests unitarios de las Supabase Edge Functions (Deno). Corren
+  # aparte porque no comparten runtime/tsconfig con la app (ver tsconfig.json:
+  # supabase/functions/** está excluido del tsc de arriba a propósito).
+  edge-functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # --config es necesario: sin él, Deno detecta el package.json de la raíz
+      # del repo (proyecto Expo) y entra en modo "byonm", intentando resolver
+      # los npm: specifiers de jsr:@supabase/supabase-js contra ese
+      # node_modules en vez del suyo propio. supabase/functions/deno.json
+      # (nodeModulesDir: "none") corrige esto.
+      - name: Typecheck edge functions
+        run: |
+          for fn in supabase/functions/*/index.ts; do
+            echo "Checking $fn"
+            deno check --config supabase/functions/deno.json "$fn"
+          done
+
+      - name: Unit tests (lógica pura de las edge functions)
+        run: deno test --config supabase/functions/deno.json supabase/functions
+
+  # Tests de regresión de seguridad/RLS contra un Supabase local real
+  # (migraciones + policies + triggers). Más lento que los jobs de arriba
+  # porque levanta el stack completo con Docker — ver supabase/tests/README.md.
+  db-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase (aplica migraciones)
+        run: supabase start
+
+      - name: Run pgTAP database tests
+        run: supabase test db supabase/tests/database
