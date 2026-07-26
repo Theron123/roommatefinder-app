@@ -35,8 +35,46 @@ if (typeof window !== 'undefined') {
 export function Marker(props: any) {
   if (typeof window === 'undefined' || !props.coordinate) return null;
   const position = [props.coordinate.latitude, props.coordinate.longitude];
+  
+  let customIcon = undefined;
+  if (L) {
+    const iconUrl = props.iconUrl || 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=100&w=200&auto=format&fit=crop';
+    const borderColor = props.borderColor || '#34C759';
+    const badgeIcon = props.badgeIcon || 'magnify';
+
+    let badgeHtml = '';
+    if (badgeIcon === 'heart') {
+      badgeHtml = '❤️';
+    } else if (badgeIcon === 'home-account') {
+      badgeHtml = '🏠';
+    } else if (badgeIcon === 'flag') {
+      badgeHtml = '🚩';
+    } else {
+      badgeHtml = '🔍';
+    }
+
+    const htmlContent = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 48px; height: 56px; position: relative;">
+        <div style="width: 44px; height: 44px; border-radius: 22px; border: 2.5px solid ${borderColor}; background-color: #1C1C1E; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3); box-sizing: border-box; overflow: visible;">
+          <img src="${iconUrl}" style="width: 39px; height: 39px; border-radius: 50%; object-fit: cover; display: block;" />
+          <div style="position: absolute; bottom: -2px; right: -2px; background-color: ${borderColor}; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 8px; border: 1px solid #1C1C1E; line-height: 14px; text-align: center;">
+            ${badgeHtml}
+          </div>
+        </div>
+        <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${borderColor}; margin-top: -2px;"></div>
+      </div>
+    `;
+
+    customIcon = L.divIcon({
+      html: htmlContent,
+      className: 'custom-leaflet-marker-div',
+      iconSize: [48, 56],
+      iconAnchor: [24, 56],
+    });
+  }
+
   return (
-    <RMarker position={position}>
+    <RMarker position={position} icon={customIcon} eventHandlers={props.onPress ? { click: props.onPress } : undefined}>
       {props.children}
     </RMarker>
   );
