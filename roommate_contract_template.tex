@@ -1,0 +1,181 @@
+\documentclass[11pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=1in,top=1.6in,bottom=1.4in]{geometry}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{setspace}
+
+% Colores del branding (Turquesa oficial de la app)
+\definecolor{brandteal}{HTML}{49C788}
+\definecolor{darkslate}{HTML}{1E293B}
+\definecolor{slateborder}{HTML}{E2E8F0}
+\definecolor{bodytext}{HTML}{334155}
+
+% Estilo de párrafos y espaciado
+\setstretch{1.3}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{10pt}
+
+% Comando para dibujar las ondas del encabezado en TikZ
+\newcommand{\drawheaderwaves}{
+  \begin{tikzpicture}[remember picture, overlay]
+    % Onda translúcida trasera
+    \fill[brandteal, opacity=0.35] (current page.north west) 
+      -- ++(0,-3.2) 
+      .. controls ++(6,1.5) and ++(-6,-1.5) .. ++(12,-0.8)
+      .. controls ++(3,0.4) and ++(-2,-0.2) .. (current page.north east)
+      -- (current page.north east) -- cycle;
+    % Onda principal delantera
+    \fill[brandteal] (current page.north west) 
+      -- ++(0,-2.6) 
+      .. controls ++(5,-0.8) and ++(-5,0.8) .. ++(11,0.4)
+      .. controls ++(3,0.3) and ++(-1.5,-0.1) .. (current page.north east)
+      -- (current page.north east) -- cycle;
+  \end{tikzpicture}
+}
+
+% Comando para dibujar las ondas del pie de página en TikZ
+\newcommand{\drawfooterwaves}{
+  \begin{tikzpicture}[remember picture, overlay]
+    % Onda trasera
+    \fill[brandteal, opacity=0.35] (current page.south west) 
+      -- ++(0,2.6) 
+      .. controls ++(5,-0.8) and ++(-5,0.8) .. ++(11,0.4)
+      .. controls ++(3,-0.3) and ++(-2,0.1) .. (current page.south east)
+      -- (current page.south east) -- cycle;
+    % Onda delantera
+    \fill[brandteal] (current page.south west) 
+      -- ++(0,2.0) 
+      .. controls ++(6,0.8) and ++(-6,-0.8) .. ++(12,-0.4)
+      .. controls ++(3,-0.2) and ++(-1.5,0.1) .. (current page.south east)
+      -- (current page.south east) -- cycle;
+  \end{tikzpicture}
+}
+
+\begin{document}
+\drawheaderwaves
+\drawfooterwaves
+
+% Cabecera de Metadatos
+\begin{center}
+    \begin{tabular}{p{0.35\textwidth} c p{0.35\textwidth}}
+        \small\bfseries\color{bodytext} SAN JOSÉ, COSTA RICA & 
+        \raisebox{-0.35\height}{
+            \begin{tikzpicture}[scale=0.35]
+                \draw[brandteal, line width=1.5pt] (0,0) circle (1.2);
+                \fill[brandteal] (0,0) circle (0.3);
+                \draw[brandteal, line width=1.5pt, line cap=round] (0,0.5) -- (0,0) -- (0.5,0);
+            \end{tikzpicture}
+        } & 
+        \small\bfseries\color{bodytext}\hfill 26 DE JULIO DE 2026 \\[1ex]
+        \color{brandteal}\hrulefill & \small\bfseries\color{brandteal} CONTRATO DIGITAL & \color{brandteal}\hrulefill
+    \end{tabular}
+\end{center}
+
+\vspace{1.5em}
+
+% Título
+{\Large\bfseries\color{darkslate} ACUERDO DE CONVIVENCIA Y ARRENDAMIENTO}
+
+\vspace{1em}
+
+% Introducción
+\textcolor{bodytext}{Por medio de la presente, se hace constar el acuerdo de roommate y convivencia celebrado y firmado electrónicamente de buena fe por ambas partes en la plataforma \textbf{RoommateFinder}. Este documento define los términos de convivencia, responsabilidades de pago y reglas del hogar acordadas mutuamente para la propiedad asociada, constituyendo un acuerdo vinculante entre las partes.}
+
+\vspace{1em}
+
+% Partes
+{\large\bfseries\color{brandteal} I. PARTES CONTRATANTES}
+\begin{itemize}
+    \item \textbf{Iniciador del Acuerdo:} \textcolor{bodytext}{Lisandro Pérez (Parte Arrendadora)}
+    \item \textbf{Contraparte Roommate:} \textcolor{bodytext}{Ricardo Salinas (Parte Inquilina)}
+\end{itemize}
+
+\vspace{1em}
+
+% Puntos Financieros
+{\large\bfseries\color{brandteal} II. ASPECTOS FINANCIEROS}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{p{0.5\textwidth} @{\hskip 0.05\textwidth} p{0.45\textwidth}}
+    \hline
+    \textbf{Término Financiero} & \textbf{Detalle Acordado} \\
+    \hline
+    Renta Mensual & \$1,200.00 / mes \\
+    Día de Pago & Día 5 de cada mes \\
+    Cargo por Pago Tardío & \$50.00 \\
+    Depósito de Seguridad & \$1,200.00 \\
+    Devolución del Depósito & 15 días hábiles después de desocupar \\
+    \hline
+\end\tabular}
+
+\vspace{1.5em}
+
+% Normas de Convivencia
+{\large\bfseries\color{brandteal} III. NORMAS DE CONVIVENCIA}
+\begin{tabular}{p{0.5\textwidth} @{\hskip 0.05\textwidth} p{0.45\textwidth}}
+    \hline
+    \textbf{Norma o Regla del Hogar} & \textbf{Detalle Acordado} \\
+    \hline
+    Mascotas en la Propiedad & Permitidas bajo supervisión \\
+    Fumar en Interiores & No permitido \\
+    Alojamiento de Visitas & Permitido (máximo 3 noches por mes) \\
+    Horario de Silencio & 10:00 PM a 07:00 AM \\
+    Programa de Limpieza & Rotación semanal de áreas comunes \\
+    \hline
+\end{tabular}
+
+\pagebreak
+\drawheaderwaves
+\drawfooterwaves
+
+\vspace*{1.5in} % Margen para no chocar con la onda de la página 2
+
+% Cláusulas Legales
+{\large\bfseries\color{brandteal} IV. CLÁUSULAS Y TÉRMINOS LEGALES}
+\begin{tabular}{p{0.5\textwidth} @{\hskip 0.05\textwidth} p{0.45\textwidth}}
+    \hline
+    \textbf{Cláusula Legal} & \textbf{Detalle Acordado} \\
+    \hline
+    Preaviso para Desocupar & 30 días de anticipación \\
+    Resolución de Disputas & Mediación de buena fe \\
+    Responsabilidad por Daños & Cargo directo al inquilino causante \\
+    Uso de Áreas Comunes & Derecho compartido y equitativo \\
+    \hline
+\end{tabular}
+
+\vspace{2.5em}
+
+% Sección de Firmas
+{\large\bfseries\color{darkslate} FIRMA DEL ACUERDO}
+
+\vspace{2em}
+
+\begin{minipage}[t]{0.45\textwidth}
+    \rule{\textwidth}{0.5pt} \\
+    \textbf{Lisandro Pérez} \\
+    Parte Arrendadora / Iniciador \\
+    \small\color{gray} Firmado Digitalmente (RoommateFinder) \\
+    \small\color{brandteal}\texttt{VERIFICADO: ID-8F92A7BC}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.45\textwidth}
+    \rule{\textwidth}{0.5pt} \\
+    \textbf{Ricardo Salinas} \\
+    Parte Inquilina / Roommate \\
+    \small\color{gray} Firmado Digitalmente (RoommateFinder) \\
+    \small\color{brandteal}\texttt{VERIFICADO: ID-3E41F0AD}
+\end{minipage}
+
+\vspace{3em}
+
+\begin{center}
+    \small\color{gray}
+    RoommateFinder Legal & info@roommatefinder.com & www.roommatefinder.com
+\end{center}
+
+\end{document}

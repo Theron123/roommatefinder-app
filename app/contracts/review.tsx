@@ -92,7 +92,8 @@ export default function ReviewContractScreen() {
     try {
       const c = contract.clauses || {};
       const initiatorName = contract.initiator?.name ?? (locale === 'es' ? 'Parte Iniciadora' : 'Initiating Party');
-      
+      const participants = contract.contract_participants || [];
+      const counterpartyName = participants.map((p: any) => p.user?.name).filter(Boolean).join(', ') || (locale === 'es' ? 'Contraparte' : 'Counterparty');
       
       const effectiveDate = contract.effective_date 
         ? new Date(contract.effective_date).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
@@ -100,29 +101,29 @@ export default function ReviewContractScreen() {
 
       // Define structured sections for a premium, extremely detailed document
       const financialRows = locale === 'es' ? [
-        { label: 'Renta Mensual', val: c.rent ? `$${c.rent.amount} / mes` : '—' },
-        { label: 'Día de Vencimiento', val: c.rent ? `Día ${c.rent.due_day} de cada mes` : '—' },
-        { label: 'Cargo por Pago Tardío', val: c.rent ? `$${c.rent.late_fee}` : '—' },
-        { label: 'Depósito de Seguridad', val: c.security_deposit ? `$${c.security_deposit.amount}` : '—' },
-        { label: 'Plazo para Devolución de Depósito', val: c.security_deposit ? `${c.security_deposit.return_days} días hábiles` : '—' },
+        { label: 'Renta Mensual', val: c.rent?.amount ? `$${c.rent.amount} / mes` : '—' },
+        { label: 'Día de Vencimiento', val: c.rent?.due_day ? `Día ${c.rent.due_day} de cada mes` : '—' },
+        { label: 'Cargo por Pago Tardío', val: c.rent?.late_fee ? `$${c.rent.late_fee}` : 'N/A' },
+        { label: 'Depósito de Seguridad', val: c.security_deposit?.amount ? `$${c.security_deposit.amount}` : '—' },
+        { label: 'Plazo de Devolución de Depósito', val: c.security_deposit?.return_days ? `${c.security_deposit.return_days} días hábiles` : '15 días hábiles' },
       ] : [
-        { label: 'Monthly Rent', val: c.rent ? `$${c.rent.amount} / month` : '—' },
-        { label: 'Due Date', val: c.rent ? `Day ${c.rent.due_day} of each month` : '—' },
-        { label: 'Late Payment Fee', val: c.rent ? `$${c.rent.late_fee}` : '—' },
-        { label: 'Security Deposit', val: c.security_deposit ? `$${c.security_deposit.amount}` : '—' },
-        { label: 'Deposit Return Timeline', val: c.security_deposit ? `${c.security_deposit.return_days} business days` : '—' },
+        { label: 'Monthly Rent', val: c.rent?.amount ? `$${c.rent.amount} / month` : '—' },
+        { label: 'Due Date', val: c.rent?.due_day ? `Day ${c.rent.due_day} of each month` : '—' },
+        { label: 'Late Payment Fee', val: c.rent?.late_fee ? `$${c.rent.late_fee}` : 'N/A' },
+        { label: 'Security Deposit', val: c.security_deposit?.amount ? `$${c.security_deposit.amount}` : '—' },
+        { label: 'Deposit Return Timeline', val: c.security_deposit?.return_days ? `${c.security_deposit.return_days} business days` : '15 business days' },
       ];
 
       const cohabitationRows = locale === 'es' ? [
         { label: 'Mascotas en la Propiedad', val: c.pets?.allowed ? 'Permitidas' : 'No permitidas' },
         { label: 'Fumar en Espacios Interiores', val: c.smoking?.allowed ? 'Permitido' : 'No permitido' },
-        { label: 'Visitas y Alojamiento Nocturno', val: c.visitors?.overnight_allowed ? `Permitidas (máx. ${c.visitors.max_nights} noches)` : 'No permitidas' },
+        { label: 'Visitas y Alojamiento Nocturno', val: c.visitors?.overnight_allowed ? `Permitidas (máx. ${c.visitors.max_nights || 3} noches)` : 'No permitidas' },
         { label: 'Horario de Silencio Establecido', val: c.noise ? `${c.noise.quiet_hours_start} a ${c.noise.quiet_hours_end}` : '—' },
         { label: 'Programa de Limpieza Común', val: c.cleaning?.schedule === 'daily' ? 'Diario' : c.cleaning?.schedule === 'weekly' ? 'Semanal' : 'Quincenal' },
       ] : [
         { label: 'Pets on Property', val: c.pets?.allowed ? 'Allowed' : 'Not allowed' },
         { label: 'Smoking Indoors', val: c.smoking?.allowed ? 'Allowed' : 'Not allowed' },
-        { label: 'Guests & Overnight Stays', val: c.visitors?.overnight_allowed ? `Allowed (max ${c.visitors.max_nights} nights)` : 'Not allowed' },
+        { label: 'Guests & Overnight Stays', val: c.visitors?.overnight_allowed ? `Allowed (max ${c.visitors.max_nights || 3} nights)` : 'Not allowed' },
         { label: 'Quiet Hours Schedule', val: c.noise ? `${c.noise.quiet_hours_start} to ${c.noise.quiet_hours_end}` : '—' },
         { label: 'Cleaning Schedule', val: c.cleaning?.schedule === 'daily' ? 'Daily' : c.cleaning?.schedule === 'weekly' ? 'Weekly' : 'Biweekly' },
       ];
@@ -150,21 +151,6 @@ export default function ReviewContractScreen() {
       const customRows = (contract.selected_custom_clauses || []).map((key: string) => `
         <div class="custom-clause-item">&bull; ${getOptionalClauseLabel(key)}</div>
       `).join('');
-
-      const signatureBlocks = contract.contract_participants?.map(p => `
-        <div class="sig-line">
-          <p>${p.user?.name || (locale === 'es' ? 'Roommate' : 'Roommate')}</p>
-          <span>${locale === 'es' ? 'Firmado Electrónicamente (RoommateFinder App)' : 'Digitally Signed (RoommateFinder App)'}</span>
-        </div>
-      `).join('') || `
-        <div class="sig-line">
-          <p>${locale === 'es' ? 'Contraparte' : 'Counterparty'}</p>
-          <span>${locale === 'es' ? 'Firmado Electrónicamente (RoommateFinder App)' : 'Digitally Signed (RoommateFinder App)'}</span>
-        </div>
-      `;
-
-      const st = getStatusConfig(contract.status);
-
       const html = `
       <!DOCTYPE html>
       <html>
@@ -172,252 +158,259 @@ export default function ReviewContractScreen() {
         <meta charset="utf-8">
         <title>${locale === 'es' ? 'Contrato' : 'Contract'} ${contract.id}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+          @page {
+            size: letter;
+            margin: 0;
+          }
           body { 
-            font-family: 'Outfit', 'Helvetica Neue', Arial, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             color: #1e293b; 
             margin: 0; 
-            padding: 40px; 
+            padding: 0; 
             background: #fff; 
             line-height: 1.5;
           }
-          .header-banner {
-            background: #0f172a;
-            color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 30px;
-          }
-          .header-banner h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            text-transform: uppercase;
-          }
-          .header-banner p {
-            margin: 8px 0 0 0;
-            font-size: 13px;
-            color: #94a3b8;
-          }
-          .badge {
-            display: inline-block;
-            background: ${st.color};
-            color: #ffffff;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 11px;
-            margin-top: 12px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-          }
-          .parties {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 25px;
-            gap: 15px;
-            flex-wrap: wrap;
-          }
-          .party-box {
-            width: 48%;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            border-top: 4px solid #10b981;
+          .page-wrapper {
+            padding: 100px 50px 80px 50px;
+            position: relative;
             box-sizing: border-box;
-            margin-bottom: 12px;
+            min-height: 100vh;
           }
-          .party-box p {
-            margin: 0;
-            font-size: 10px;
+          .wave-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            overflow: hidden;
+            z-index: 10;
+          }
+          .wave-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            overflow: hidden;
+            z-index: 10;
+          }
+          .metadata-table {
+            width: 100%;
+            border: none;
+            margin-bottom: 30px;
+            border-collapse: collapse;
+          }
+          .metadata-table td {
+            border: none !important;
+            padding: 0 0 8px 0 !important;
+            background: none !important;
+            vertical-align: middle;
+          }
+          .meta-line {
+            font-size: 11px;
+            font-weight: 700;
             color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 1.5px solid #49C788;
           }
-          .party-box h3 {
-            margin: 4px 0 0;
-            font-size: 16px;
+          .contract-title {
+            font-size: 22px;
+            font-weight: 800;
             color: #0f172a;
-            font-weight: 700;
+            margin: 0 0 10px 0;
+            font-family: Georgia, serif;
           }
-          .metadata-box {
-            background: #f1f5f9;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 25px;
+          .intro-text {
             font-size: 12px;
             color: #475569;
-            border-left: 4px solid #64748b;
+            margin-bottom: 20px;
+            text-align: justify;
+            line-height: 1.6;
           }
-          .section-title {
+          .parties-box {
+            margin-bottom: 25px;
             font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
             color: #0f172a;
-            border-bottom: 2px solid #cbd5e1;
-            padding-bottom: 4px;
-            margin-top: 25px;
-            margin-bottom: 10px;
-            font-weight: 800;
+            border-left: 3px solid #49C788;
+            padding-left: 12px;
+            line-height: 1.6;
           }
-          table {
+          .section-header {
+            font-size: 10px;
+            font-weight: 800;
+            color: #49C788;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 22px;
+            margin-bottom: 6px;
+          }
+          .data-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
           }
-          td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-            color: #334155;
+          .data-table td {
+            padding: 7px 0 !important;
+            border-bottom: 1px solid #f1f5f9 !important;
+            font-size: 11.5px !important;
+            background: none !important;
           }
-          td:first-child {
+          .data-table td.label {
+            color: #475569;
             font-weight: 600;
+            width: 50%;
+          }
+          .data-table td.value {
             color: #0f172a;
-            width: 40%;
+            font-weight: 700;
+            text-align: right;
           }
-          .custom-clause-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-          }
-          .custom-clause-item {
-            font-size: 13px;
-            color: #334155;
-            padding: 4px 0;
-            border-bottom: 1px dashed #e2e8f0;
-          }
-          .custom-clause-item:last-child {
-            border-bottom: none;
-          }
-          .disclaimer {
-            font-size: 11px;
-            color: #64748b;
-            padding: 12px 16px;
-            background: #fffbeb;
-            border: 1px solid #fef3c7;
-            border-radius: 8px;
-            margin-top: 30px;
-            line-height: 1.5;
-          }
-          .disclaimer strong { color: #b45309; }
-          .signatures {
-            display: flex;
-            justify-content: space-between;
+          .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
             margin-top: 40px;
-            gap: 15px;
-            flex-wrap: wrap;
+          }
+          .signatures-table td {
+            border: none !important;
+            padding: 0 !important;
+            background: none !important;
+            vertical-align: top;
           }
           .sig-line {
-            width: 48%;
-            border-top: 1px solid #94a3b8;
-            padding-top: 10px;
-            box-sizing: border-box;
-            margin-bottom: 20px;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 8px;
           }
-          .sig-line p {
-            margin: 0;
-            font-size: 13px;
+          .sig-name {
+            font-size: 12px;
             font-weight: 700;
             color: #0f172a;
+            margin: 0;
           }
-          .sig-line span {
-            font-size: 10px;
+          .sig-desc {
+            font-size: 9px;
             color: #64748b;
+            margin-top: 2px;
           }
           .sig-seal {
             margin-top: 4px;
-            font-size: 9px;
+            font-size: 7.5px;
             font-family: monospace;
             color: #10b981;
             background: #f0fdf4;
-            padding: 2px 6px;
+            padding: 1px 4px;
             border-radius: 4px;
             display: inline-block;
           }
-          .footer {
-            margin-top: 40px;
+          .contact-info {
+            font-size: 8.5px;
+            color: #64748b;
             text-align: center;
-            font-size: 10px;
-            color: #94a3b8;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 15px;
+            margin-top: 30px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 10px;
           }
         </style>
       </head>
       <body>
-        <div class="header-banner">
-          <h1>${getContractTypeLabel(contract.type) || (locale === 'es' ? 'Acuerdo de Convivencia' : 'Co-living Agreement')}</h1>
-          <p>${locale === 'es' ? 'Acuerdo Digital Oficial &bull; Generado mediante RoommateFinder App' : 'Official Digital Agreement &bull; Generated via RoommateFinder App'}</p>
-          <div class="badge" style="background-color: ${st.color};">${st.label}</div>
-        </div>
-
-        <div class="parties">
-          <div class="party-box">
-            <p>${locale === 'es' ? 'Iniciador del Acuerdo' : 'Agreement Initiator'}</p>
-            <h3>${initiatorName}</h3>
+        <div class="page-wrapper">
+          <!-- SVG waves header -->
+          <div class="wave-header">
+            <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+              <path d="M0,0 C360,60 720,20 1080,80 C1260,110 1380,80 1440,50 L1440,0 L0,0 Z" fill="#bcf2d8" opacity="0.4"></path>
+              <path d="M0,0 C360,50 720,80 1080,40 C1260,25 1380,60 1440,70 L1440,0 L0,0 Z" fill="#49C788"></path>
+            </svg>
           </div>
-          ${contract.contract_participants?.map(p => `
-            <div class="party-box">
-              <p>${locale === 'es' ? 'Contraparte Aceptante' : 'Accepting Counterparty'}</p>
-              <h3>${p.user?.name || (locale === 'es' ? 'Roommate' : 'Roommate')}</h3>
+
+          <table class="metadata-table">
+            <tr>
+              <td class="meta-line" style="width: 35%;">${locale === 'es' ? 'San José, Costa Rica' : 'RoommateFinder Legal'}</td>
+              <td style="width: 30%; text-align: center;">
+                <!-- Circle logo in teal -->
+                <svg width="28" height="28" viewBox="0 0 100 100" style="display: inline-block; vertical-align: middle;">
+                  <circle cx="50" cy="50" r="42" stroke="#49C788" stroke-width="8" fill="none" />
+                  <path d="M50,18 L50,50 L78,50" stroke="#49C788" stroke-width="8" stroke-linecap="round" fill="none" />
+                  <circle cx="50" cy="50" r="10" fill="#49C788" />
+                </svg>
+              </td>
+              <td class="meta-line" style="width: 35%; text-align: right;">${effectiveDate}</td>
+            </tr>
+          </table>
+
+          <h1 class="contract-title">${getContractTypeLabel(contract.type) || (locale === 'es' ? 'Acuerdo de Convivencia' : 'Co-living Agreement')}</h1>
+          
+          <p class="intro-text">
+            ${locale === 'es' 
+              ? `Por medio de la presente, se hace constar el acuerdo de roommate y convivencia celebrado y firmado electrónicamente de buena fe por ambas partes en la plataforma <strong>RoommateFinder</strong>. Este documento define los términos de convivencia, responsabilidades de pago y reglas del hogar acordadas mutuamente para la propiedad asociada, y constituye un acuerdo vinculante entre las partes.`
+              : `This document certifies the roommate and co-living agreement entered into and digitally signed in good faith by both parties on the <strong>RoommateFinder</strong> platform. This document defines the co-living terms, payment responsibilities, and mutually agreed house rules.`
+            }
+          </p>
+
+          <div class="parties-box">
+            <strong>${locale === 'es' ? 'PARTES ACORDANTES:' : 'CONTRACTING PARTIES:'}</strong><br/>
+            &bull; <strong>${locale === 'es' ? 'Parte Arrendadora / Iniciador:' : 'Agreement Initiator:'}</strong> ${initiatorName}<br/>
+            &bull; <strong>${locale === 'es' ? 'Parte Inquilina / Roommate:' : 'Accepting Counterparty:'}</strong> ${counterpartyName}
+          </div>
+
+          <div class="section-header">💸 ${locale === 'es' ? 'Aspectos Financieros' : 'Financial Terms'}</div>
+          <table class="data-table">
+            ${financialRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
+          </table>
+
+          <div class="section-header">🏠 ${locale === 'es' ? 'Convivencia y Reglas del Hogar' : 'Cohabitation & House Rules'}</div>
+          <table class="data-table">
+            ${cohabitationRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
+          </table>
+
+          <div class="section-header">⚖️ ${locale === 'es' ? 'Cláusulas y Términos Legales' : 'Clauses & Legal Terms'}</div>
+          <table class="data-table">
+            ${legalRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
+          </table>
+
+          ${customRows ? `
+            <div class="section-header">📋 ${locale === 'es' ? 'Cláusulas Adicionales Acordadas' : 'Additional Agreed Clauses'}</div>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px;">
+              ${customRows}
             </div>
-          `).join('')}
-        </div>
+          ` : ''}
 
-        <div class="metadata-box">
-          <strong>${locale === 'es' ? 'Identificador Único' : 'Unique Identifier'}:</strong> <span style="font-family: monospace; font-size:12px;">${contract.id}</span><br>
-          <strong>${locale === 'es' ? 'Fecha de Activación' : 'Activation Date'}:</strong> ${effectiveDate}
-        </div>
+          <table class="signatures-table">
+            <tr>
+              <td style="width: 46%;">
+                <div class="sig-line">
+                  <div style="font-family: Georgia, serif; font-style: italic; font-size: 16px; color: #49C788; margin-bottom: 4px; height: 20px;">
+                    ${initiatorName}
+                  </div>
+                  <p class="sig-name">${initiatorName}</p>
+                  <span class="sig-desc">${locale === 'es' ? 'Firmado Electrónicamente' : 'Digitally Signed'} (RoommateFinder)</span>
+                  ${contract.status === 'active' ? `<br/><div class="sig-seal">VERIFICADO &bull; ID: ${contract.id.slice(0, 8).toUpperCase()}</div>` : ''}
+                </div>
+              </td>
+              <td style="width: 8%;"></td>
+              <td style="width: 46%;">
+                <div class="sig-line">
+                  <div style="font-family: Georgia, serif; font-style: italic; font-size: 16px; color: #49C788; margin-bottom: 4px; height: 20px;">
+                    ${counterpartyName}
+                  </div>
+                  <p class="sig-name">${counterpartyName}</p>
+                  <span class="sig-desc">${locale === 'es' ? 'Firmado Electrónicamente' : 'Digitally Signed'} (RoommateFinder)</span>
+                  ${contract.status === 'active' ? `<br/><div class="sig-seal">VERIFICADO &bull; ID: ${contract.id.slice(0, 8).toUpperCase()}</div>` : ''}
+                </div>
+              </td>
+            </tr>
+          </table>
 
-        <div class="section-title">${locale === 'es' ? '💸 Puntos Financieros' : '💸 Financial Terms'}</div>
-        <table>
-          ${financialRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        <div class="section-title">${locale === 'es' ? '🏠 Convivencia y Reglas del Hogar' : '🏠 Cohabitation & House Rules'}</div>
-        <table>
-          ${cohabitationRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        <div class="section-title">${locale === 'es' ? '⚖️ Cláusulas y Términos Legales' : '⚖️ Clauses & Legal Terms'}</div>
-        <table>
-          ${legalRows.map(r => `<tr><td>${r.label}</td><td>${r.val}</td></tr>`).join('')}
-        </table>
-
-        ${customRows ? `
-          <div class="section-title">${locale === 'es' ? '📋 Cláusulas Adicionales Acordadas' : '📋 Additional Agreed Clauses'}</div>
-          <div class="custom-clause-box">
-            ${customRows}
+          <div class="contact-info">
+            RoommateFinder Legal Department &bull; info@roommatefinder.com &bull; www.roommatefinder.com
           </div>
-        ` : ''}
 
-        <div class="disclaimer">
-          ${locale === 'es' 
-            ? `<strong>Aviso de Responsabilidad Legal:</strong> Este contrato constituye un acuerdo privado vinculante acordado libremente y firmado digitalmente de buena fe por ambas partes en la plataforma RoommateFinder. RoommateFinder actúa únicamente como un servicio tecnológico intermediario para facilitar la negociación de convivencia y no es responsable del cumplimiento del contrato, no proporciona asesoría legal ni asume ninguna responsabilidad civil o penal derivada de este documento.`
-            : `<strong>Legal Disclaimer:</strong> This contract constitutes a private binding agreement freely entered into and digitally signed in good faith by both parties on the RoommateFinder platform. RoommateFinder acts solely as an intermediary technology service to facilitate co-living negotiations and is not responsible for contract enforcement, does not provide legal advice, and assumes no civil or criminal liability arising from this document.`
-          }
-        </div>
-
-        <div class="signatures">
-          <div class="sig-line">
-            <p>${initiatorName}</p>
-            <span>${locale === 'es' ? 'Firmado Electrónicamente (RoommateFinder App)' : 'Digitally Signed (RoommateFinder App)'}</span>
+          <!-- SVG waves footer -->
+          <div class="wave-footer">
+            <svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+              <path d="M0,60 C360,20 720,80 1080,40 C1260,20 1380,50 1440,70 L1440,100 L0,100 Z" fill="#bcf2d8" opacity="0.4"></path>
+              <path d="M0,45 C360,65 720,35 1080,75 C1260,85 1380,65 1440,50 L1440,100 L0,100 Z" fill="#49C788"></path>
+            </svg>
           </div>
-          ${signatureBlocks}
-        </div>
-
-        <div class="footer">
-          ${locale === 'es'
-            ? `Generado automáticamente el ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Copia Digital Válida`
-            : `Automatically generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} &bull; Valid Digital Copy`
-          }
         </div>
       </body>
       </html>

@@ -194,7 +194,13 @@ export default function NewContractScreen() {
       Alert.alert(locale === 'es' ? 'Propiedad requerida' : 'Property required', locale === 'es' ? 'Por favor, selecciona un alojamiento.' : 'Please select an accommodation first.');
       return;
     }
-    if (selectedUsers.length === 0) return;
+    if (selectedUsers.length === 0) {
+      Alert.alert(
+        locale === 'es' ? 'Roommate requerido' : 'Roommate required', 
+        locale === 'es' ? 'Por favor, selecciona al menos un participante o roommate.' : 'Please select at least one roommate participant.'
+      );
+      return;
+    }
     if (!rent || !deposit || !effectiveDate) {
       Alert.alert(t('contracts.missing_fields'), t('contracts.missing_fields_desc'));
       return;
