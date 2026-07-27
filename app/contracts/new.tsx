@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../context/LanguageContext';
 import { useMatches } from '@/hooks/useMatches';
@@ -30,8 +30,6 @@ const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
 export default function NewContractScreen() {
   const [step, setStep]             = useState(0);
   const [loading, setLoading]       = useState(false);
-  const [matches, setMatches]       = useState<Match[]>([]);
-  const [loadingMatches, setLoadingMatches] = useState(false);
 
   // Step 0: Tipo
   const [contractType, setContractType] = useState<'roommate_agreement' | 'rental_agreement'>('roommate_agreement');
@@ -93,7 +91,11 @@ export default function NewContractScreen() {
   const [selectedOptional, setSelectedOptional] = useState<string[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const { fetchMatches } = useMatches();
+  const { data: matchProfiles, isLoading: loadingMatches } = useMatches({ enabled: step === 2 });
+  const matches: Match[] = useMemo(
+    () => (matchProfiles || []).map((p) => ({ user_id: p.id, name: p.name })),
+    [matchProfiles]
+  );
   const { t, locale } = useTranslation();
 
   // Carga de alojamientos disponibles en el sistema
@@ -118,22 +120,7 @@ export default function NewContractScreen() {
     loadListings();
   }, []);
 
-  useEffect(() => {
-    if (step === 2 && matches.length === 0) loadMatches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, matches.length]);
-
-  // Carga los matches del usuario para elegir como participantes del contrato
-  const loadMatches = async () => {
-    setLoadingMatches(true);
-    const loaded = await fetchMatches();
-    if (loaded && loaded.length > 0) {
-      setMatches(loaded.map((p: any) => ({ user_id: p.id, name: p.name })));
-    } else {
-      setMatches([]);
-    }
-    setLoadingMatches(false);
-  };
+  // Los matches se cargan solos vía useMatches({ enabled: step === 2 }) al llegar al paso 2.
 
   // Agrega o quita una cláusula opcional del contrato
   const toggleOptional = (key: string) => {

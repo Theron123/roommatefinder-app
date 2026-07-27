@@ -79,15 +79,7 @@ export default function AboutScreen() {
           <OptionRow
             icon="shield-check-outline"
             title={isEs ? "Política de Privacidad" : "Privacy Policy"}
-            onPress={() => {
-              Alert.alert(
-                isEs ? "Política de Privacidad" : "Privacy Policy",
-                isEs 
-                  ? "Tus datos personales y biometricos están encriptados y protegidos. No compartimos información con terceros sin tu consentimiento explícito."
-                  : "Your personal and biometric data is fully encrypted and protected. We never share your details with third parties without your explicit consent.",
-                [{ text: "OK" }]
-              );
-            }}
+            onPress={() => router.push('/privacy-policy')}
           />
           <View style={styles.cardDivider} />
           <OptionRow

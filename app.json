@@ -8,6 +8,7 @@
     "scheme": "roommatefinderapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "privacyPolicyUrl": "https://roomiemates.com/privacy-policy",
     "ios": {
       "supportsTablet": true,
       "infoPlist": {

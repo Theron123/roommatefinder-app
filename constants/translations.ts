@@ -564,6 +564,57 @@ export const translations: Record<string, any> = {
         }
       ]
     },
+    privacy_policy: {
+      title: "Privacy Policy",
+      hero_title: "Your Data, Protected",
+      hero_sub: "This policy explains what information Roomiemates collects, how we use it, and the choices you have. Last updated: July 2026",
+      intermediary_title: "Verification data is sensitive.",
+      intermediary_desc: "Identity, background, and income verification involve documents you choose to submit. We never publish those documents to other users — only the resulting verified/unverified badge is shown.",
+      questions_note: "If you have questions about this policy or want to exercise your data rights, contact our support team from Settings.",
+      footer_version: "Roomiemates · Privacy Policy v1.0 · July 2026",
+      sections: [
+        {
+          title: "Information We Collect",
+          content: "Profile information (name, age, bio, photos, lifestyle preferences and dealbreakers), approximate location, account credentials, messages and voice notes you send in chat, identity/background/income/references/university/workplace verification submissions, and basic device/usage information."
+        },
+        {
+          title: "How We Use Your Information",
+          content: "To show you compatible roommates and listings, calculate trust scores, generate rental contracts, prevent fraud and abuse, respond to support requests, send you notifications you've enabled, and improve the app."
+        },
+        {
+          title: "Identity & Background Verification",
+          content: "Verification badges (identity, background, income, references, university, workplace) are based on documents or information you submit, reviewed manually by our team or, where noted, via a verification partner. We store the approval status, not the underlying documents, and never show your submitted documents to other users."
+        },
+        {
+          title: "Location Data",
+          content: "To protect your exact address, we store and display an approximate location offset from your real coordinates rather than your precise location. You control whether your profile appears in Explore at all."
+        },
+        {
+          title: "Payments",
+          content: "Subscription payments are processed by Stripe. We never see or store your full card number — Stripe's own privacy policy governs how they handle your payment details."
+        },
+        {
+          title: "Who We Share Data With",
+          content: "Supabase (our database and infrastructure provider), Stripe (payments), Resend (account emails). If you choose to publish a listing to a syndication partner (e.g. Zumper), that listing's public details (title, address, price, photos) become visible on their platform. If your landlord/company account connects a property management system (e.g. Yardi), relevant lease/tenant data syncs with that system. We do not sell your personal data to anyone."
+        },
+        {
+          title: "Data Security",
+          content: "Data is encrypted in transit and at rest, access is restricted by role (row-level security), and administrative actions on your account are logged and auditable."
+        },
+        {
+          title: "Your Rights",
+          content: "You can access, correct, or request deletion of your account and associated data at any time from Settings or by contacting support. Some information (e.g. records required for an active rental contract) may be retained as required by law."
+        },
+        {
+          title: "Children's Privacy",
+          content: "Roomiemates is intended for users 18 years of age or older. We do not knowingly collect information from anyone under 18."
+        },
+        {
+          title: "Changes to This Policy",
+          content: "We may update this policy from time to time. Material changes will be notified within the app. Continued use of the platform after a change implies acceptance of the updated policy."
+        }
+      ]
+    },
     home: {
       beautiful_apartment: "Beautiful Apartment",
       loc_not_specified: "Location not specified",
@@ -1137,6 +1188,57 @@ export const translations: Record<string, any> = {
         {
           title: "Contacto y Disputas",
           content: "Para reportar problemas o irregularidades en contratos, comunícate con nuestro equipo de soporte. Para disputas legales, recomendamos acudir a los mecanismos de mediación y arbitraje de tu jurisdicción local."
+        }
+      ]
+    },
+    privacy_policy: {
+      title: "Política de Privacidad",
+      hero_title: "Tus Datos, Protegidos",
+      hero_sub: "Esta política explica qué información recopila Roomiemates, cómo la usamos y qué opciones tienes. Última actualización: Julio 2026",
+      intermediary_title: "Los datos de verificación son sensibles.",
+      intermediary_desc: "La verificación de identidad, antecedentes e ingresos involucra documentos que tú decides enviar. Nunca publicamos esos documentos a otros usuarios — solo se muestra la insignia de verificado/no verificado resultante.",
+      questions_note: "Si tienes preguntas sobre esta política o quieres ejercer tus derechos sobre tus datos, contacta a nuestro equipo de soporte desde Configuración.",
+      footer_version: "Roomiemates · Política de Privacidad v1.0 · Julio 2026",
+      sections: [
+        {
+          title: "Información que Recopilamos",
+          content: "Información de perfil (nombre, edad, biografía, fotos, preferencias de estilo de vida y dealbreakers), ubicación aproximada, credenciales de cuenta, mensajes y notas de voz que envías en el chat, envíos de verificación de identidad/antecedentes/ingresos/referencias/universidad/trabajo, e información básica de uso y dispositivo."
+        },
+        {
+          title: "Cómo Usamos tu Información",
+          content: "Para mostrarte compañeros de cuarto y anuncios compatibles, calcular puntajes de confianza, generar contratos de arrendamiento, prevenir fraude y abuso, responder solicitudes de soporte, enviarte notificaciones que hayas habilitado, y mejorar la app."
+        },
+        {
+          title: "Verificación de Identidad y Antecedentes",
+          content: "Las insignias de verificación (identidad, antecedentes, ingresos, referencias, universidad, trabajo) se basan en documentos o información que tú envías, revisados manualmente por nuestro equipo o, cuando se indica, a través de un proveedor de verificación. Guardamos el estado de aprobación, no los documentos subyacentes, y nunca mostramos tus documentos enviados a otros usuarios."
+        },
+        {
+          title: "Datos de Ubicación",
+          content: "Para proteger tu dirección exacta, guardamos y mostramos una ubicación aproximada desplazada respecto a tus coordenadas reales, en vez de tu ubicación precisa. Tú controlas si tu perfil aparece en Explorar."
+        },
+        {
+          title: "Pagos",
+          content: "Los pagos de suscripción son procesados por Stripe. Nunca vemos ni almacenamos el número completo de tu tarjeta — la política de privacidad de Stripe rige cómo manejan tus datos de pago."
+        },
+        {
+          title: "Con Quién Compartimos Datos",
+          content: "Supabase (nuestro proveedor de base de datos e infraestructura), Stripe (pagos), Resend (correos de la cuenta). Si decides publicar un anuncio en un socio de sindicación (ej. Zumper), los detalles públicos de ese anuncio (título, dirección, precio, fotos) se vuelven visibles en su plataforma. Si tu cuenta de propietario/empresa conecta un sistema de gestión de propiedades (ej. Yardi), los datos relevantes de contrato/inquilino se sincronizan con ese sistema. No vendemos tus datos personales a nadie."
+        },
+        {
+          title: "Seguridad de los Datos",
+          content: "Los datos se encriptan en tránsito y en reposo, el acceso está restringido por rol (row-level security), y las acciones administrativas sobre tu cuenta quedan registradas y son auditables."
+        },
+        {
+          title: "Tus Derechos",
+          content: "Puedes acceder, corregir o solicitar la eliminación de tu cuenta y datos asociados en cualquier momento desde Configuración o contactando a soporte. Cierta información (ej. registros requeridos por un contrato de arrendamiento activo) puede conservarse según lo exija la ley."
+        },
+        {
+          title: "Privacidad de Menores",
+          content: "Roomiemates está destinado a usuarios de 18 años o más. No recopilamos conscientemente información de personas menores de 18 años."
+        },
+        {
+          title: "Cambios a Esta Política",
+          content: "Podemos actualizar esta política ocasionalmente. Los cambios importantes se notificarán dentro de la app. El uso continuo de la plataforma tras un cambio implica la aceptación de la política actualizada."
         }
       ]
     },

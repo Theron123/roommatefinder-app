@@ -1,28 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/lib/types';
+import { getCurrentUserId } from './useProfileQueries';
 
-// Hook para obtener los matches del usuario junto con los perfiles asociados
-export function useMatches() {
-  const [matches, setMatches] = useState<Profile[]>([]);
-  const [loadingMatches, setLoadingMatches] = useState(false);
-  const [errorMatches, setErrorMatches] = useState<string | null>(null);
-
-  // Consulta los matches del usuario actual (o el id pasado) y sus perfiles de Supabase
-  const fetchMatches = useCallback(async (currentUserId: string | undefined = undefined) => {
-    setLoadingMatches(true);
-    setErrorMatches(null);
-
-    try {
-      let myId = currentUserId;
-      if (!myId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setLoadingMatches(false);
-          return [];
-        }
-        myId = session.user.id;
-      }
+// Consulta los matches del usuario autenticado junto con los perfiles asociados
+export function useMatches(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['matches'],
+    enabled: options?.enabled ?? true,
+    queryFn: async (): Promise<Profile[]> => {
+      const myId = await getCurrentUserId();
+      if (!myId) return [];
 
       const { data: matchesData, error: matchesError } = await supabase
         .from('matches')
@@ -30,15 +18,10 @@ export function useMatches() {
         .or(`user1.eq.${myId},user2.eq.${myId}`);
 
       if (matchesError) throw matchesError;
-
-      if (!matchesData || matchesData.length === 0) {
-        setMatches([]);
-        setLoadingMatches(false);
-        return [];
-      }
+      if (!matchesData || matchesData.length === 0) return [];
 
       const userIds = matchesData
-        .map(m => m.user1 === myId ? m.user2 : m.user1)
+        .map((m) => (m.user1 === myId ? m.user2 : m.user1))
         .filter(Boolean) as string[];
 
       const { data: profilesData, error: profilesError } = await supabase
@@ -48,17 +31,7 @@ export function useMatches() {
 
       if (profilesError) throw profilesError;
 
-      const loadedProfiles = (profilesData || []) as unknown as Profile[];
-      setMatches(loadedProfiles);
-      return loadedProfiles;
-    } catch (e: any) {
-      console.error('Error fetching matches:', e);
-      setErrorMatches(e.message);
-      return [];
-    } finally {
-      setLoadingMatches(false);
-    }
-  }, []);
-
-  return { matches, loadingMatches, errorMatches, fetchMatches };
+      return (profilesData || []) as unknown as Profile[];
+    },
+  });
 }

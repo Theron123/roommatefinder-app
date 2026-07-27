@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Swiper from 'react-native-deck-swiper';
 import { supabase } from '@/lib/supabase';
 import { Profile } from '@/lib/types';
 import { useMatches } from '@/hooks/useMatches';
+import { getCurrentUserId } from '@/hooks/useProfileQueries';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getActiveFilters } from '@/app/explore/filters';
 import { notifyNewMatch } from '@/lib/notifications';
@@ -13,59 +15,157 @@ import { Image } from 'expo-image';
 
 const QUOTA_KEY = '@roommatefinder:swipe_quotas';
 const LIMITS = { like: 30, reject: 30, skip: 5 };
+const FALLBACK_COORDS = { latitude: 19.4326, longitude: -99.1332 }; // Ciudad de México, fallback si no hay ubicación
+
+// Le pone coordenadas "listas para mapa" a un perfil: usa latOffset/lngOffset
+// si existen, si no genera un punto aleatorio cercano a la base dada.
+function withMapCoords<T extends { latOffset?: number | null; lngOffset?: number | null; latitude?: number | null; longitude?: number | null }>(
+  profile: T,
+  baseLat: number,
+  baseLng: number
+): T {
+  if (profile.latOffset && profile.lngOffset) {
+    return { ...profile, latitude: profile.latOffset, longitude: profile.lngOffset };
+  }
+  if (!profile.latitude || !profile.longitude) {
+    const latOffset = (Math.random() - 0.5) * 0.1;
+    const lngOffset = (Math.random() - 0.5) * 0.1;
+    return { ...profile, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
+  }
+  return profile;
+}
 
 // Hook principal de la pantalla Explore: maneja perfiles candidatos, swipes, matches y cuotas de uso
 export function useExplore() {
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [allSwiped, setAllSwiped] = useState(false);
   const [cardPhotoIndices, setCardPhotoIndices] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<'swipe' | 'map'>('swipe');
-  const [matchedProfiles, setMatchedProfiles] = useState<Profile[]>([]);
   const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   const swiperRef = useRef<Swiper<Profile>>(null);
   const router = useRouter();
-  const { fetchMatches } = useMatches();
+  const queryClient = useQueryClient();
   const { requestLocation } = useDeviceLocation();
+  const { data: matchProfilesRaw } = useMatches();
+
+  // Consulta el perfil candidato a explorar (usuario actual + lista filtrada, excluyendo ya swipeados)
+  const profilesQuery = useQuery({
+    queryKey: ['explore-profiles'],
+    queryFn: async () => {
+      const myId = await getCurrentUserId();
+      if (!myId) return { profiles: [] as Profile[], currentUser: null as Profile | null };
+
+      const { data: currentUserData } = await supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl, latOffset, lngOffset, likes, preferences, dealbreakers, availability_status')
+        .eq('id', myId)
+        .single();
+
+      const { data: userSwipes } = await supabase
+        .from('swipes')
+        .select('swiped')
+        .eq('swiper', myId);
+
+      const swipedUserIds = userSwipes?.map((s) => s.swiped) || [];
+
+      const filters = getActiveFilters();
+      let query = supabase
+        .from('profiles')
+        .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
+        .neq('id', myId)
+        .neq('role', 'landlord')
+        .neq('role', 'company')
+        .neq('role', 'admin');
+
+      if (filters.role === 'host') {
+        query = query.eq('availability_status', 'have_room');
+      } else if (filters.role === 'seeker') {
+        query = query.neq('availability_status', 'have_room');
+      }
+      if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
+
+      if (swipedUserIds.length > 0) {
+        query = query.not('id', 'in', `(${swipedUserIds.join(',')})`);
+      }
+
+      query = query.limit(50);
+
+      const { data, error } = await query;
+      if (error) console.error('Error fetching profiles:', error);
+
+      if (!data) return { profiles: [], currentUser: currentUserData as unknown as Profile | null };
+
+      const shuffledProfiles = data.sort(() => 0.5 - Math.random());
+      const urlsToPrefetch = shuffledProfiles.map((p) => p.photoUrl).filter(Boolean) as string[];
+      if (urlsToPrefetch.length > 0) {
+        Image.prefetch(urlsToPrefetch);
+      }
+
+      const baseLat = currentUserData?.latOffset || FALLBACK_COORDS.latitude;
+      const baseLng = currentUserData?.lngOffset || FALLBACK_COORDS.longitude;
+      const mapReadyProfiles = shuffledProfiles.map((p) => withMapCoords(p, baseLat, baseLng));
+
+      return {
+        profiles: mapReadyProfiles as unknown as Profile[],
+        currentUser: currentUserData as unknown as Profile | null,
+      };
+    },
+  });
+
+  const currentUser = profilesQuery.data?.currentUser ?? null;
+
+  // Una vez resuelve el GPS del dispositivo, rellena las coordenadas de los
+  // perfiles que no tenían latOffset/lngOffset ni latitud/longitud propias.
+  const profiles = useMemo(() => {
+    const base = profilesQuery.data?.profiles ?? [];
+    if (!userLocation) return base;
+    return base.map((p) => {
+      if (p.latitude && p.longitude) return p;
+      return withMapCoords(p, userLocation.latitude, userLocation.longitude);
+    });
+  }, [profilesQuery.data, userLocation]);
+
+  // Perfiles con match, listos para mostrar en el mapa
+  const matchedProfiles = useMemo(() => {
+    const matches = matchProfilesRaw ?? [];
+    if (matches.length === 0) return [];
+    const baseLat = currentUser?.latOffset || userLocation?.latitude || FALLBACK_COORDS.latitude;
+    const baseLng = currentUser?.lngOffset || userLocation?.longitude || FALLBACK_COORDS.longitude;
+    return matches.map((p) => withMapCoords(p, baseLat, baseLng));
+  }, [matchProfilesRaw, currentUser, userLocation]);
 
   // Consulta el número de mensajes no leídos del usuario actual
-  const fetchUnreadCount = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
+  const unreadCountQuery = useQuery({
+    queryKey: ['explore-unread-count'],
+    queryFn: async () => {
+      const myId = await getCurrentUserId();
+      if (!myId) return 0;
+
       const { count, error } = await supabase
         .from('messages')
         .select('id', { count: 'exact', head: true })
-        .eq('receiver_id', session.user.id)
+        .eq('receiver_id', myId)
         .eq('is_read', false);
 
-      if (!error && count !== null) {
-        setUnreadCount(count);
-      }
-    } catch (e) {
-      console.log('Error fetching unread count:', e);
-    }
-  };
+      if (error) return 0;
+      return count ?? 0;
+    },
+  });
+  const unreadCount = unreadCountQuery.data ?? 0;
 
   useEffect(() => {
-    fetchUnreadCount();
-
     let unreadChannel: any = null;
 
     const setupUnreadSubscription = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      
+
       const channel = supabase
         .channel('public:unread_messages')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-          fetchUnreadCount();
+          queryClient.invalidateQueries({ queryKey: ['explore-unread-count'] });
         });
-      
+
       unreadChannel = channel.subscribe();
     };
 
@@ -76,7 +176,7 @@ export function useExplore() {
         supabase.removeChannel(unreadChannel);
       }
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -91,149 +191,16 @@ export function useExplore() {
     };
   }, []);
 
-  // Carga los perfiles candidatos para explorar, aplicando filtros activos y excluyendo ya swipeados
-  const fetchProfiles = async () => {
-    setLoading(true);
-    setAllSwiped(false);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: currentUserData } = await supabase
-        .from('profiles')
-        .select('id, name, age, photoUrl, latOffset, lngOffset, likes, preferences, dealbreakers, availability_status')
-        .eq('id', session.user.id)
-        .single();
-      if (currentUserData) {
-        setCurrentUser(currentUserData as unknown as Profile);
-      }
-
-      const { data: userSwipes } = await supabase
-        .from('swipes')
-        .select('swiped')
-        .eq('swiper', session.user.id);
-      
-      const swipedUserIds = userSwipes?.map(s => s.swiped) || [];
-
-      const filters = getActiveFilters();
-      let query = supabase
-        .from('profiles')
-        .select('id, name, age, photoUrl, role, latOffset, lngOffset, likes, preferences, dealbreakers, is_identity_verified, latitude, longitude')
-        .neq('id', session.user.id)
-        .neq('role', 'landlord')
-        .neq('role', 'company')
-        .neq('role', 'admin');
-
-      if (filters.role === 'host') {
-        query = query.eq('availability_status', 'have_room');
-      } else if (filters.role === 'seeker') {
-        query = query.neq('availability_status', 'have_room');
-      }
-      if (filters.onlyVerified) query = query.eq('is_identity_verified', true);
-      
-      if (swipedUserIds.length > 0) {
-        query = query.not('id', 'in', `(${swipedUserIds.join(',')})`);
-      }
-
-      query = query.limit(50);
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error fetching profiles:', error);
-      }
-        
-      if (data) {
-        const shuffledProfiles = data.sort(() => 0.5 - Math.random());
-        const urlsToPrefetch = shuffledProfiles
-          .map(p => p.photoUrl)
-          .filter(Boolean) as string[];
-        if (urlsToPrefetch.length > 0) {
-          Image.prefetch(urlsToPrefetch);
-        }
-        
-        const baseLat = currentUserData?.latOffset || userLocation?.latitude || 19.4326;
-        const baseLng = currentUserData?.lngOffset || userLocation?.longitude || -99.1332;
-
-        const mapReadyProfiles = shuffledProfiles.map((p) => {
-          if (p.latOffset && p.lngOffset) {
-            return { ...p, latitude: p.latOffset, longitude: p.lngOffset };
-          }
-          if (!p.latitude || !p.longitude) {
-            const latOffset = (Math.random() - 0.5) * 0.1;
-            const lngOffset = (Math.random() - 0.5) * 0.1;
-            return { ...p, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
-          }
-          return p;
-        });
-
-        setProfiles(mapReadyProfiles as unknown as Profile[]);
-      }
-    } catch (e) {
-      console.error('Error in fetchProfiles:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Obtiene los perfiles con match y les asigna coordenadas de mapa listas para mostrar
-  const fetchMatchedProfiles = async () => {
-    try {
-      const loadedProfiles = await fetchMatches();
-
-      if (loadedProfiles && loadedProfiles.length > 0) {
-        const baseLat = currentUser?.latOffset || userLocation?.latitude || 19.4326;
-        const baseLng = currentUser?.lngOffset || userLocation?.longitude || -99.1332;
-        
-        const mapReadyProfiles = loadedProfiles.map((p) => {
-          if (p.latOffset && p.lngOffset) {
-            return { ...p, latitude: p.latOffset, longitude: p.lngOffset };
-          }
-          if (!p.latitude || !p.longitude) {
-            const latOffset = (Math.random() - 0.5) * 0.1;
-            const lngOffset = (Math.random() - 0.5) * 0.1;
-            return { ...p, latitude: baseLat + latOffset, longitude: baseLng + lngOffset };
-          }
-          return p;
-        });
-
-        setMatchedProfiles(mapReadyProfiles);
-      } else {
-        setMatchedProfiles([]);
-      }
-    } catch (e) {
-      console.error('Error fetching matched profiles:', e);
-    }
-  };
-
   useEffect(() => {
-    fetchProfiles();
-    fetchMatchedProfiles();
+    requestLocation().then((loc) => {
+      if (loc) setUserLocation(loc);
+    });
+  }, [requestLocation]);
 
-    const fetchLocation = async () => {
-      const loc = await requestLocation();
-      if (loc) {
-        setUserLocation(loc);
-
-        setProfiles(prevProfiles => 
-          prevProfiles.map(p => {
-            if (!p.latitude || !p.longitude) {
-              const latOffset = (Math.random() - 0.5) * 0.1;
-              const lngOffset = (Math.random() - 0.5) * 0.1;
-              return { ...p, latitude: loc.latitude + latOffset, longitude: loc.longitude + lngOffset };
-            }
-            return p;
-          })
-        );
-      }
-    };
-    fetchLocation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Vuelve a mostrar el swiper (resetea "no quedan perfiles") cada vez que llega una lista nueva
+  useEffect(() => {
+    if (profilesQuery.data) setAllSwiped(false);
+  }, [profilesQuery.data]);
 
   // Callback vacío para el evento genérico de swipe del componente Swiper
   const onSwiped = () => {};
@@ -244,17 +211,17 @@ export function useExplore() {
       const raw = await AsyncStorage.getItem(QUOTA_KEY);
       let quotas = raw ? JSON.parse(raw) : null;
       const now = Date.now();
-      
+
       if (!quotas || now - quotas.timestamp > 3600000) {
         quotas = { timestamp: now, like: 0, reject: 0, skip: 0 };
       }
-      
+
       if (quotas[type] >= LIMITS[type]) {
         Alert.alert('Limit Reached', `You have reached your limit of ${LIMITS[type]} ${type}s per hour. Check back later!`);
         swiperRef.current?.swipeBack();
         return false;
       }
-      
+
       quotas[type] += 1;
       await AsyncStorage.setItem(QUOTA_KEY, JSON.stringify(quotas));
       return true;
@@ -296,13 +263,13 @@ export function useExplore() {
     if (allowed) {
       const likedProfile = profiles[index];
       console.log('Liked', likedProfile.id);
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         Alert.alert('Error', 'No authenticated session found. Please log in again.');
         return;
       }
-      
+
       const myId = session.user.id;
       await recordSwipe(likedProfile.id, true);
 
@@ -346,7 +313,8 @@ export function useExplore() {
         } else {
           console.log('Mutual Match created!', matchData);
           Alert.alert("It's a Match! 🎉", `You and ${likedProfile.name || 'someone'} liked each other! You can now start chatting.`);
-          
+          queryClient.invalidateQueries({ queryKey: ['matches'] });
+
           try {
             await notifyNewMatch(likedProfile.name || 'Roommate', likedProfile.id);
           } catch (notifErr) {
@@ -380,7 +348,7 @@ export function useExplore() {
   return {
     profiles,
     currentUser,
-    loading,
+    loading: profilesQuery.isLoading,
     allSwiped,
     cardPhotoIndices,
     setCardPhotoIndices,
@@ -390,7 +358,7 @@ export function useExplore() {
     userLocation,
     unreadCount,
     swiperRef,
-    fetchProfiles,
+    fetchProfiles: () => profilesQuery.refetch(),
     onSwiped,
     onSwipedLeft,
     onSwipedRight,
