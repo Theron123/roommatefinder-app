@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, SafeAreaView, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ActivityIndicator, Linking, Switch } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -10,7 +10,9 @@ const ACTIVE_STATUSES = ['active', 'trialing'];
 
 // Pantalla de suscripción real: lee el estado desde `subscriptions` (fuente de
 // verdad = webhook de Stripe, nunca el cliente) y, si no hay una activa,
-// ofrece iniciar un Stripe Checkout real.
+// ofrece iniciar un Stripe Checkout real. Mientras Stripe no esté configurado
+// en el entorno, además ofrece un slider de "modo prueba" (toggle-test-subscription)
+// para simular premium en QA sin necesitar claves reales.
 export default function SubscriptionsScreen() {
   const router = useRouter();
   const [status, setStatus] = useState<string | null>(null);
@@ -18,9 +20,12 @@ export default function SubscriptionsScreen() {
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [stripeConfigured, setStripeConfigured] = useState(true);
+  const [togglingTest, setTogglingTest] = useState(false);
 
   useEffect(() => {
     fetchSubscriptionStatus();
+    fetchStripeStatus();
   }, []);
 
   // Lee el estado real de la suscripción del usuario desde Supabase (tabla subscriptions)
@@ -40,6 +45,39 @@ export default function SubscriptionsScreen() {
       console.error('Error cargando estado de suscripción:', e);
     }
     setLoading(false);
+  };
+
+  // Verifica si Stripe ya está configurado en este entorno (sin exponer la clave)
+  // para decidir si mostrar el slider de modo prueba
+  const fetchStripeStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-status', { body: {} });
+      if (!error && data?.success) {
+        setStripeConfigured(Boolean(data.configured));
+      }
+    } catch (e) {
+      console.error('Error verificando estado de Stripe:', e);
+    }
+  };
+
+  // Simula (o quita) premium vía toggle-test-subscription — solo funciona
+  // mientras Stripe no esté configurado, la función se autodesactiva sola
+  const handleTestToggle = async (active: boolean) => {
+    setTogglingTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('toggle-test-subscription', {
+        body: { active },
+      });
+      if (error || !data?.success) {
+        console.error('Error alternando modo prueba:', error || data?.message);
+        return;
+      }
+      await fetchSubscriptionStatus();
+    } catch (e) {
+      console.error('Error alternando modo prueba:', e);
+    } finally {
+      setTogglingTest(false);
+    }
   };
 
   // Llama a la Edge Function que crea la Stripe Checkout Session y abre esa URL real
@@ -127,6 +165,30 @@ export default function SubscriptionsScreen() {
                 Los pagos todavía no están disponibles. Inténtalo más tarde.
               </Text>
             )}
+
+            {!stripeConfigured && (
+              <View style={styles.testModeCard}>
+                <View style={styles.testModeRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.testModeTitle}>Modo de prueba</Text>
+                    <Text style={styles.testModeDesc}>
+                      Simula acceso premium para pruebas. Solo visible mientras Stripe no
+                      esté configurado en este entorno.
+                    </Text>
+                  </View>
+                  {togglingTest ? (
+                    <ActivityIndicator color="#49C788" size="small" />
+                  ) : (
+                    <Switch
+                      value={isPremium}
+                      onValueChange={handleTestToggle}
+                      trackColor={{ false: '#333', true: '#2f6b4f' }}
+                      thumbColor={isPremium ? '#49C788' : '#888'}
+                    />
+                  )}
+                </View>
+              </View>
+            )}
           </>
         )}
       </View>
@@ -213,5 +275,29 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 13,
     textAlign: 'center',
+  },
+  testModeCard: {
+    backgroundColor: '#1a1a10',
+    borderWidth: 1,
+    borderColor: '#3a3520',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 20,
+  },
+  testModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  testModeTitle: {
+    color: '#e0c94a',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  testModeDesc: {
+    color: '#a89f6e',
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

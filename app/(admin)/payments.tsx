@@ -9,21 +9,35 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
 
-// Pantalla admin de pagos/suscripciones: muestra métricas simuladas y la hoja de ruta hacia pagos reales
+const ACTIVE_STATUSES = ['active', 'trialing'];
+
+// Pantalla admin de pagos/suscripciones: métricas reales calculadas desde la
+// tabla `subscriptions` (fuente de verdad = webhook de Stripe) y el estado
+// real de configuración de Stripe en este entorno.
 export default function AdminPayments() {
   const [totalUsers, setTotalUsers] = useState(0);
+  const [premiumCount, setPremiumCount] = useState(0);
+  const [testCount, setTestCount] = useState(0);
+  const [stripeConfigured, setStripeConfigured] = useState(false);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const { locale, t } = useTranslation();
   const { accentColor } = useAdminTheme();
 
-  // Carga el conteo total de usuarios registrados
+  // Carga usuarios totales, suscripciones premium reales (activas/en trial) y
+  // si Stripe está configurado en este entorno
   const fetchStats = async () => {
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-    setTotalUsers(count || 0);
+    const [{ count: usersCount }, { data: subs }, { data: statusData }] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('subscriptions').select('status, stripe_subscription_id').in('status', ACTIVE_STATUSES),
+      supabase.functions.invoke('stripe-status', { body: {} }),
+    ]);
+
+    setTotalUsers(usersCount || 0);
+    setPremiumCount(subs?.length || 0);
+    setTestCount((subs || []).filter((s) => s.stripe_subscription_id === 'test_simulated').length);
+    setStripeConfigured(Boolean(statusData?.data?.configured));
     setLoading(false);
     setRefreshing(false);
   };
@@ -31,6 +45,9 @@ export default function AdminPayments() {
   useEffect(() => { fetchStats(); }, []);
   // Refresca las estadísticas (pull-to-refresh)
   const onRefresh = () => { setRefreshing(true); fetchStats(); };
+
+  const freeCount = Math.max(totalUsers - premiumCount, 0);
+  const conversionPct = totalUsers > 0 ? `${((premiumCount / totalUsers) * 100).toFixed(1)}%` : '0%';
 
   const PLAN_FEATURES = locale === 'es' ? [
     'Swipes ilimitados',
@@ -48,18 +65,6 @@ export default function AdminPayments() {
     'Advanced filters',
   ];
 
-  const ROADMAP = locale === 'es' ? [
-    { num: '1', text: 'Crear una tabla `subscriptions` en Supabase (user_id, plan, started_at, expires_at, status).' },
-    { num: '2', text: 'Integrar Stripe o un proveedor local de pagos (e.g. MercadoPago) para procesar cobros.' },
-    { num: '3', text: 'Crear una Edge Function de Supabase para escuchar los webhooks y actualizar el estado.' },
-    { num: '4', text: 'Reemplazar la lógica de AsyncStorage en `subscriptions.tsx` con consultas directas a Supabase.' },
-  ] : [
-    { num: '1', text: 'Create a `subscriptions` table in Supabase (user_id, plan, started_at, expires_at, status).' },
-    { num: '2', text: 'Integrate Stripe or a LATAM provider (e.g. PayU, MercadoPago) for payment processing.' },
-    { num: '3', text: 'Create a Supabase Edge Function to handle payment webhooks and update subscription status.' },
-    { num: '4', text: 'Replace AsyncStorage subscription logic in `subscriptions.tsx` with Supabase real-time queries.' },
-  ];
-
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
@@ -72,18 +77,28 @@ export default function AdminPayments() {
           <Text style={styles.pageSubtitle}>{t('admin.payments.subtitle', 'Revenue overview and subscription management')}</Text>
         </View>
 
-        {/* Migration notice */}
-        <View style={styles.notice}>
-          <MaterialCommunityIcons name="information" size={18} color="#f97316" />
-          <View style={styles.noticeBody}>
-            <Text style={styles.noticeTitle}>{locale === 'es' ? "Suscripciones pendientes de migración" : "Subscriptions pending migration"}</Text>
-            <Text style={styles.noticeText}>
-              {locale === 'es'
-                ? "El estado de las suscripciones se almacena localmente en cada dispositivo (AsyncStorage). Sigue la guía a continuación para migrar a pagos reales."
-                : "Subscription status is currently stored locally on each device (AsyncStorage). Follow the roadmap below to enable real payment tracking."}
-            </Text>
+        {/* Aviso de estado real de Stripe */}
+        {!loading && (
+          <View style={styles.notice}>
+            <MaterialCommunityIcons name={stripeConfigured ? 'check-circle' : 'information'} size={18} color={stripeConfigured ? accentColor : '#f97316'} />
+            <View style={styles.noticeBody}>
+              <Text style={[styles.noticeTitle, stripeConfigured && { color: accentColor }]}>
+                {stripeConfigured
+                  ? (locale === 'es' ? 'Stripe configurado' : 'Stripe configured')
+                  : (locale === 'es' ? 'Stripe aún no configurado' : 'Stripe not configured yet')}
+              </Text>
+              <Text style={styles.noticeText}>
+                {stripeConfigured
+                  ? (locale === 'es'
+                      ? 'Los cobros y el estado de suscripción se procesan en vivo vía Stripe (tabla `subscriptions`, actualizada por su webhook).'
+                      : 'Charges and subscription status are processed live via Stripe (the `subscriptions` table, updated by its webhook).')
+                  : (locale === 'es'
+                      ? `Faltan las claves de Stripe en este entorno. Mientras tanto, los usuarios pueden simular premium en modo de prueba${testCount > 0 ? ` (${testCount} activa${testCount === 1 ? '' : 's'} ahora mismo)` : ''}.`
+                      : `Stripe keys are missing in this environment. Meanwhile, users can simulate premium via test mode${testCount > 0 ? ` (${testCount} active right now)` : ''}.`)}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         {loading ? (
           <View style={styles.centerLoader}>
@@ -95,9 +110,9 @@ export default function AdminPayments() {
             <View style={styles.statsRow}>
               {[
                 { label: t('admin.overview.total_users', 'Total Users'),  value: totalUsers, color: '#fff',    icon: 'account-group' as const },
-                { label: 'Premium',      value: 0,          color: '#f97316', icon: 'crown'          as const },
-                { label: locale === 'es' ? 'Gratis' : 'Free', value: totalUsers, color: accentColor, icon: 'account'        as const },
-                { label: locale === 'es' ? 'Conversión' : 'Conversion',   value: '0%',       color: '#3b82f6', icon: 'trending-up'    as const },
+                { label: 'Premium',      value: premiumCount, color: '#f97316', icon: 'crown'          as const },
+                { label: locale === 'es' ? 'Gratis' : 'Free', value: freeCount, color: accentColor, icon: 'account'        as const },
+                { label: locale === 'es' ? 'Conversión' : 'Conversion',   value: conversionPct,       color: '#3b82f6', icon: 'trending-up'    as const },
               ].map((s) => (
                 <View key={s.label} style={styles.statCard}>
                   <MaterialCommunityIcons name={s.icon} size={22} color={s.color} />
@@ -112,8 +127,12 @@ export default function AdminPayments() {
               <View style={styles.planHeader}>
                 <MaterialCommunityIcons name="crown" size={22} color="#f97316" />
                 <Text style={styles.planName}>{locale === 'es' ? 'Plan Premium' : 'Premium Plan'}</Text>
-                <View style={[styles.planBadge, { backgroundColor: `${accentColor}20` }]}>
-                  <Text style={[styles.planBadgeText, { color: accentColor }]}>{locale === 'es' ? 'Configurado' : 'Configured'}</Text>
+                <View style={[styles.planBadge, { backgroundColor: stripeConfigured ? `${accentColor}20` : '#f9731620' }]}>
+                  <Text style={[styles.planBadgeText, { color: stripeConfigured ? accentColor : '#f97316' }]}>
+                    {stripeConfigured
+                      ? (locale === 'es' ? 'Configurado' : 'Configured')
+                      : (locale === 'es' ? 'Modo de prueba' : 'Test mode')}
+                  </Text>
                 </View>
               </View>
               <View style={styles.planFeatures}>
@@ -126,15 +145,24 @@ export default function AdminPayments() {
               </View>
             </View>
 
-            {/* Roadmap */}
+            {/* Estado real de la integración */}
             <View style={styles.roadmapCard}>
-              <Text style={styles.roadmapTitle}>{locale === 'es' ? "Ruta hacia Pagos Reales" : "Roadmap to Real Payments"}</Text>
-              {ROADMAP.map((step) => (
-                <View key={step.num} style={styles.stepRow}>
-                  <View style={[styles.stepNum, { backgroundColor: `${accentColor}20`, borderColor: `${accentColor}55` }]}>
-                    <Text style={[styles.stepNumText, { color: accentColor }]}>{step.num}</Text>
-                  </View>
-                  <Text style={styles.stepText}>{step.text}</Text>
+              <Text style={styles.roadmapTitle}>{locale === 'es' ? 'Estado de la integración' : 'Integration status'}</Text>
+              {[
+                locale === 'es' ? 'Tabla `subscriptions` en Supabase (RLS: solo lectura propia/admin, escritura solo vía service role)' : '`subscriptions` table in Supabase (RLS: read own/admin only, writes only via service role)',
+                locale === 'es' ? 'Edge Function `create-checkout-session` (Stripe Checkout real)' : '`create-checkout-session` Edge Function (real Stripe Checkout)',
+                locale === 'es' ? 'Edge Function `stripe-webhook` (actualiza el estado desde Stripe)' : '`stripe-webhook` Edge Function (updates status from Stripe)',
+                stripeConfigured
+                  ? (locale === 'es' ? 'Claves de Stripe configuradas — pagos en vivo' : 'Stripe keys configured — live payments')
+                  : (locale === 'es' ? 'Pendiente: claves reales de Stripe (STRIPE_SECRET_KEY / STRIPE_PRICE_ID)' : 'Pending: real Stripe keys (STRIPE_SECRET_KEY / STRIPE_PRICE_ID)'),
+              ].map((text, i) => (
+                <View key={i} style={styles.stepRow}>
+                  <MaterialCommunityIcons
+                    name={i < 3 || stripeConfigured ? 'check-circle' : 'clock-outline'}
+                    size={18}
+                    color={i < 3 ? accentColor : stripeConfigured ? accentColor : '#888'}
+                  />
+                  <Text style={styles.stepText}>{text}</Text>
                 </View>
               ))}
             </View>
