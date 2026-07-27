@@ -246,14 +246,18 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
+  // touchAction/userSelect/WebkitUserSelect son propiedades CSS solo-web sin
+  // equivalente en ViewStyle de React Native — react-native-web sí las
+  // soporta en tiempo de ejecución, por eso el cast (un solo // @ts-ignore
+  // en WebkitUserSelect no alcanza: TS reporta el "excess property check"
+  // sobre el objeto completo, no línea por línea).
   container: {
     flex: 1,
     backgroundColor: '#000',
     touchAction: 'none',
     userSelect: 'none',
-    // @ts-ignore
     WebkitUserSelect: 'none',
-  },
+  } as any,
   swiperContainer: {
     flex: 1,
     position: 'relative',
