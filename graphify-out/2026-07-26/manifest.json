@@ -10,9 +10,9 @@
     "semantic_hash": "6b9302c1f72c315e90233c7539c48c9f"
   },
   "app.json": {
-    "mtime": 1782259438.4360743,
-    "ast_hash": "6c2c207f18dce26692159235aad5d734",
-    "semantic_hash": "6c2c207f18dce26692159235aad5d734"
+    "mtime": 1785114471.3829794,
+    "ast_hash": "fd47c7ff30f9f5305421ab90054dd6bd",
+    "semantic_hash": ""
   },
   "app/(admin)/_layout.tsx": {
     "mtime": 1784818752.4573963,
@@ -190,8 +190,8 @@
     "semantic_hash": ""
   },
   "app/contracts/new.tsx": {
-    "mtime": 1785108816.8455694,
-    "ast_hash": "503f4907c8482e6016d3df0df4c2fd15",
+    "mtime": 1785115045.3600485,
+    "ast_hash": "3fd440ea20f406fdbbaefa48d6625bba",
     "semantic_hash": ""
   },
   "app/contracts/review.tsx": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "app/settings/about.tsx": {
-    "mtime": 1784818889.6710236,
-    "ast_hash": "284021684180ebe743e2a7a43486ad98",
+    "mtime": 1785114462.783513,
+    "ast_hash": "3b97753e24ee66d3b3cecdc859c9bc37",
     "semantic_hash": ""
   },
   "app/settings/blocked.tsx": {
@@ -495,9 +495,9 @@
     "semantic_hash": "86b35f6fc3c1a9cf036de923e0ec1b04"
   },
   "constants/translations.ts": {
-    "mtime": 1783887250.7007384,
-    "ast_hash": "b09f509fecb39ea726583c21d3f1e71b",
-    "semantic_hash": "b09f509fecb39ea726583c21d3f1e71b"
+    "mtime": 1785114434.765235,
+    "ast_hash": "187fc8d4cdad1b88f54bce9793a66380",
+    "semantic_hash": ""
   },
   "constants/verifyConfig.ts": {
     "mtime": 1783875115.6983361,
@@ -540,8 +540,8 @@
     "semantic_hash": ""
   },
   "hooks/useExplore.ts": {
-    "mtime": 1784818597.4964712,
-    "ast_hash": "6506fce546d91b520b2865819add14d4",
+    "mtime": 1785115117.7624164,
+    "ast_hash": "99bc5e187ce84142e2c1deb4c84adf9b",
     "semantic_hash": ""
   },
   "hooks/useInboxQueries.ts": {
@@ -550,8 +550,8 @@
     "semantic_hash": ""
   },
   "hooks/useMatches.ts": {
-    "mtime": 1784818603.7313309,
-    "ast_hash": "6ef7626a63eabda449b51ca92cd63e37",
+    "mtime": 1785115014.2944443,
+    "ast_hash": "38ef38704739638c7071f2063425ae95",
     "semantic_hash": ""
   },
   "hooks/useProfileQueries.ts": {
@@ -645,8 +645,8 @@
     "semantic_hash": "dd3fea097784929dd2d1de82f4b4737e"
   },
   "package.json": {
-    "mtime": 1784825453.6351023,
-    "ast_hash": "8736205c84273958c25da1265e0e3a25",
+    "mtime": 1785114862.3661056,
+    "ast_hash": "3324a6dded07d3b556234fd2784855e3",
     "semantic_hash": ""
   },
   "scratch/generate_listing_seeds.js": {
@@ -1092,6 +1092,11 @@
   "supabase/migrations/20260726180000_add_subscriptions.sql": {
     "mtime": 1785105928.068505,
     "ast_hash": "22cccf4fc467dda23fdffd8b8a2f667b",
+    "semantic_hash": ""
+  },
+  "app/privacy-policy.tsx": {
+    "mtime": 1785114451.8653357,
+    "ast_hash": "fd7ef7b3702f4ab7c6186e8aaebc21ae",
     "semantic_hash": ""
   }
 }

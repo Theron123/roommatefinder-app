@@ -35,8 +35,8 @@
     "semantic_hash": ""
   },
   "app/(admin)/payments.tsx": {
-    "mtime": 1784818913.108395,
-    "ast_hash": "817287d917ccc8b83708be0d47e9a943",
+    "mtime": 1785121957.6748435,
+    "ast_hash": "c9b17b4961b5d7b1884bae0a27ab3e1c",
     "semantic_hash": ""
   },
   "app/(admin)/reports.tsx": {
@@ -140,8 +140,8 @@
     "semantic_hash": ""
   },
   "app/(tabs)/explore.tsx": {
-    "mtime": 1784818843.8560147,
-    "ast_hash": "e3fa9ed41f22f86616d3e5826334d99a",
+    "mtime": 1785121008.5274353,
+    "ast_hash": "c704a2157dfbfec2af2d6bce39208c78",
     "semantic_hash": ""
   },
   "app/(tabs)/inbox.tsx": {
@@ -270,8 +270,8 @@
     "semantic_hash": ""
   },
   "app/subscriptions.tsx": {
-    "mtime": 1785108991.933676,
-    "ast_hash": "249a8492daad85cb3a5e73de678aa47d",
+    "mtime": 1785121957.6752093,
+    "ast_hash": "1bacc79a76709a15a768910188626f67",
     "semantic_hash": ""
   },
   "app/terms.tsx": {
@@ -1097,6 +1097,16 @@
   "app/privacy-policy.tsx": {
     "mtime": 1785114451.8653357,
     "ast_hash": "fd7ef7b3702f4ab7c6186e8aaebc21ae",
+    "semantic_hash": ""
+  },
+  "supabase/functions/stripe-status/index.ts": {
+    "mtime": 1785121957.6938577,
+    "ast_hash": "75a14c49de087664b691aa76fb4f8d1d",
+    "semantic_hash": ""
+  },
+  "supabase/functions/toggle-test-subscription/index.ts": {
+    "mtime": 1785121957.6941025,
+    "ast_hash": "18d54dcc5f1586199e27d6026ef537ce",
     "semantic_hash": ""
   }
 }
