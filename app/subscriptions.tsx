@@ -1,53 +1,72 @@
-import { View, Text, StyleSheet, Pressable, SafeAreaView, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, SafeAreaView, ActivityIndicator, Linking } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-// Pantalla que simula el estado de suscripción premium (toggle mock) para probar el paywall
+// Estados de Stripe que consideramos "premium activo" para desbloquear el paywall
+const ACTIVE_STATUSES = ['active', 'trialing'];
+
+// Pantalla de suscripción real: lee el estado desde `subscriptions` (fuente de
+// verdad = webhook de Stripe, nunca el cliente) y, si no hay una activa,
+// ofrece iniciar un Stripe Checkout real.
 export default function SubscriptionsScreen() {
   const router = useRouter();
-  const [isPremium, setIsPremium] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
 
   useEffect(() => {
     fetchSubscriptionStatus();
   }, []);
 
-  // Lee de Supabase si el usuario tiene activado share_badges_enabled (flag mock de premium)
+  // Lee el estado real de la suscripción del usuario desde Supabase (tabla subscriptions)
   const fetchSubscriptionStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
         const { data } = await supabase
-          .from('profiles')
-          .select('share_badges_enabled')
-          .eq('id', session.user.id)
-          .single();
-        setIsPremium(data?.share_badges_enabled === true);
+          .from('subscriptions')
+          .select('status, current_period_end')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        setStatus(data?.status ?? null);
+        setCurrentPeriodEnd(data?.current_period_end ?? null);
       }
-    } catch {
-      // error reading value
+    } catch (e) {
+      console.error('Error cargando estado de suscripción:', e);
     }
     setLoading(false);
   };
 
-  // Actualiza el estado premium local y lo persiste en el perfil de Supabase
-  const toggleSubscription = async (value: boolean) => {
-    setIsPremium(value);
+  // Llama a la Edge Function que crea la Stripe Checkout Session y abre esa URL real
+  const startCheckout = async () => {
+    setCheckingOut(true);
+    setNotConfigured(false);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        await supabase
-          .from('profiles')
-          .update({ share_badges_enabled: value })
-          .eq('id', session.user.id);
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: {},
+      });
+
+      if (error || !data?.url) {
+        // 501 = Stripe aún no configurado (sin STRIPE_SECRET_KEY/STRIPE_PRICE_ID)
+        setNotConfigured(true);
+        return;
       }
+
+      await Linking.openURL(data.url);
     } catch (e) {
-      console.error('Failed to save premium status', e);
+      console.error('Error iniciando checkout de Stripe:', e);
+      setNotConfigured(true);
+    } finally {
+      setCheckingOut(false);
     }
   };
+
+  const isPremium = status ? ACTIVE_STATUSES.includes(status) : false;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -63,28 +82,52 @@ export default function SubscriptionsScreen() {
       <View style={styles.premiumSection}>
         <View style={styles.premiumHeader}>
           <IconSymbol name="star.fill" size={24} color="#49C788" />
-          <Text style={styles.premiumTitle}>Test Subscription</Text>
+          <Text style={styles.premiumTitle}>Premium</Text>
         </View>
 
         <Text style={styles.infoText}>
-          Use this toggle to mock your subscription status and test the paywall feature on the Home feed.
+          Desbloquea todos los perfiles del feed y otras funciones premium.
         </Text>
-        
+
         {loading ? (
           <ActivityIndicator color="#49C788" size="large" style={{ marginTop: 20 }} />
         ) : (
-          <View style={styles.subCard}>
-            <View>
-              <Text style={styles.subDuration}>Premium Access</Text>
-              <Text style={styles.subDesc}>{isPremium ? 'Currently Active' : 'Currently Free Plan'}</Text>
+          <>
+            <View style={styles.subCard}>
+              <View>
+                <Text style={styles.subDuration}>Acceso Premium</Text>
+                <Text style={styles.subDesc}>
+                  {isPremium
+                    ? `Activo${currentPeriodEnd ? ` · renueva ${new Date(currentPeriodEnd).toLocaleDateString()}` : ''}`
+                    : status === 'past_due'
+                    ? 'Pago pendiente'
+                    : status === 'canceled'
+                    ? 'Cancelado'
+                    : 'Plan gratuito'}
+                </Text>
+              </View>
             </View>
-            <Switch
-              value={isPremium}
-              onValueChange={toggleSubscription}
-              trackColor={{ false: '#333', true: '#49C788' }}
-              thumbColor={'#fff'}
-            />
-          </View>
+
+            {!isPremium && (
+              <Pressable
+                style={[styles.checkoutBtn, checkingOut && { opacity: 0.6 }]}
+                onPress={startCheckout}
+                disabled={checkingOut}
+              >
+                {checkingOut ? (
+                  <ActivityIndicator color="#000" size="small" />
+                ) : (
+                  <Text style={styles.checkoutBtnText}>Suscribirme</Text>
+                )}
+              </Pressable>
+            )}
+
+            {notConfigured && (
+              <Text style={styles.errorText}>
+                Los pagos todavía no están disponibles. Inténtalo más tarde.
+              </Text>
+            )}
+          </>
         )}
       </View>
     </SafeAreaView>
@@ -152,5 +195,23 @@ const styles = StyleSheet.create({
   subDesc: {
     color: '#888',
     marginTop: 4,
+  },
+  checkoutBtn: {
+    backgroundColor: '#49C788',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  checkoutBtnText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorText: {
+    color: '#ff6b6b',
+    marginTop: 12,
+    fontSize: 13,
+    textAlign: 'center',
   },
 });

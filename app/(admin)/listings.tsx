@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { logAdminAction, fetchAdminAuditLog } from '@/lib/adminAuditLog';
 
 type Listing = {
   id: string;
@@ -193,17 +194,14 @@ export default function AdminListings() {
     return role;
   };
 
-  // Carga notas y auditoría administrativa local
+  // Carga notas locales y auditoría (esta última desde Supabase)
   const loadAdminMetadata = async (listingId: string) => {
     try {
       const notesKey = `admin_property_notes:${listingId}`;
-      const auditKey = `admin_property_audit:${listingId}`;
-
       const savedNotes = await AsyncStorage.getItem(notesKey);
-      const savedAudit = await AsyncStorage.getItem(auditKey);
 
       setAdminNotes(savedNotes || '');
-      setAuditLogs(savedAudit ? JSON.parse(savedAudit) : []);
+      setAuditLogs(await fetchAdminAuditLog('property', listingId));
     } catch (e) {
       console.error('Error al cargar metadatos locales:', e);
     }
@@ -226,24 +224,13 @@ export default function AdminListings() {
     }
   };
 
-  // Registra logs de cambios
+  // Registra una acción administrativa en Supabase (admin_audit_log) y refresca la lista
   const addAuditLog = async (listingId: string, action: string) => {
     try {
-      const auditKey = `admin_property_audit:${listingId}`;
-      const savedAudit = await AsyncStorage.getItem(auditKey);
-      const logs: PropertyAuditLog[] = savedAudit ? JSON.parse(savedAudit) : [];
-
-      const newLog: PropertyAuditLog = {
-        timestamp: new Date().toISOString(),
-        action,
-        adminName: 'Super Admin'
-      };
-
-      const updatedLogs = [newLog, ...logs];
-      await AsyncStorage.setItem(auditKey, JSON.stringify(updatedLogs));
-      setAuditLogs(updatedLogs);
+      await logAdminAction('property', listingId, action);
+      setAuditLogs(await fetchAdminAuditLog('property', listingId));
     } catch (e) {
-      console.error('Error al registrar logs en AsyncStorage:', e);
+      console.error('Error al registrar logs de auditoría:', e);
     }
   };
 

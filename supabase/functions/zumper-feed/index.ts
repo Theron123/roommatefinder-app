@@ -23,7 +23,7 @@
 // vive en helpers.ts para poder testearla con `deno test` sin necesitar un
 // servidor HTTP ni una base de datos — ver helpers.test.ts.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { ZumperFeedGenerator } from '../../../lib/integrations/zumper/ZumperFeedGenerator.ts';
+import { ZumperFeedGenerator } from '../_shared/ZumperFeedGenerator.ts';
 import { ListingRow, mapRowToZumperListing, timingSafeEqual } from './helpers.ts';
 
 // Endpoint público (protegido por token) que arma y sirve el feed XML de Zumper

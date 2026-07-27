@@ -106,17 +106,26 @@ export default function HomeScreen() {
 
     const { data: currentUserProfile } = await supabase
       .from('profiles')
-      .select('id, latOffset, lngOffset, likes, preferences, photoUrl, share_badges_enabled')
+      .select('id, latOffset, lngOffset, likes, preferences, photoUrl')
       .eq('id', session.user.id)
       .single();
-    
+
     if (!currentUserProfile) {
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
-    setIsPremium(currentUserProfile.share_badges_enabled === true);
+    // El paywall real: solo status active/trialing en `subscriptions` (fuente
+    // de verdad = webhook de Stripe) desbloquea el feed completo. Deliberadamente
+    // no se usa profiles.share_badges_enabled — ese campo es la preferencia de
+    // privacidad de "mostrar insignias" del propio usuario, no tiene que ver con pagos.
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('status')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+    setIsPremium(subscription?.status === 'active' || subscription?.status === 'trialing');
 
     if (currentUserProfile.photoUrl) {
       setCurrentUserPhoto(currentUserProfile.photoUrl);

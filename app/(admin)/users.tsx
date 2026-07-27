@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { logAdminAction, fetchAdminAuditLog } from '@/lib/adminAuditLog';
 
 type Profile = {
   id: string;
@@ -164,19 +165,18 @@ export default function AdminUsers() {
       const emailKey = `admin_email:${userId}`;
       const phoneKey = `admin_phone:${userId}`;
       const notesKey = `admin_notes:${userId}`;
-      const auditKey = `admin_audit:${userId}`;
 
       const savedEmail = await AsyncStorage.getItem(emailKey);
       const savedPhone = await AsyncStorage.getItem(phoneKey);
       const savedNotes = await AsyncStorage.getItem(notesKey);
-      const savedAudit = await AsyncStorage.getItem(auditKey);
+      const auditLog = await fetchAdminAuditLog('user', userId);
 
       const cleanName = (userName || 'user').toLowerCase().replace(/\s+/g, '');
-      
+
       setEditEmail(savedEmail || `${cleanName}@example.com`);
       setEditPhone(savedPhone || `+1 (604) 555-${Math.floor(1000 + Math.random() * 9000)}`);
       setEditNotes(savedNotes || '');
-      setAuditLogs(savedAudit ? JSON.parse(savedAudit) : []);
+      setAuditLogs(auditLog);
     } catch (e) {
       console.error('Error cargando detalles del contacto:', e);
     }
@@ -271,25 +271,10 @@ export default function AdminUsers() {
     }
   };
 
-  // Registra una acción administrativa en el historial
+  // Registra una acción administrativa en Supabase (admin_audit_log) y refresca la lista
   const addAuditLog = async (userId: string, action: string) => {
-    try {
-      const auditKey = `admin_audit:${userId}`;
-      const savedAudit = await AsyncStorage.getItem(auditKey);
-      const logs: AuditLog[] = savedAudit ? JSON.parse(savedAudit) : [];
-      
-      const newLog: AuditLog = {
-        timestamp: new Date().toISOString(),
-        action,
-        adminName: 'Super Admin'
-      };
-
-      const updatedLogs = [newLog, ...logs];
-      await AsyncStorage.setItem(auditKey, JSON.stringify(updatedLogs));
-      setAuditLogs(updatedLogs);
-    } catch (e) {
-      console.error('Error registrando auditoría:', e);
-    }
+    await logAdminAction('user', userId, action);
+    setAuditLogs(await fetchAdminAuditLog('user', userId));
   };
 
   // Carga estadísticas de registros asociados

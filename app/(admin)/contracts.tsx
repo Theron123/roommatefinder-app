@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { logAdminAction, fetchAdminAuditLog } from '@/lib/adminAuditLog';
 
 type Contract = {
   id: string;
@@ -118,17 +119,14 @@ export default function AdminContracts() {
     return type;
   };
 
-  // Cargar metadatos administrativos locales
+  // Cargar notas locales y auditoría (esta última desde Supabase)
   const loadAdminMetadata = async (contractId: string) => {
     try {
       const notesKey = `admin_contract_notes:${contractId}`;
-      const auditKey = `admin_contract_audit:${contractId}`;
-
       const savedNotes = await AsyncStorage.getItem(notesKey);
-      const savedAudit = await AsyncStorage.getItem(auditKey);
 
       setAdminNotes(savedNotes || '');
-      setAuditLogs(savedAudit ? JSON.parse(savedAudit) : []);
+      setAuditLogs(await fetchAdminAuditLog('contract', contractId));
     } catch (e) {
       console.error('Error cargando notas locales:', e);
     }
@@ -151,25 +149,10 @@ export default function AdminContracts() {
     }
   };
 
-  // Registrar logs de auditoría locales
+  // Registra una acción administrativa en Supabase (admin_audit_log) y refresca la lista
   const addAuditLog = async (contractId: string, action: string) => {
-    try {
-      const auditKey = `admin_contract_audit:${contractId}`;
-      const savedAudit = await AsyncStorage.getItem(auditKey);
-      const logs: ContractAuditLog[] = savedAudit ? JSON.parse(savedAudit) : [];
-
-      const newLog: ContractAuditLog = {
-        timestamp: new Date().toISOString(),
-        action,
-        adminName: 'Super Admin'
-      };
-
-      const updatedLogs = [newLog, ...logs];
-      await AsyncStorage.setItem(auditKey, JSON.stringify(updatedLogs));
-      setAuditLogs(updatedLogs);
-    } catch (e) {
-      console.error('Error al registrar logs en AsyncStorage:', e);
-    }
+    await logAdminAction('contract', contractId, action);
+    setAuditLogs(await fetchAdminAuditLog('contract', contractId));
   };
 
   // Calcular estadísticas de contratos

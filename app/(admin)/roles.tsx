@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../context/LanguageContext';
 import { useAdminTheme } from '../../context/AdminThemeContext';
+import { logAdminAction } from '@/lib/adminAuditLog';
 
 type UserProfile = {
   id: string;
@@ -27,12 +28,6 @@ type UserProfile = {
   photoUrl: string | null;
   created_at: string;
   email?: string;
-};
-
-type AuditLog = {
-  timestamp: string;
-  action: string;
-  adminName: string;
 };
 
 const ROLES_LIST = [
@@ -110,21 +105,10 @@ export default function RoleManagementScreen() {
     fetchUsers();
   };
 
-  // Registra un log de auditoría local para cambios de rol de un usuario
+  // Registra en Supabase un cambio de rol de un usuario (admin_audit_log,
+  // entity_type='user' — el mismo historial que ve users.tsx para ese usuario)
   const addAuditLog = async (userId: string, action: string) => {
-    try {
-      const auditKey = `admin_user_audit:${userId}`;
-      const existing = await AsyncStorage.getItem(auditKey);
-      const logs = existing ? JSON.parse(existing) : [];
-      const newLog: AuditLog = {
-        timestamp: new Date().toISOString(),
-        action,
-        adminName: 'Super Admin',
-      };
-      await AsyncStorage.setItem(auditKey, JSON.stringify([newLog, ...logs]));
-    } catch (e) {
-      console.error('Error writing audit log:', e);
-    }
+    await logAdminAction('user', userId, action);
   };
 
   // Abre el modal selector de rol para el usuario elegido

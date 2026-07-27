@@ -3,7 +3,7 @@
 // solo importarlo — inútil (y peligroso) para tests unitarios. Este archivo no
 // importa Deno.serve ni hace red/DB, así que se puede testear con `deno test`
 // sin infraestructura.
-import { ZumperFeedGenerator, ZumperListing } from '../../../lib/integrations/zumper/ZumperFeedGenerator.ts';
+import { ZumperFeedGenerator, ZumperListing } from '../_shared/ZumperFeedGenerator.ts';
 
 export const CONTACT_EMAIL = 'listings@roomiemates.com';
 
