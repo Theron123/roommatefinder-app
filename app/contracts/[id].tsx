@@ -14,6 +14,10 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from '../../context/LanguageContext';
 
+import { getLegalFramework, detectCountryCode } from '@/constants/legalFrameworks';
+import { generateContractHTML, getContractTypeLabel, getOptionalClauseLabel } from '@/utils/contractPdfTemplate';
+import { downloadLatexSourceFile } from '@/utils/contractLatexTemplate';
+
 type Contract = {
   id: string;
   type: string;
@@ -57,20 +61,20 @@ export default function ContractDetailScreen() {
       no_parties:          { en: 'No parties without 24h notice', es: 'Sin fiestas sin aviso de 24 h' },
       parking_included:    { en: 'Parking included', es: 'Estacionamiento incluido' },
       internet_split:      { en: 'Internet split between occupants', es: 'Internet dividido entre ocupantes' },
-      early_termination:   { en: 'Early termination (30 days + 1 month)', es: 'Terminación anticipada' },
+      early_termination:   { en: 'Early termination (30 days notice)', es: 'Terminación anticipada con preaviso' },
       renters_insurance:   { en: 'Renter\'s insurance required', es: 'Seguro de inquilino requerido' },
       temperature_control: { en: 'Temperature control 68–78 °F', es: 'Control de temperatura 68–78 °F' },
     };
-    return dict[key]?.[locale] || key;
+    return dict[key]?.[locale || 'es'] || key;
   };
 
   // Traduce el tipo de contrato a su etiqueta localizada
   const getContractTypeLabel = (type: string) => {
     if (type === 'roommate_agreement') {
-      return locale === 'es' ? 'Acuerdo de Roommate' : 'Roommate Agreement';
+      return locale === 'es' ? 'Acuerdo Privado de Roommate y Co-living' : 'Private Roommate & Co-living Agreement';
     }
     if (type === 'rental_agreement') {
-      return locale === 'es' ? 'Contrato de Renta' : 'Rental Agreement';
+      return locale === 'es' ? 'Contrato de Arrendamiento Habitacional' : 'Residential Lease Agreement';
     }
     return type;
   };
@@ -105,335 +109,105 @@ export default function ContractDetailScreen() {
     setLoading(false);
   };
 
-  // Arma el documento HTML detallado del contrato (cláusulas, partes, firmas) para exportarlo a PDF
-  const generateContractHTML = (contractData: Contract, activeStatus: string) => {
-    const c = contractData.clauses || {};
-    const initiatorName = contractData.initiator?.name ?? (locale === 'es' ? 'Parte Iniciadora' : 'Initiating Party');
-    const participants = contractData.contract_participants || [];
-    const counterpartyName = participants.map((p: any) => p.profiles?.name).join(', ') || (locale === 'es' ? 'Contraparte' : 'Counterparty');
-    
-    const effectiveDate = contractData.effective_date 
-      ? new Date(contractData.effective_date).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
-      : (locale === 'es' ? 'Por definir' : 'TBD');
 
-    const financialRows = locale === 'es' ? [
-      { label: 'Renta Mensual', val: c.rent?.amount ? `$${c.rent.amount} / mes` : '—' },
-      { label: 'Día de Vencimiento', val: c.rent?.due_day ? `Día ${c.rent.due_day} de cada mes` : '—' },
-      { label: 'Cargo por Pago Tardío', val: c.rent?.late_fee ? `$${c.rent.late_fee}` : 'N/A' },
-      { label: 'Depósito de Seguridad', val: c.security_deposit?.amount ? `$${c.security_deposit.amount}` : '—' },
-      { label: 'Plazo de Devolución de Depósito', val: c.security_deposit?.return_days ? `${c.security_deposit.return_days} días hábiles` : '15 días hábiles' },
-    ] : [
-      { label: 'Monthly Rent', val: c.rent?.amount ? `$${c.rent.amount} / month` : '—' },
-      { label: 'Due Date', val: c.rent?.due_day ? `Day ${c.rent.due_day} of each month` : '—' },
-      { label: 'Late Payment Fee', val: c.rent?.late_fee ? `$${c.rent.late_fee}` : 'N/A' },
-      { label: 'Security Deposit', val: c.security_deposit?.amount ? `$${c.security_deposit.amount}` : '—' },
-      { label: 'Deposit Return Timeline', val: c.security_deposit?.return_days ? `${c.security_deposit.return_days} business days` : '15 business days' },
-    ];
 
-    const cohabitationRows = locale === 'es' ? [
-      { label: 'Mascotas en la Propiedad', val: c.pets?.allowed ? 'Permitidas' : 'No permitidas' },
-      { label: 'Fumar en Espacios Interiores', val: c.smoking?.allowed ? 'Permitido' : 'No permitido' },
-      { label: 'Visitas y Alojamiento Nocturno', val: c.visitors?.overnight_allowed ? `Permitidas (máx. ${c.visitors.max_nights || 3} noches)` : 'No permitidas' },
-      { label: 'Horario de Silencio Establecido', val: c.noise ? `${c.noise.quiet_hours_start} a ${c.noise.quiet_hours_end}` : '—' },
-      { label: 'Programa de Limpieza Común', val: c.cleaning?.schedule === 'daily' ? 'Diario' : c.cleaning?.schedule === 'weekly' ? 'Semanal' : 'Quincenal' },
-    ] : [
-      { label: 'Pets on Property', val: c.pets?.allowed ? 'Allowed' : 'Not allowed' },
-      { label: 'Smoking Indoors', val: c.smoking?.allowed ? 'Allowed' : 'Not allowed' },
-      { label: 'Guests & Overnight Stays', val: c.visitors?.overnight_allowed ? `Allowed (max ${c.visitors.max_nights || 3} nights)` : 'Not allowed' },
-      { label: 'Quiet Hours Schedule', val: c.noise ? `${c.noise.quiet_hours_start} to ${c.noise.quiet_hours_end}` : '—' },
-      { label: 'Cleaning Schedule', val: c.cleaning?.schedule === 'daily' ? 'Daily' : c.cleaning?.schedule === 'weekly' ? 'Weekly' : 'Biweekly' },
-    ];
+  // Helper para generar el Blob del PDF en Web renderizando aisladamente en un contenedor del DOM
+  const generateWebPDFBlob = async (htmlContent: string, fileName: string): Promise<Blob> => {
+    let html2pdfFn: any = (window as any).html2pdf;
 
-    const legalRows = locale === 'es' ? [
-      { label: 'Preaviso para Desocupación', val: c.move_out ? `${c.move_out.notice_days} días` : '30 días' },
-      { label: 'Preaviso para Desalojo/Fin de Plazo', val: c.eviction ? `${c.eviction.notice_days} días` : '30 días' },
-      { label: 'Resolución de Disputas', val: c.dispute?.method === 'mediation' ? 'Mediación formal de buena fe' : 'Arbitraje vinculante' },
-      { label: 'Responsabilidad por Daños Locativos', val: c.damage?.tenant_responsible ? 'Cargo directo al inquilino causante' : 'Sujeto a negociación directa' },
-      { label: 'Desgaste Natural por Uso Razonable', val: c.damage?.normal_wear_exempt ? 'Exento de cargos (uso cotidiano normal)' : 'Sujeto a evaluación' },
-      { label: 'Inspección Obligatoria de Entrada', val: c.move_in?.inspection_required ? 'Requerida con reporte firmado' : 'Opcional' },
-      { label: 'Inspección Obligatoria de Salida', val: c.move_out?.inspection_required ? 'Requerida con reporte firmado' : 'Opcional' },
-      { label: 'Privacidad (Grabaciones)', val: c.privacy?.no_recording ? 'Prohibidas las grabaciones de voz/video sin consentimiento' : 'Sin restricciones específicas' },
-    ] : [
-      { label: 'Move-out Notice Period', val: c.move_out ? `${c.move_out.notice_days} days` : '30 days' },
-      { label: 'Eviction Notice Period', val: c.eviction ? `${c.eviction.notice_days} days` : '30 days' },
-      { label: 'Dispute Resolution', val: c.dispute?.method === 'mediation' ? 'Formal good-faith mediation' : 'Binding arbitration' },
-      { label: 'Liability for Property Damage', val: c.damage?.tenant_responsible ? 'Charged to responsible tenant' : 'Subject to direct negotiation' },
-      { label: 'Normal Wear and Tear Exemption', val: c.damage?.normal_wear_exempt ? 'Exempt from charges (normal daily use)' : 'Subject to evaluation' },
-      { label: 'Mandatory Move-in Inspection', val: c.move_in?.inspection_required ? 'Required with signed report' : 'Optional' },
-      { label: 'Mandatory Move-out Inspection', val: c.move_out?.inspection_required ? 'Required with signed report' : 'Optional' },
-      { label: 'Privacy (Recordings)', val: c.privacy?.no_recording ? 'Voice/video recordings without consent prohibited' : 'No specific restrictions' },
-    ];
+    if (!html2pdfFn) {
+      try {
+        const mod = await import('html2pdf.js');
+        html2pdfFn = mod.default || mod;
+        if (typeof html2pdfFn !== 'function' && (html2pdfFn as any)?.default) {
+          html2pdfFn = (html2pdfFn as any).default;
+        }
+      } catch (e) {
+        console.warn("Module import of html2pdf failed, fetching script tag", e);
+      }
+    }
 
-    const customRows = (contractData.selected_custom_clauses || []).map((key: string) => `
-      <div style="font-size: 11px; color: #475569; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;">&bull; ${getOptionalClauseLabel(key)}</div>
-    `).join('');
+    if (!html2pdfFn || typeof html2pdfFn !== 'function') {
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).html2pdf) {
+          html2pdfFn = (window as any).html2pdf;
+          return resolve();
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload = () => {
+          html2pdfFn = (window as any).html2pdf;
+          resolve();
+        };
+        script.onerror = () => reject(new Error("Failed to load html2pdf script from CDN"));
+        document.head.appendChild(script);
+      });
+    }
 
-    const statusConfig = getStatusConfig(activeStatus);
+    if (!html2pdfFn) {
+      throw new Error("html2pdf library could not be initialized");
+    }
 
-    return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${locale === 'es' ? 'Contrato' : 'Contract'} ${contractData.id}</title>
-      <style>
-        @page {
-          size: letter;
-          margin: 0;
-        }
-        body { 
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-          color: #1e293b; 
-          margin: 0; 
-          padding: 0; 
-          background: #fff; 
-          line-height: 1.5;
-        }
-        .page-wrapper {
-          padding: 100px 50px 80px 50px;
-          position: relative;
-          box-sizing: border-box;
-          min-height: 100vh;
-        }
-        .wave-header {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 120px;
-          overflow: hidden;
-          z-index: 10;
-        }
-        .wave-footer {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 100px;
-          overflow: hidden;
-          z-index: 10;
-        }
-        .metadata-table {
-          width: 100%;
-          border: none;
-          margin-bottom: 30px;
-          border-collapse: collapse;
-        }
-        .metadata-table td {
-          border: none !important;
-          padding: 0 0 8px 0 !important;
-          background: none !important;
-          vertical-align: middle;
-        }
-        .meta-line {
-          font-size: 11px;
-          font-weight: 700;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border-bottom: 1.5px solid #49C788;
-        }
-        .contract-title {
-          font-size: 22px;
-          font-weight: 800;
-          color: #0f172a;
-          margin: 0 0 10px 0;
-          font-family: Georgia, serif;
-        }
-        .intro-text {
-          font-size: 12px;
-          color: #475569;
-          margin-bottom: 20px;
-          text-align: justify;
-          line-height: 1.6;
-        }
-        .parties-box {
-          margin-bottom: 25px;
-          font-size: 12px;
-          color: #0f172a;
-          border-left: 3px solid #49C788;
-          padding-left: 12px;
-          line-height: 1.6;
-        }
-        .section-header {
-          font-size: 10px;
-          font-weight: 800;
-          color: #49C788;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-top: 22px;
-          margin-bottom: 6px;
-        }
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 15px;
-        }
-        .data-table td {
-          padding: 7px 0 !important;
-          border-bottom: 1px solid #f1f5f9 !important;
-          font-size: 11.5px !important;
-          background: none !important;
-        }
-        .data-table td.label {
-          color: #475569;
-          font-weight: 600;
-          width: 50%;
-        }
-        .data-table td.value {
-          color: #0f172a;
-          font-weight: 700;
-          text-align: right;
-        }
-        .signatures-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 40px;
-        }
-        .signatures-table td {
-          border: none !important;
-          padding: 0 !important;
-          background: none !important;
-          vertical-align: top;
-        }
-        .sig-line {
-          border-top: 1px solid #cbd5e1;
-          padding-top: 8px;
-        }
-        .sig-name {
-          font-size: 12px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-        .sig-desc {
-          font-size: 9px;
-          color: #64748b;
-          margin-top: 2px;
-        }
-        .sig-seal {
-          margin-top: 4px;
-          font-size: 7.5px;
-          font-family: monospace;
-          color: #10b981;
-          background: #f0fdf4;
-          padding: 1px 4px;
-          border-radius: 4px;
-          display: inline-block;
-        }
-        .contact-info {
-          font-size: 8.5px;
-          color: #64748b;
-          text-align: center;
-          margin-top: 30px;
-          border-top: 1px solid #f1f5f9;
-          padding-top: 10px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="page-wrapper">
-        <!-- SVG waves header -->
-        <div class="wave-header">
-          <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-            <path d="M0,0 C360,60 720,20 1080,80 C1260,110 1380,80 1440,50 L1440,0 L0,0 Z" fill="#bcf2d8" opacity="0.4"></path>
-            <path d="M0,0 C360,50 720,80 1080,40 C1260,25 1380,60 1440,70 L1440,0 L0,0 Z" fill="#49C788"></path>
-          </svg>
-        </div>
+    // Isolated hidden iframe completely offscreen to eliminate screen flash and blank scroll offsets
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-99999px';
+    iframe.style.top = '-99999px';
+    iframe.style.width = '794px';
+    iframe.style.height = '2400px';
+    iframe.style.border = 'none';
+    iframe.style.visibility = 'hidden';
+    document.body.appendChild(iframe);
 
-        <table class="metadata-table">
-          <tr>
-            <td class="meta-line" style="width: 35%;">${locale === 'es' ? 'San José, Costa Rica' : 'RoommateFinder Legal'}</td>
-            <td style="width: 30%; text-align: center;">
-              <!-- Circle logo in teal -->
-              <svg width="28" height="28" viewBox="0 0 100 100" style="display: inline-block; vertical-align: middle;">
-                <circle cx="50" cy="50" r="42" stroke="#49C788" stroke-width="8" fill="none" />
-                <path d="M50,18 L50,50 L78,50" stroke="#49C788" stroke-width="8" stroke-linecap="round" fill="none" />
-                <circle cx="50" cy="50" r="10" fill="#49C788" />
-              </svg>
-            </td>
-            <td class="meta-line" style="width: 35%; text-align: right;">${effectiveDate}</td>
-          </tr>
-        </table>
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      throw new Error("Cannot access iframe document");
+    }
 
-        <h1 class="contract-title">${getContractTypeLabel(contractData.type) || (locale === 'es' ? 'Acuerdo de Convivencia' : 'Co-living Agreement')}</h1>
-        
-        <p class="intro-text">
-          ${locale === 'es' 
-            ? `Por medio de la presente, se hace constar el acuerdo de roommate y convivencia celebrado y firmado electrónicamente de buena fe por ambas partes en la plataforma <strong>RoommateFinder</strong>. Este documento define los términos de convivencia, responsabilidades de pago y reglas del hogar acordadas mutuamente para la propiedad asociada, y constituye un acuerdo vinculante entre las partes.`
-            : `This document certifies the roommate and co-living agreement entered into and digitally signed in good faith by both parties on the <strong>RoommateFinder</strong> platform. This document defines the co-living terms, payment responsibilities, and mutually agreed house rules.`
-          }
-        </p>
+    doc.open();
+    doc.write(htmlContent);
+    doc.close();
 
-        <div class="parties-box">
-          <strong>${locale === 'es' ? 'PARTES ACORDANTES:' : 'CONTRACTING PARTIES:'}</strong><br/>
-          &bull; <strong>${locale === 'es' ? 'Parte Arrendadora / Iniciador:' : 'Agreement Initiator:'}</strong> ${initiatorName}<br/>
-          &bull; <strong>${locale === 'es' ? 'Parte Inquilina / Roommate:' : 'Accepting Counterparty:'}</strong> ${counterpartyName}
-        </div>
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
-        <div class="section-header">💸 ${locale === 'es' ? 'Aspectos Financieros' : 'Financial Terms'}</div>
-        <table class="data-table">
-          ${financialRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
-        </table>
+    const opt = {
+      margin: 0,
+      filename: fileName,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        logging: false, 
+        width: 794,
+        windowWidth: 794,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        useCORS: true
+      },
+      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
 
-        <div class="section-header">🏠 ${locale === 'es' ? 'Convivencia y Reglas del Hogar' : 'Cohabitation & House Rules'}</div>
-        <table class="data-table">
-          ${cohabitationRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
-        </table>
-
-        <div class="section-header">⚖️ ${locale === 'es' ? 'Cláusulas y Términos Legales' : 'Clauses & Legal Terms'}</div>
-        <table class="data-table">
-          ${legalRows.map(r => `<tr><td class="label">${r.label}</td><td class="value">${r.val}</td></tr>`).join('')}
-        </table>
-
-        ${customRows ? `
-          <div class="section-header">📋 ${locale === 'es' ? 'Cláusulas Adicionales Acordadas' : 'Additional Agreed Clauses'}</div>
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 15px;">
-            ${customRows}
-          </div>
-        ` : ''}
-
-        <table class="signatures-table">
-          <tr>
-            <td style="width: 46%;">
-              <div class="sig-line">
-                <div style="font-family: Georgia, serif; font-style: italic; font-size: 16px; color: #49C788; margin-bottom: 4px; height: 20px;">
-                  ${initiatorName}
-                </div>
-                <p class="sig-name">${initiatorName}</p>
-                <span class="sig-desc">${locale === 'es' ? 'Firmado Electrónicamente' : 'Digitally Signed'} (RoommateFinder)</span>
-                ${activeStatus === 'active' ? `<br/><div class="sig-seal">VERIFICADO &bull; ID: ${contractData.id.slice(0, 8).toUpperCase()}</div>` : ''}
-              </div>
-            </td>
-            <td style="width: 8%;"></td>
-            <td style="width: 46%;">
-              <div class="sig-line">
-                <div style="font-family: Georgia, serif; font-style: italic; font-size: 16px; color: #49C788; margin-bottom: 4px; height: 20px;">
-                  ${counterpartyName}
-                </div>
-                <p class="sig-name">${counterpartyName}</p>
-                <span class="sig-desc">${locale === 'es' ? 'Firmado Electrónicamente' : 'Digitally Signed'} (RoommateFinder)</span>
-                ${activeStatus === 'active' ? `<br/><div class="sig-seal">VERIFICADO &bull; ID: ${contractData.id.slice(0, 8).toUpperCase()}</div>` : ''}
-              </div>
-            </td>
-          </tr>
-        </table>
-
-        <div class="contact-info">
-          RoommateFinder Legal Department &bull; info@roommatefinder.com &bull; www.roommatefinder.com
-        </div>
-
-        <!-- SVG waves footer -->
-        <div class="wave-footer">
-          <svg viewBox="0 0 1440 100" preserveAspectRatio="none" style="width: 100%; height: 100%;">
-            <path d="M0,60 C360,20 720,80 1080,40 C1260,20 1380,50 1440,70 L1440,100 L0,100 Z" fill="#bcf2d8" opacity="0.4"></path>
-            <path d="M0,45 C360,65 720,35 1080,75 C1260,85 1380,65 1440,50 L1440,100 L0,100 Z" fill="#49C788"></path>
-          </svg>
-        </div>
-      </div>
-    </body>
-    </html>
-    `;
+    try {
+      const worker = html2pdfFn().set(opt).from(doc.body);
+      let webBlob: Blob;
+      if (typeof worker.outputPdf === 'function') {
+        webBlob = await worker.outputPdf('blob');
+      } else if (typeof worker.output === 'function') {
+        webBlob = await worker.output('blob');
+      } else {
+        webBlob = await worker.toPdf().output('blob');
+      }
+      document.body.removeChild(iframe);
+      return webBlob;
+    } catch (e) {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+      throw e;
+    }
   };
 
   // Pide confirmación, activa el contrato, genera su PDF firmado y lo sube al bucket privado 'contracts'
@@ -456,7 +230,7 @@ export default function ContractDetailScreen() {
               
               if (updateError) throw updateError;
 
-              // 2. Fetch the updated contract data (so we have correct initiator and participant profiles, etc.)
+              // 2. Fetch the updated contract data
               const { data: updatedContract, error: fetchError } = await supabase
                 .from('contracts')
                 .select('*, initiator:initiator_id(name), contract_participants(user_id, profiles:user_id(name))')
@@ -467,44 +241,34 @@ export default function ContractDetailScreen() {
                 throw new Error("Failed to load updated contract");
               }
 
-              // 3. Generate PDF HTML content (which will now show "Active" status, etc.)
-              const html = generateContractHTML(updatedContract, 'active');
+              // 3. Generate PDF HTML content
+              const html = generateContractHTML(updatedContract, 'active', locale);
 
               // 4. Generate PDF file
               const fileName = `${updatedContract.id}.pdf`;
               if (Platform.OS === 'web') {
-                const html2pdfModule = await import('html2pdf.js');
-                const html2pdf = html2pdfModule.default || html2pdfModule;
-                const opt = {
-                  margin:       0.4,
-                  filename:     `contrato_${updatedContract.id}.pdf`,
-                  image:        { type: 'jpeg' as const, quality: 0.98 },
-                  html2canvas:  { scale: 2 },
-                  jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-                };
-                const webBlob = await html2pdf().set(opt).from(html).output('blob');
-                const blobUri = URL.createObjectURL(webBlob);
-                await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
+                try {
+                  const webBlob = await generateWebPDFBlob(html, `contrato_${updatedContract.id}.pdf`);
+                  const blobUri = URL.createObjectURL(webBlob);
+                  await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
+                } catch (e) {
+                  console.warn("Upload PDF on accept failed:", e);
+                }
               } else {
                 const { uri } = await Print.printToFileAsync({ html, base64: false });
                 await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
               }
 
-              // El bucket "contracts" es privado (RM-2026-003): guardamos solo
-              // el nombre del archivo, no una URL pública. Se firma una URL
-              // temporal cada vez que alguien autorizado necesita abrirlo.
               await supabase
                 .from('contracts')
                 .update({ pdf_url: fileName })
                 .eq('id', id);
 
-              // 7. Refresh local contract state
               await fetchContract();
-              
               Alert.alert('✅ ' + (locale === 'es' ? 'Contrato activo' : 'Contract active'), t('contracts.accept_success'));
             } catch (err: any) {
               console.error("Error accepting contract and saving PDF:", err);
-              Alert.alert('Error', locale === 'es' ? 'Ocurrió un error al activar y guardar el contrato.' : 'An error occurred while activating and saving the contract.');
+              Alert.alert('Error', locale === 'es' ? 'Ocurrió un error al activar el contrato.' : 'An error occurred while activating contract.');
             } finally {
               setGenerating(false);
             }
@@ -516,96 +280,124 @@ export default function ContractDetailScreen() {
 
   // Pide confirmación y marca el contrato como terminado, registrando la fecha de terminación
   const handleTerminate = async () => {
-    Alert.alert(
-      t('contracts.terminate_confirm_title'),
-      t('contracts.terminate_confirm_desc'),
-      [
-        { text: t('general.cancel'), style: 'cancel' },
-        {
-          text: locale === 'es' ? 'Terminar' : 'Terminate',
-          style: 'destructive',
-          onPress: async () => {
-            await supabase.from('contracts').update({ status: 'terminated', termination_date: new Date().toISOString().split('T')[0], updated_at: new Date().toISOString() }).eq('id', id);
-            fetchContract();
-          }
+    const doTerminate = async () => {
+      setGenerating(true);
+      try {
+        await supabase
+          .from('contracts')
+          .update({
+            status: 'terminated',
+            termination_date: new Date().toISOString().split('T')[0],
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id);
+
+        await fetchContract();
+        if (Platform.OS === 'web') {
+          alert(locale === 'es' ? 'Contrato terminado exitosamente.' : 'Contract terminated successfully.');
+        } else {
+          Alert.alert('✅ ' + (locale === 'es' ? 'Contrato terminado' : 'Contract terminated'));
         }
-      ]
-    );
+      } catch (e) {
+        console.error("Error terminating contract:", e);
+      } finally {
+        setGenerating(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmWeb = window.confirm(
+        locale === 'es' 
+          ? '¿Estás seguro de que deseas terminar este contrato? Esta acción cancelará el acuerdo.' 
+          : 'Are you sure you want to terminate this contract?'
+      );
+      if (confirmWeb) {
+        await doTerminate();
+      }
+    } else {
+      Alert.alert(
+        t('contracts.terminate_confirm_title'),
+        t('contracts.terminate_confirm_desc'),
+        [
+          { text: t('general.cancel'), style: 'cancel' },
+          {
+            text: locale === 'es' ? 'Terminar' : 'Terminate',
+            style: 'destructive',
+            onPress: doTerminate
+          }
+        ]
+      );
+    }
   };
 
-  // Descarga/comparte el PDF del contrato: usa la URL firmada si ya existe un pdf_url guardado, o lo genera al vuelo (y lo sube si el contrato está activo)
+  // Descarga/comparte el PDF del contrato
   const handleGenerateAndDownload = async () => {
     if (!contract) return;
     setGenerating(true);
     try {
-      // Always generate PDF fresh on-the-fly to ensure latest style templates are loaded
-      const html = generateContractHTML(contract, contract.status);
-
-      let localUri: string | null = null;
+      const html = generateContractHTML(contract, contract.status, locale);
 
       if (Platform.OS === 'web') {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default || html2pdfModule;
-        const opt = {
-          margin:       0.4,
-          filename:     `contrato_${contract.id}.pdf`,
-          image:        { type: 'jpeg' as const, quality: 0.98 },
-          html2canvas:  { scale: 2 },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' as const }
-        };
-        const webBlob = await html2pdf().set(opt).from(html).output('blob');
-        
-        // On web, if it's active, let's save it to Supabase using uploadToSupabase helper
-        if (contract.status === 'active') {
-          const fileName = `${contract.id}.pdf`;
-          const blobUri = URL.createObjectURL(webBlob);
-          try {
-            await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
-            // Bucket privado (RM-2026-003): se guarda solo el nombre del
-            // archivo, no una URL pública/permanente.
-            await supabase.from('contracts').update({ pdf_url: fileName }).eq('id', contract.id);
-            contract.pdf_url = fileName; // update local ref
-          } catch (uploadError) {
-            console.error("Error uploading contract PDF on web:", uploadError);
+        const fileName = `${contract.id}.pdf`;
+        try {
+          const webBlob = await generateWebPDFBlob(html, `contrato_${contract.id}.pdf`);
+          
+          if (contract.status === 'active') {
+            try {
+              const blobUri = URL.createObjectURL(webBlob);
+              await uploadToSupabase('contracts', fileName, blobUri, 'application/pdf');
+              await supabase.from('contracts').update({ pdf_url: fileName }).eq('id', contract.id);
+              contract.pdf_url = fileName;
+            } catch (uploadError) {
+              console.error("Error uploading contract PDF on web:", uploadError);
+            }
           }
-        }
 
-        // Trigger browser download using the blob we already have in memory
-        // (no need to round-trip through a signed URL for this immediate download).
-        const downloadUrl = URL.createObjectURL(webBlob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `contrato_${contract.id}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          const downloadUrl = URL.createObjectURL(webBlob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = `contrato_${contract.id}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+          }, 1000);
+        } catch (pdfErr) {
+          console.warn("Blob generation failed, using Expo Print web fallback:", pdfErr);
+          await Print.printAsync({ html });
+        }
       } else {
         const { uri } = await Print.printToFileAsync({ html, base64: false });
-        localUri = uri;
 
-        // On mobile, if it's active, let's upload it to Supabase using uploadToSupabase helper
         if (contract.status === 'active') {
           const fileName = `${contract.id}.pdf`;
           try {
             await uploadToSupabase('contracts', fileName, uri, 'application/pdf');
-            // Bucket privado (RM-2026-003): se guarda solo el nombre del
-            // archivo, no una URL pública/permanente.
             await supabase.from('contracts').update({ pdf_url: fileName }).eq('id', contract.id);
-            contract.pdf_url = fileName; // update local ref
+            contract.pdf_url = fileName;
           } catch (uploadError) {
             console.error("Error uploading active contract PDF on mobile:", uploadError);
           }
         }
 
-        await Sharing.shareAsync(localUri, { 
+        await Sharing.shareAsync(uri, { 
           UTI: '.pdf', 
           mimeType: 'application/pdf', 
           dialogTitle: locale === 'es' ? 'Descargar Contrato' : 'Download Contract' 
         });
       }
-    } catch (err) {
-      console.error(err);
-      Alert.alert(locale === 'es' ? 'Error' : 'Error', locale === 'es' ? 'Ocurrió un error al generar el documento PDF.' : 'An error occurred while generating the PDF document.');
+    } catch (err: any) {
+      console.error("Generate error:", err);
+      if (Platform.OS === 'web') {
+        try {
+          await Print.printAsync({ html: generateContractHTML(contract, contract.status) });
+        } catch (fallbackErr) {
+          alert(locale === 'es' ? `Error al descargar PDF: ${err?.message || 'Error desconocido'}` : 'An error occurred while generating the PDF.');
+        }
+      } else {
+        Alert.alert(locale === 'es' ? 'Error' : 'Error', locale === 'es' ? 'Ocurrió un error al generar el documento PDF.' : 'An error occurred while generating the PDF document.');
+      }
     } finally {
       setGenerating(false);
     }
@@ -624,7 +416,7 @@ export default function ContractDetailScreen() {
   const isCP  = contract.contract_participants?.some((p: any) => p.user_id === userId); // es la otra parte
   const isInit = contract.initiator_id === userId;
   const canAccept = isCP && contract.status === 'pending_authorization';
-  const canTerminate = (isInit || isCP) && (contract.status === 'active' || contract.status === 'pending_authorization');
+  const canTerminate = contract.status !== 'terminated';
   
   const counterpartyNames = (contract.contract_participants || []).map((p: any) => p.profiles?.name).join(', ');
 
@@ -745,7 +537,7 @@ export default function ContractDetailScreen() {
             </Pressable>
           )}
 
-          {/* Generate/Download document */}
+          {/* Generate/Download PDF */}
           <Pressable style={s.downloadBtn} onPress={handleGenerateAndDownload} disabled={generating}>
             {generating
               ? <ActivityIndicator color="#49C788" />
@@ -755,6 +547,19 @@ export default function ContractDetailScreen() {
                 </>
             }
           </Pressable>
+
+          {/* Download LaTeX Source (.tex) */}
+          {Platform.OS === 'web' && (
+            <Pressable 
+              style={[s.downloadBtn, { backgroundColor: '#1e293b', borderColor: '#334155', marginTop: 8 }]} 
+              onPress={() => downloadLatexSourceFile(contract, locale)}
+            >
+              <MaterialCommunityIcons name="code-braces" size={19} color="#49C788" />
+              <Text style={[s.downloadBtnText, { color: '#ffffff' }]}>
+                {locale === 'es' ? 'Descargar Fuente LaTeX (.tex)' : 'Download LaTeX (.tex)'}
+              </Text>
+            </Pressable>
+          )}
 
           {/* Terminate */}
           {canTerminate && (
