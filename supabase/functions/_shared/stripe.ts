@@ -72,6 +72,44 @@ export async function createCheckoutSession(
     client_reference_id: params.clientReferenceId,
     customer: params.customerId,
     customer_email: params.customerId ? undefined : params.customerEmail,
+    'metadata[type]': 'premium',
+  });
+}
+
+// Crea una Stripe Checkout Session en modo pago único (renta). A diferencia
+// de premium, el monto varía según el listing, así que no hay un Price fijo
+// de Stripe: se arma `price_data` inline con el monto que llega del cliente.
+// `metadata` viaja en el evento checkout.session.completed y es lo que usa
+// stripe-webhook para encontrar/actualizar la fila de rent_payments correcta
+// sin depender del id de la sesión.
+export async function createRentCheckoutSession(
+  secretKey: string,
+  params: {
+    amountCents: number;
+    listingId: string;
+    period: string;
+    successUrl: string;
+    cancelUrl: string;
+    clientReferenceId: string;
+    customerId?: string;
+    customerEmail?: string;
+  }
+): Promise<StripeCheckoutSession> {
+  return stripeRequest<StripeCheckoutSession>(secretKey, 'POST', '/checkout/sessions', {
+    mode: 'payment',
+    'line_items[0][price_data][currency]': 'usd',
+    'line_items[0][price_data][unit_amount]': params.amountCents,
+    'line_items[0][price_data][product_data][name]': `Renta ${params.period}`,
+    'line_items[0][quantity]': 1,
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.clientReferenceId,
+    customer: params.customerId,
+    customer_email: params.customerId ? undefined : params.customerEmail,
+    'metadata[type]': 'rent',
+    'metadata[listing_id]': params.listingId,
+    'metadata[period]': params.period,
+    'metadata[amount_cents]': params.amountCents,
   });
 }
 

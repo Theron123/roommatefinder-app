@@ -83,13 +83,9 @@ export default function ListingDetailScreen() {
     router.push(`/chat/${host.id}`);
   };
 
-  // Muestra confirmación mock de solicitud de renta enviada (no crea registro real)
+  // Lleva a la pantalla real de pago de renta (Stripe Checkout, mode: payment)
   const handleRentNow = () => {
-    Alert.alert(
-      'Rent Request Sent!',
-      'We have notified the host that you are interested in renting this property. They will reach out to you shortly.',
-      [{ text: 'OK' }]
-    );
+    router.push(`/rent-payment/${id}`);
   };
 
   if (loading) {

@@ -550,6 +550,60 @@ export type Database = {
           },
         ]
       }
+      rent_payments: {
+        Row: {
+          id: string
+          user_id: string
+          listing_id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          amount_cents: number
+          status: string
+          period: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          listing_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          amount_cents: number
+          status?: string
+          period: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          listing_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          amount_cents?: number
+          status?: string
+          period?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rent_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rent_payments_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       swipes: {
         Row: {
           created_at: string | null
