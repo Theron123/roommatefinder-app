@@ -15,63 +15,84 @@
 -- El bucket "contracts" también se creó manualmente desde el Dashboard en
 -- producción, nunca por migración (mismo problema que "Roommate" en
 -- 20260712204303). Se crea de forma idempotente para reproducibilidad local.
-insert into storage.buckets (id, name, public)
-values ('contracts', 'contracts', false)
-on conflict (id) do nothing;
+--
+-- Mismo guard que 20260712204303: en un arranque 100% limpio, el contenedor
+-- de storage crea storage.buckets/storage.objects de forma asíncrona
+-- respecto a estas migraciones — es una carrera real y no determinística.
+-- Sin este guard, perder la carrera tumba la migración y bloquea todo lo
+-- que viene después en la cadena.
+do $$
+declare
+  waited int := 0;
+begin
+  while to_regclass('storage.buckets') is null and waited < 30 loop
+    perform pg_sleep(1);
+    waited := waited + 1;
+  end loop;
 
-update storage.buckets set public = false where id = 'contracts';
+  if to_regclass('storage.buckets') is null then
+    raise notice 'storage.buckets no apareció tras esperar 30s — se omite el bootstrap del bucket contracts. Volvé a correr "supabase db reset" una vez que el contenedor de storage haya terminado de inicializar.';
+    return;
+  end if;
 
-drop policy if exists "Public can read contracts" on storage.objects;
-drop policy if exists "Authenticated users can upload contracts" on storage.objects;
+  insert into storage.buckets (id, name, public)
+  values ('contracts', 'contracts', false)
+  on conflict (id) do nothing;
 
-create policy "contract parties can read their contract files"
-  on storage.objects for select to authenticated
-  using (
-    bucket_id = 'contracts'
-    and exists (
-      select 1 from public.contracts c
-      where c.id::text = split_part(storage.objects.name, '.', 1)
-        and (
-          c.initiator_id = auth.uid()
-          or public.is_admin(auth.uid())
-          or exists (
-            select 1 from public.contract_participants cp
-            where cp.contract_id = c.id and cp.user_id = auth.uid()
+  update storage.buckets set public = false where id = 'contracts';
+
+  drop policy if exists "Public can read contracts" on storage.objects;
+  drop policy if exists "Authenticated users can upload contracts" on storage.objects;
+
+  create policy "contract parties can read their contract files"
+    on storage.objects for select to authenticated
+    using (
+      bucket_id = 'contracts'
+      and exists (
+        select 1 from public.contracts c
+        where c.id::text = split_part(storage.objects.name, '.', 1)
+          and (
+            c.initiator_id = auth.uid()
+            or public.is_admin(auth.uid())
+            or exists (
+              select 1 from public.contract_participants cp
+              where cp.contract_id = c.id and cp.user_id = auth.uid()
+            )
           )
-        )
-    )
-  );
+      )
+    );
 
-create policy "contract parties can upload their contract files"
-  on storage.objects for insert to authenticated
-  with check (
-    bucket_id = 'contracts'
-    and exists (
-      select 1 from public.contracts c
-      where c.id::text = split_part(storage.objects.name, '.', 1)
-        and (
-          c.initiator_id = auth.uid()
-          or exists (
-            select 1 from public.contract_participants cp
-            where cp.contract_id = c.id and cp.user_id = auth.uid()
+  create policy "contract parties can upload their contract files"
+    on storage.objects for insert to authenticated
+    with check (
+      bucket_id = 'contracts'
+      and exists (
+        select 1 from public.contracts c
+        where c.id::text = split_part(storage.objects.name, '.', 1)
+          and (
+            c.initiator_id = auth.uid()
+            or exists (
+              select 1 from public.contract_participants cp
+              where cp.contract_id = c.id and cp.user_id = auth.uid()
+            )
           )
-        )
-    )
-  );
+      )
+    );
 
-create policy "contract parties can update their contract files"
-  on storage.objects for update to authenticated
-  using (
-    bucket_id = 'contracts'
-    and exists (
-      select 1 from public.contracts c
-      where c.id::text = split_part(storage.objects.name, '.', 1)
-        and (
-          c.initiator_id = auth.uid()
-          or exists (
-            select 1 from public.contract_participants cp
-            where cp.contract_id = c.id and cp.user_id = auth.uid()
+  create policy "contract parties can update their contract files"
+    on storage.objects for update to authenticated
+    using (
+      bucket_id = 'contracts'
+      and exists (
+        select 1 from public.contracts c
+        where c.id::text = split_part(storage.objects.name, '.', 1)
+          and (
+            c.initiator_id = auth.uid()
+            or exists (
+              select 1 from public.contract_participants cp
+              where cp.contract_id = c.id and cp.user_id = auth.uid()
+            )
           )
-        )
-    )
-  );
+      )
+    );
+end $$;
