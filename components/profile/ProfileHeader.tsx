@@ -66,9 +66,9 @@ export default function ProfileHeader({
         <Pressable onPress={onEditPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Text style={styles.profileName}>{name}{profile?.age ? `, ${profile.age}` : ''}</Text>
           {(profile?.trust_score ?? 0) >= 80 ? (
-            <MaterialCommunityIcons name="check-decagram" size={24} color="#0A84FF" />
+            <MaterialCommunityIcons name="check-decagram" size={24} color="#1DA1F2" />
           ) : (profile?.trust_score ?? 0) >= 40 ? (
-            <MaterialCommunityIcons name="check-circle" size={20} color="#34C759" />
+            <MaterialCommunityIcons name="check-circle" size={20} color="#1DA1F2" />
           ) : null}
           <IconSymbol name="pencil" size={18} color="#888" style={{ marginLeft: 4 }} />
         </Pressable>

@@ -29,7 +29,7 @@ export default function ChatHeader({ otherUser, onBack, onPressUser, onPressSett
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, marginRight: 8 }}>
           <Text style={styles.headerName} numberOfLines={1}>{otherUser ? otherUser.name : 'Loading...'}</Text>
           {otherUser?.is_identity_verified && (
-            <MaterialCommunityIcons name="check-decagram" size={18} color="#49C788" style={{ flexShrink: 0 }} />
+            <MaterialCommunityIcons name="check-decagram" size={18} color="#1DA1F2" style={{ flexShrink: 0 }} />
           )}
         </View>
       </Pressable>

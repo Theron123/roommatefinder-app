@@ -18,7 +18,7 @@ const InboxMatchItemComponent = ({ item, onPress }: InboxMatchItemProps) => {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', width: '100%' }}>
         <Text style={styles.matchName} numberOfLines={1}>{item.name}</Text>
         {item.is_identity_verified && (
-          <MaterialCommunityIcons name="check-decagram" size={12} color="#49C788" style={{ flexShrink: 0 }} />
+          <MaterialCommunityIcons name="check-decagram" size={12} color="#1DA1F2" style={{ flexShrink: 0 }} />
         )}
       </View>
     </Pressable>

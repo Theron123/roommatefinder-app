@@ -146,7 +146,7 @@ export default function ExploreCard({
               {card.name || 'Roommate'} {card.age ? `, ${card.age}` : ''}
             </Text>
             {card.is_identity_verified && (
-              <MaterialCommunityIcons name="check-decagram" size={20} color="#49C788" />
+              <MaterialCommunityIcons name="check-decagram" size={20} color="#1DA1F2" />
             )}
           </View>
           

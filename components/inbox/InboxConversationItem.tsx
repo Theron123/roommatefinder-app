@@ -30,7 +30,7 @@ const InboxConversationItemComponent = ({ item, currentUserId, onPress }: InboxC
               {item.name}{item.age ? `, ${item.age}` : ''}
             </Text>
             {item.is_identity_verified && (
-              <MaterialCommunityIcons name="check-decagram" size={16} color="#49C788" style={{ flexShrink: 0 }} />
+              <MaterialCommunityIcons name="check-decagram" size={16} color="#1DA1F2" style={{ flexShrink: 0 }} />
             )}
           </View>
           <Text style={[styles.time, isUnread && styles.timeUnread]}>{item.time}</Text>
