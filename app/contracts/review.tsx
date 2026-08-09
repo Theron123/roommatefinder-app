@@ -125,33 +125,7 @@ export default function ReviewContractScreen() {
       });
     }
 
-    if (!html2pdfFn) {
-      throw new Error("html2pdf library could not be initialized");
-    }
-
-    // Isolated hidden iframe completely offscreen to eliminate screen flash and blank scroll offsets
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-99999px';
-    iframe.style.top = '-99999px';
-    iframe.style.width = '794px';
-    iframe.style.height = '2400px';
-    iframe.style.border = 'none';
-    iframe.style.visibility = 'hidden';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!doc) {
-      document.body.removeChild(iframe);
-      throw new Error("Cannot access iframe document");
-    }
-
-    doc.open();
-    doc.write(htmlContent);
-    doc.close();
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
+    // Pass htmlContent directly to html2pdf to render cleanly at 100% opacity
     const opt = {
       margin: 0,
       filename: fileName,
@@ -159,20 +133,14 @@ export default function ReviewContractScreen() {
       html2canvas: { 
         scale: 2, 
         logging: false, 
-        width: 794,
-        windowWidth: 794,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
         useCORS: true
       },
-      jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
     };
 
     try {
-      const worker = html2pdfFn().set(opt).from(doc.body);
+      const worker = html2pdfFn().set(opt).from(htmlContent);
       let webBlob: Blob;
       if (typeof worker.outputPdf === 'function') {
         webBlob = await worker.outputPdf('blob');
@@ -181,12 +149,9 @@ export default function ReviewContractScreen() {
       } else {
         webBlob = await worker.toPdf().output('blob');
       }
-      document.body.removeChild(iframe);
       return webBlob;
     } catch (e) {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
+      console.error("Error in html2pdf generation:", e);
       throw e;
     }
   };

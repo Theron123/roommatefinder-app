@@ -2,10 +2,11 @@ import { detectCountryCode, getLegalFramework } from '@/constants/legalFramework
 
 /**
  * ============================================================================
- * PLANTILLA Y CONFIGURACIÓN MAESTRA DE CONTRATOS PDF (RoommateFinder Platform)
+ * PLANTILLA PROFESIONAL DE CONTRATO PDF (RoommateFinder Platform)
  * ============================================================================
- * Esta función genera el código HTML completo con un diseño moderno, minimalista
- * y de alto nivel visual para exportar contratos en formato PDF (3 Páginas).
+ * Utiliza exclusivamente estilos INLINE, dimensiones estrictas de A4 (794px x 1060px)
+ * y estructuras de tablas HTML puras para asegurar que el PDF contenga EXACTAMENTE
+ * 3 PÁGINAS perfectas, sin páginas en blanco intermedias ni finales.
  */
 
 export const getOptionalClauseLabel = (key: string, locale: string = 'es') => {
@@ -30,24 +31,38 @@ export const getContractTypeLabel = (type: string, locale: string = 'es') => {
   if (type === 'rental_agreement') {
     return locale === 'es' ? 'Contrato de Arrendamiento Habitacional' : 'Residential Lease Agreement';
   }
-  return type;
+  return type || (locale === 'es' ? 'Contrato de Arrendamiento' : 'Lease Agreement');
 };
+
+function safeText(val: any, fallback: string = 'No especificado'): string {
+  if (val === null || val === undefined || val === '') return fallback;
+  if (typeof val === 'string') return val.trim();
+  return String(val);
+}
 
 export function generateContractHTML(contractData: any, activeStatus?: string, locale: string = 'es') {
   const isEs = locale === 'es';
-  const initiatorName = contractData?.initiator?.name || (isEs ? 'Parte Arrendadora' : 'Lessor');
+
+  // Informacion de las Partes
+  const initiatorName = safeText(contractData?.initiator?.name || contractData?.initiator_name, isEs ? 'Parte Arrendadora' : 'Lessor');
   const counterpartyName = (contractData?.contract_participants || [])
     .map((p: any) => p.profiles?.name || p.user?.name)
     .filter(Boolean)
-    .join(', ') || (isEs ? 'Parte Inquilina' : 'Tenant');
-  
-  const propertyTitle = contractData?.listings?.title || (isEs ? 'Propiedad Residencial Co-Living' : 'Co-Living Property');
-  const propertyAddress = contractData?.listings?.address || (isEs ? 'Dirección Registrada en Plataforma' : 'Registered Address');
-  
-  // Detect country framework selected or inferred from address
-  const countryCode = detectCountryCode(contractData?.listings?.address || '');
+    .join(', ') || safeText(contractData?.counterparty_name, isEs ? 'Parte Arrendataria' : 'Tenant');
+
+  // Informacion del Inmueble
+  const propertyTitle = safeText(contractData?.listings?.title, isEs ? 'Propiedad Residencial Co-Living' : 'Co-Living Property');
+  const propertyAddress = safeText(contractData?.listings?.address, isEs ? 'Dirección Registrada en Plataforma' : 'Registered Address');
+  const propertyType = safeText(contractData?.listings?.property_type, isEs ? 'Habitación Residencial / Co-Living' : 'Residential Room');
+  const bedrooms = contractData?.listings?.bedrooms ? `${contractData.listings.bedrooms} ${isEs ? 'Habitación(es)' : 'Bedroom(s)'}` : (isEs ? '1 Habitación Privada' : '1 Private Bedroom');
+  const bathrooms = contractData?.listings?.bathrooms ? `${contractData.listings.bathrooms} ${isEs ? 'Baño(s)' : 'Bathroom(s)'}` : (isEs ? 'Baño compartido / privado' : 'Shared / Private Bathroom');
+  const propertyDescription = safeText(contractData?.listings?.description, isEs ? 'Inmueble residencial totalmente equipado para uso habitacional y co-living, con acceso a áreas comunes acordadas.' : 'Fully equipped residential property for co-living with shared access to common areas.');
+
+  // Marco legal
+  const countryCode = detectCountryCode(propertyAddress);
   const legalFramework = getLegalFramework(countryCode);
 
+  // Fechas e identificadores
   const effectiveDate = contractData?.effective_date 
     ? new Date(contractData.effective_date).toLocaleDateString(isEs ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : (isEs ? 'Fecha de Emisión' : 'Issue Date');
@@ -56,699 +71,569 @@ export function generateContractHTML(contractData: any, activeStatus?: string, l
     ? new Date(contractData.termination_date).toLocaleDateString(isEs ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : (isEs ? '1 año (Renovable)' : '1 year (Renewable)');
 
+  const generationDate = new Date().toLocaleDateString(isEs ? 'es-ES' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
   const c = contractData?.clauses || {};
-  const contractHash = contractData?.id ? contractData.id.replace(/-/g, '').toUpperCase() : '00000000';
+  const rawId = contractData?.id || '00000000-0000-0000-0000-000000000000';
+  const contractHash = rawId.replace(/-/g, '').toUpperCase();
+  const shortId = rawId.split('-')[0].toUpperCase();
   const statusStr = (activeStatus || contractData?.status || 'draft').toUpperCase();
 
-  const rentAmount = c.rent ? `$${c.rent.amount}` : '$1,080';
+  // Condiciones economicas
+  const rentAmount = c.rent?.amount ? `$${c.rent.amount}` : '$1,080';
   const rentCurrency = c.rent?.currency || 'USD';
   const rentDueDay = c.rent?.due_day ? `${isEs ? 'Día' : 'Day'} ${c.rent.due_day}` : (isEs ? 'Día 1' : 'Day 1');
-  const lateFee = c.rent?.late_fee ? `$${c.rent.late_fee} USD` : (isEs ? 'Sujeto a interés legal' : 'Legal interest');
-  const depositAmount = c.security_deposit ? `$${c.security_deposit.amount} USD` : '$1,080 USD';
+  const lateFee = c.rent?.late_fee ? `$${c.rent.late_fee} USD` : (isEs ? '5% de recargo por morosidad' : '5% late payment fee');
+  const paymentMethod = safeText(c.rent?.payment_method, isEs ? 'Transferencia Bancaria / Pago por Plataforma RoommateFinder' : 'Bank Transfer / RoommateFinder Platform Payment');
+  
+  const depositAmount = c.security_deposit?.amount ? `$${c.security_deposit.amount} USD` : '$1,080 USD';
   const depositReturnDays = c.security_deposit?.return_days ? `${c.security_deposit.return_days} ${isEs ? 'días hábiles' : 'business days'}` : (isEs ? '15 días hábiles' : '15 business days');
 
+  const utilitiesIncluded = isEs ? 'Agua potable, Internet de alta velocidad, Mantenimiento de áreas comunes' : 'Water, High-speed Internet, Common area maintenance';
+  const utilitiesNotIncluded = isEs ? 'Electricidad según consumo del medidor privado' : 'Electricity as per private meter';
+
   const cohabitationList = isEs ? [
-    { tag: 'Mascotas', val: c.pets?.allowed ? 'Permitidas bajo supervisión' : 'No permitidas en interiores', status: c.pets?.allowed ? 'allowed' : 'denied' },
-    { tag: 'Tabaco / Fumar', val: c.smoking?.allowed ? 'Permitido en exteriores' : 'Prohibido en áreas cerradas', status: c.smoking?.allowed ? 'warning' : 'denied' },
-    { tag: 'Invitados Nocturnos', val: c.visitors?.overnight_allowed ? `Permitido (máx. ${c.visitors.max_nights || 3} noches)` : 'No permitido sin aviso', status: 'allowed' },
-    { tag: 'Horario de Silencio', val: c.noise ? `${c.noise.quiet_hours_start} a ${c.noise.quiet_hours_end}` : '10:00 PM a 07:00 AM', status: 'info' },
-    { tag: 'Limpieza Compartida', val: c.cleaning?.schedule === 'daily' ? 'Rotación diaria' : c.cleaning?.schedule === 'weekly' ? 'Rotación semanal equitativa' : 'Rotación quincenal', status: 'info' },
+    { label: 'Tenencia de Mascotas', val: c.pets?.allowed ? 'Permitidas bajo supervisión del residente' : 'Prohibidas en el interior del inmueble' },
+    { label: 'Uso de Tabaco y Fumar', val: c.smoking?.allowed ? 'Permitido exclusivamente en áreas abiertas/terraza' : 'Prohibido dentro del inmueble' },
+    { label: 'Visitas Nocturnas', val: c.visitors?.overnight_allowed ? `Permitidas previo aviso (máx. ${c.visitors.max_nights || 3} noches)` : 'No permitidas sin autorización previa por escrito' },
+    { label: 'Horario de Silencio', val: c.noise ? `${c.noise.quiet_hours_start} a ${c.noise.quiet_hours_end}` : '10:00 PM a 07:00 AM (Lunes a Domingo)' },
+    { label: 'Limpieza Compartida', val: c.cleaning?.schedule === 'daily' ? 'Limpieza diaria de áreas comunes' : c.cleaning?.schedule === 'weekly' ? 'Turno semanal rotativo entre ocupantes' : 'Rotación quincenal acordada' },
   ] : [
-    { tag: 'Pet Policy', val: c.pets?.allowed ? 'Allowed under supervision' : 'Not allowed indoors', status: c.pets?.allowed ? 'allowed' : 'denied' },
-    { tag: 'Smoking Policy', val: c.smoking?.allowed ? 'Allowed outdoors' : 'Prohibited indoors', status: c.smoking?.allowed ? 'warning' : 'denied' },
-    { tag: 'Overnight Guests', val: c.visitors?.overnight_allowed ? `Allowed (max ${c.visitors.max_nights || 3} nights)` : 'Requires prior notice', status: 'allowed' },
-    { tag: 'Quiet Hours', val: c.noise ? `${c.noise.quiet_hours_start} to ${c.noise.quiet_hours_end}` : '10:00 PM to 07:00 AM', status: 'info' },
-    { tag: 'Cleaning Rotation', val: c.cleaning?.schedule === 'daily' ? 'Daily rotation' : c.cleaning?.schedule === 'weekly' ? 'Weekly rotation' : 'Biweekly', status: 'info' },
+    { label: 'Pet Policy', val: c.pets?.allowed ? 'Allowed under supervision' : 'Prohibited indoors' },
+    { label: 'Smoking Policy', val: c.smoking?.allowed ? 'Allowed outdoors only' : 'Prohibited indoors' },
+    { label: 'Overnight Guests', val: c.visitors?.overnight_allowed ? `Allowed with prior notice (max ${c.visitors.max_nights || 3} nights)` : 'Requires prior written permission' },
+    { label: 'Quiet Hours', val: c.noise ? `${c.noise.quiet_hours_start} to ${c.noise.quiet_hours_end}` : '10:00 PM to 07:00 AM' },
+    { label: 'Cleaning Schedule', val: c.cleaning?.schedule === 'daily' ? 'Daily common area cleaning' : c.cleaning?.schedule === 'weekly' ? 'Weekly rotation schedule' : 'Biweekly rotation' },
   ];
 
-  const customClausesBadges = (contractData?.selected_custom_clauses || []).map((key: string) => `
-    <div class="custom-badge">&check; ${getOptionalClauseLabel(key, locale)}</div>
-  `).join('');
+  const customClausesList = (contractData?.selected_custom_clauses || []).map((key: string) => getOptionalClauseLabel(key, locale));
 
-  return `
-  <!DOCTYPE html>
-  <html lang="${locale}">
-  <head>
-    <meta charset="utf-8">
-    <title>${isEs ? 'Contrato de Arrendamiento' : 'Lease Agreement'} - ${contractData?.id || 'doc'}</title>
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-      @page {
-        size: letter portrait;
-        margin: 0;
-      }
-      body { 
-        width: 612pt;
-        margin: 0 auto;
-        padding: 0;
-        background: #f8fafc; 
-        color: #0f172a; 
-        font-family: Arial, Helvetica, sans-serif !important;
-        -webkit-font-smoothing: antialiased;
-      }
+  const fontStack = "font-family: Arial, Helvetica, sans-serif;";
+
+  return `<!DOCTYPE html>
+<html lang="${locale}" style="${fontStack} background-color: #ffffff; margin: 0; padding: 0;">
+<head>
+  <meta charset="utf-8">
+  <title>${isEs ? 'Contrato de Arrendamiento' : 'Lease Agreement'} - ${shortId}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif !important; }
+    @page { size: A4 portrait; margin: 0; }
+    body { width: 794px; margin: 0 auto; padding: 0; background-color: #ffffff; color: #0f172a; font-family: Arial, Helvetica, sans-serif !important; -webkit-font-smoothing: antialiased; }
+    .pdf-page { width: 794px; height: 1050px; min-height: 1050px; max-height: 1050px; padding: 28px 40px 28px 40px; background-color: #ffffff; box-sizing: border-box; position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+    .page-break { page-break-after: always; }
+  </style>
+</head>
+<body style="${fontStack} width: 794px; margin: 0 auto; padding: 0; background-color: #ffffff; color: #0f172a;">
+
+  <!-- ============================================================================ -->
+  <!-- PÁGINA 1 DE 3: PORTADA, INFORMACIÓN DE LAS PARTES E INMUEBLE -->
+  <!-- ============================================================================ -->
+  <div class="pdf-page" style="${fontStack} width: 794px; height: 1050px; min-height: 1050px; max-height: 1050px; padding: 28px 40px 28px 40px; background-color: #ffffff; page-break-after: always; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+    <div style="${fontStack}">
       
-      .page {
-        width: 612pt;
-        height: 792pt;
-        padding: 28pt 36pt 32pt 36pt;
-        position: relative;
-        overflow: hidden;
-        background: #ffffff;
-        page-break-after: always;
-        page-break-inside: avoid;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-      }
-      .page:last-child {
-        page-break-after: avoid;
-      }
+      <!-- ENCABEZADO SUPERIOR / HÉROE -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="${fontStack} width: 100%; border: 1px solid #e2e8f0; background-color: #f8fafc; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px;">
+        <tr>
+          <td style="${fontStack} vertical-align: middle;">
+            <div style="${fontStack} font-size: 17px; font-weight: bold; color: #0f172a; letter-spacing: -0.5px;">Roommate<span style="color: #059669;">Finder</span></div>
+            <div style="${fontStack} font-size: 9.5px; font-weight: bold; color: #059669; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;">
+              ${isEs ? 'Sistema Legal de Contratación & Co-Living' : 'Legal Lease & Co-Living System'}
+            </div>
+          </td>
+          <td align="right" style="${fontStack} vertical-align: middle;">
+            <div style="${fontStack} font-family: monospace; font-size: 10px; color: #475569; background-color: #ffffff; border: 1px solid #cbd5e1; padding: 3px 9px; border-radius: 4px; display: inline-block;">
+              FOLIO: ${shortId}
+            </div>
+            <div style="margin-top: 4px;">
+              <span style="${fontStack} font-size: 9.5px; font-weight: bold; color: #ffffff; background-color: #059669; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; display: inline-block;">
+                ${statusStr}
+              </span>
+            </div>
+          </td>
+        </tr>
+      </table>
 
-      /* ----------------------------------------------------
-         LUXURY MODERN HEADER BAR (APP BRANDED)
-      ---------------------------------------------------- */
-      .hero-header {
-        background: linear-gradient(135deg, #0b0f17 0%, #161b26 100%);
-        color: #ffffff;
-        border-radius: 10pt;
-        padding: 14pt 18pt;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14pt;
-        border-left: 5pt solid #49C788;
-        box-shadow: 0 4pt 12pt rgba(0,0,0,0.08);
-      }
-      .brand-group {
-        display: flex;
-        flex-direction: column;
-      }
-      .brand-title {
-        font-size: 16pt;
-        font-weight: bold;
-        color: #ffffff;
-        letter-spacing: -0.4pt;
-      }
-      .brand-green {
-        color: #49C788;
-      }
-      .brand-sub {
-        font-size: 8pt;
-        color: #94a3b8;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.8pt;
-        margin-top: 2pt;
-      }
-      .header-right {
-        text-align: right;
-      }
-      .ref-tag {
-        font-size: 8pt;
-        font-family: monospace;
-        color: #cbd5e1;
-        background: rgba(255,255,255,0.1);
-        padding: 2pt 6pt;
-        border-radius: 4pt;
-      }
-      .status-pill {
-        display: inline-block;
-        background: #49C788;
-        color: #0b0f17;
-        padding: 2.5pt 10pt;
-        border-radius: 20pt;
-        font-size: 7.5pt;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-top: 4pt;
-        letter-spacing: 0.5pt;
-      }
-
-      /* ----------------------------------------------------
-         HEADINGS & TITLES (APA 7 STYLED & MODERN ACCENTS)
-      ---------------------------------------------------- */
-      .doc-main-title {
-        font-size: 13.5pt;
-        font-weight: bold;
-        text-align: center;
-        color: #0b0f17;
-        margin-bottom: 14pt;
-        text-transform: uppercase;
-        letter-spacing: 0.6pt;
-      }
-
-      .section-heading {
-        font-size: 9.5pt;
-        font-weight: bold;
-        color: #0b0f17;
-        margin-top: 10pt;
-        margin-bottom: 8pt;
-        text-transform: uppercase;
-        letter-spacing: 0.5pt;
-        display: flex;
-        align-items: center;
-        gap: 6pt;
-      }
-      .section-heading::before {
-        content: '';
-        display: inline-block;
-        width: 4pt;
-        height: 11pt;
-        background: #49C788;
-        border-radius: 2pt;
-      }
-
-      /* ----------------------------------------------------
-         DASHBOARD WIDGETS & FEATURE CARDS
-      ---------------------------------------------------- */
-      .stat-banner {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10pt;
-        margin-bottom: 12pt;
-      }
-      .stat-card {
-        background: #f0fdf4;
-        border: 1.5pt solid #49C788;
-        border-radius: 8pt;
-        padding: 10pt 14pt;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .stat-label {
-        font-size: 8pt;
-        font-weight: bold;
-        color: #047857;
-        text-transform: uppercase;
-      }
-      .stat-value {
-        font-size: 14pt;
-        font-weight: bold;
-        color: #0b0f17;
-      }
-
-      .card-box {
-        background: #ffffff;
-        border: 1pt solid #e2e8f0;
-        border-radius: 8pt;
-        padding: 10pt 14pt;
-        margin-bottom: 10pt;
-        box-shadow: 0 2pt 6pt rgba(0,0,0,0.02);
-      }
-      .card-accent {
-        background: #f8fafc;
-        border-left: 4pt solid #49C788;
-      }
-
-      .parties-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10pt;
-        margin-bottom: 12pt;
-      }
-      .party-tile {
-        background: #ffffff;
-        border: 1.5pt solid #0b0f17;
-        border-radius: 8pt;
-        padding: 10pt 12pt;
-        position: relative;
-      }
-      .party-badge {
-        font-size: 7pt;
-        font-weight: bold;
-        color: #49C788;
-        text-transform: uppercase;
-        letter-spacing: 0.5pt;
-        margin-bottom: 3pt;
-      }
-      .party-name-txt {
-        font-size: 11pt;
-        font-weight: bold;
-        color: #0b0f17;
-      }
-      .party-verified {
-        font-size: 7.5pt;
-        color: #047857;
-        font-weight: bold;
-        margin-top: 4pt;
-        display: flex;
-        align-items: center;
-        gap: 3pt;
-      }
-
-      /* ----------------------------------------------------
-         APA 7 PARAGRAPHS & ROWS
-      ---------------------------------------------------- */
-      .apa-text {
-        font-size: 8.5pt;
-        line-height: 1.8;
-        color: #334155;
-        text-align: justify;
-        margin-bottom: 8pt;
-      }
-
-      .data-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 5pt 0;
-        border-bottom: 1pt dashed #e2e8f0;
-        font-size: 8.5pt;
-      }
-      .data-row:last-child {
-        border-bottom: none;
-      }
-      .data-label {
-        color: #64748b;
-        font-weight: bold;
-      }
-      .data-value {
-        color: #0b0f17;
-        font-weight: bold;
-      }
-
-      /* ----------------------------------------------------
-         CO-LIVING HOUSE RULES GRID
-      ---------------------------------------------------- */
-      .rules-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8pt;
-        margin-bottom: 10pt;
-      }
-      .rule-card {
-        background: #ffffff;
-        border: 1pt solid #e2e8f0;
-        border-radius: 6pt;
-        padding: 8pt 10pt;
-      }
-      .rule-header {
-        font-size: 8pt;
-        font-weight: bold;
-        color: #49C788;
-        text-transform: uppercase;
-        margin-bottom: 2pt;
-      }
-      .rule-desc {
-        font-size: 8.5pt;
-        font-weight: bold;
-        color: #0b0f17;
-      }
-
-      /* ----------------------------------------------------
-         CUSTOM CLAUSES CHIPS
-      ---------------------------------------------------- */
-      .custom-chips-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6pt;
-        margin-top: 4pt;
-      }
-      .custom-badge {
-        background: #ecfdf5;
-        border: 1pt solid #a7f3d0;
-        color: #047857;
-        font-size: 8pt;
-        font-weight: bold;
-        padding: 4pt 8pt;
-        border-radius: 6pt;
-      }
-
-      /* ----------------------------------------------------
-         EXECUTIVE SIGNATURE CARDS (3 COLUMNS)
-      ---------------------------------------------------- */
-      .signatures-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 10pt;
-        margin-top: 12pt;
-        margin-bottom: 12pt;
-      }
-      .signature-card {
-        border: 1.5pt solid #0b0f17;
-        border-radius: 8pt;
-        padding: 10pt 8pt;
-        background: #ffffff;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 122pt;
-        box-shadow: 0 2pt 4pt rgba(0,0,0,0.03);
-      }
-      .sig-role-title {
-        font-size: 7.5pt;
-        font-weight: bold;
-        color: #49C788;
-        text-transform: uppercase;
-      }
-      .sig-person-name {
-        font-size: 9.5pt;
-        font-weight: bold;
-        color: #0b0f17;
-        margin-top: 4pt;
-      }
-      .sig-line-bar {
-        border-bottom: 1.5pt solid #0b0f17;
-        margin: 14pt 10pt 6pt 10pt;
-      }
-      .sig-verified-pill {
-        font-size: 7pt;
-        font-weight: bold;
-        color: #047857;
-        background: #ecfdf5;
-        border: 1pt solid #a7f3d0;
-        padding: 2.5pt 6pt;
-        border-radius: 4pt;
-        display: inline-block;
-      }
-
-      /* ----------------------------------------------------
-         AUDIT SECURITY FOOTER CARD
-      ---------------------------------------------------- */
-      .audit-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1.5pt solid #cbd5e1;
-        border-radius: 8pt;
-        padding: 8pt 12pt;
-        text-align: center;
-        margin-top: 4pt;
-      }
-      .audit-title {
-        font-size: 8pt;
-        font-weight: bold;
-        color: #0b0f17;
-      }
-      .audit-hash {
-        font-family: monospace;
-        font-size: 7.5pt;
-        color: #047857;
-        font-weight: bold;
-        margin-top: 2pt;
-        letter-spacing: 0.5pt;
-      }
-      .audit-law {
-        font-size: 6.5pt;
-        color: #64748b;
-        margin-top: 2pt;
-      }
-
-      /* ----------------------------------------------------
-         PAGE FOOTER
-      ---------------------------------------------------- */
-      .page-footer-bar {
-        margin-top: auto;
-        padding-top: 10pt;
-        border-top: 1.5pt solid #0b0f17;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 8pt;
-        color: #64748b;
-        font-weight: bold;
-      }
-      .footer-accent {
-        color: #49C788;
-      }
-    </style>
-  </head>
-  <body>
-
-    <!-- ================= PÁGINA 1 DE 3 ================= -->
-    <div class="page">
-      <div class="hero-header">
-        <div class="brand-group">
-          <div class="brand-title">Roommate<span class="brand-green">Finder</span></div>
-          <div class="brand-sub">${isEs ? 'Sistema Legal de Contratación Habitacional' : 'Residential Lease Legal System'}</div>
-        </div>
-        <div class="header-right">
-          <div class="ref-tag">HASH ID: ${contractHash.slice(0, 10)}</div>
-          <div class="status-pill">${statusStr}</div>
-        </div>
+      <!-- TÍTULO PRINCIPAL DEL DOCUMENTO -->
+      <div style="${fontStack} font-size: 17px; font-weight: bold; text-align: center; color: #0f172a; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px;">
+        ${getContractTypeLabel(contractData?.type, locale)}
+      </div>
+      <div style="${fontStack} font-size: 10.5px; color: #475569; text-align: center; font-weight: normal; margin-bottom: 16px;">
+        ${isEs ? 'Documento Privado de Arrendamiento Habitacional con Validez Electrónica' : 'Private Residential Lease Agreement with Legal Digital Force'}
       </div>
 
-      <div class="doc-main-title">${getContractTypeLabel(contractData?.type, locale)}</div>
-
-      <!-- Banner Estadístico de Renta & Vigencia -->
-      <div class="stat-banner">
-        <div class="stat-card">
-          <div>
-            <div class="stat-label">${isEs ? 'CANON DE RENTA MENSUAL' : 'MONTHLY RENT'}</div>
-            <div class="stat-value">${rentAmount} <span style="font-size:9pt; color:#047857;">${rentCurrency}</span></div>
-          </div>
-          <div style="font-size:8pt; font-weight:bold; color:#047857; background:#dcfce7; padding:4pt 8pt; border-radius:6pt;">
-            ${rentDueDay}
-          </div>
-        </div>
-        <div class="stat-card" style="background:#f0f9ff; border-color:#0284c7;">
-          <div>
-            <div class="stat-label" style="color:#0369a1;">${isEs ? 'INICIO DE VIGENCIA' : 'EFFECTIVE START'}</div>
-            <div class="stat-value" style="font-size:11pt;">${effectiveDate}</div>
-          </div>
-          <div style="font-size:7.5pt; font-weight:bold; color:#0369a1; background:#e0f2fe; padding:4pt 6pt; border-radius:6pt;">
-            ${isEs ? 'VIGENCIA 1 AÑO' : '1 YEAR LEASE'}
-          </div>
-        </div>
+      <!-- SECCIÓN: INFORMACIÓN DE LAS PARTES -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? 'INFORMACIÓN DE LAS PARTES CONTRATANTES' : 'PARTIES INFORMATION'}
       </div>
 
-      <!-- Partes Contratantes -->
-      <div class="section-heading">I. ${isEs ? 'IDENTIFICACIÓN DE LAS PARTES CONTRATANTES' : 'CONTRACTING PARTIES IDENTIFICATION'}</div>
-      <div class="parties-grid">
-        <div class="party-tile">
-          <div class="party-badge">${isEs ? 'PARTE ARRENDADORA / PROPIETARIO' : 'LESSOR / LANDLORD'}</div>
-          <div class="party-name-txt">${initiatorName}</div>
-          <div class="party-verified">&check; ${isEs ? 'Identidad digital verificada' : 'Verified digital identity'}</div>
-        </div>
-        <div class="party-tile">
-          <div class="party-badge">${isEs ? 'PARTE INQUILINA / ROOMMATE' : 'TENANT / ROOMMATE'}</div>
-          <div class="party-name-txt">${counterpartyName}</div>
-          <div class="party-verified">&check; ${isEs ? 'Identidad digital verificada' : 'Verified digital identity'}</div>
-        </div>
+      <table width="100%" cellpadding="0" cellspacing="0" style="${fontStack} width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 16px; margin-left: -10px; margin-right: -10px;">
+        <tr>
+          <!-- CARD ARRENDADOR -->
+          <td width="50%" style="${fontStack} width: 50%; vertical-align: top; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #059669; border-radius: 6px; padding: 12px;">
+            <div style="${fontStack} font-size: 9.5px; font-weight: bold; color: #059669; text-transform: uppercase; margin-bottom: 4px;">
+              ${isEs ? 'ARRENDADOR (PROPIETARIO)' : 'LESSOR / LANDLORD'}
+            </div>
+            <div style="${fontStack} font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 6px;">
+              ${initiatorName}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; color: #475569; margin-bottom: 3px;">
+              <strong style="color: #0f172a;">${isEs ? 'Calidad' : 'Role'}:</strong> ${isEs ? 'Parte Arrendadora Propietaria' : 'Lessor Property Owner'}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; color: #475569; margin-bottom: 5px;">
+              <strong style="color: #0f172a;">${isEs ? 'Verificación' : 'Verification'}:</strong> Identidad Autenticada
+            </div>
+            <div style="${fontStack} font-size: 9.5px; font-weight: bold; color: #0284c7; background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 2px 7px; border-radius: 10px; display: inline-block;">
+              &check; ${isEs ? 'Firma Digital Registrada' : 'Digital Signature Verified'}
+            </div>
+          </td>
+
+          <!-- CARD ARRENDATARIO -->
+          <td width="50%" style="${fontStack} width: 50%; vertical-align: top; background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #059669; border-radius: 6px; padding: 12px;">
+            <div style="${fontStack} font-size: 9.5px; font-weight: bold; color: #059669; text-transform: uppercase; margin-bottom: 4px;">
+              ${isEs ? 'ARRENDATARIO (INQUILINO)' : 'TENANT / ROOMMATE'}
+            </div>
+            <div style="${fontStack} font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 6px;">
+              ${counterpartyName}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; color: #475569; margin-bottom: 3px;">
+              <strong style="color: #0f172a;">${isEs ? 'Calidad' : 'Role'}:</strong> ${isEs ? 'Parte Arrendataria Ocupante' : 'Tenant Occupant'}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; color: #475569; margin-bottom: 5px;">
+              <strong style="color: #0f172a;">${isEs ? 'Verificación' : 'Verification'}:</strong> Identidad Autenticada
+            </div>
+            <div style="${fontStack} font-size: 9.5px; font-weight: bold; color: #0284c7; background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 2px 7px; border-radius: 10px; display: inline-block;">
+              &check; ${isEs ? 'Firma Digital Registrada' : 'Digital Signature Verified'}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- 1. INFORMACIÓN DEL INMUEBLE -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? '1. INFORMACIÓN DEL INMUEBLE Y PROPIEDAD' : '1. PROPERTY INFORMATION'}
       </div>
 
-      <!-- Ficha de la Propiedad -->
-      <div class="section-heading">II. ${isEs ? 'UBICACIÓN Y FICHA REGISTRADA DEL INMUEBLE' : 'PROPERTY LOCATION & REGISTERED DETAILS'}</div>
-      <div class="card-box card-accent">
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Propiedad Residencial' : 'Target Property'}:</span>
-          <span class="data-value">${propertyTitle}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Dirección Registrada' : 'Registered Address'}:</span>
-          <span class="data-value">${propertyAddress}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Fecha de Inicio' : 'Start Date'}:</span>
-          <span class="data-value">${effectiveDate}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Vencimiento Estimado' : 'Estimated End Date'}:</span>
-          <span class="data-value">${endDateFormatted}</span>
-        </div>
+      <table width="100%" cellpadding="6" cellspacing="0" style="${fontStack} width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 10.5px;">
+        <tr style="background-color: #ffffff;">
+          <td width="35%" style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Título de la Propiedad' : 'Property Title'}:
+          </td>
+          <td width="65%" style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; font-weight: bold; padding: 7px 10px;">
+            ${propertyTitle}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Dirección Física Registrada' : 'Registered Address'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 7px 10px;">
+            ${propertyAddress}
+          </td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Tipo de Inmueble y Espacio' : 'Property & Unit Type'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 7px 10px;">
+            ${propertyType} &bull; ${bedrooms} &bull; ${bathrooms}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Descripción del Inmueble' : 'Property Description'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 7px 10px;">
+            ${propertyDescription}
+          </td>
+        </tr>
+      </table>
+
+      <!-- MARCO LEGAL REGULATORIO -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? 'MARCO LEGAL APLICABLE' : 'APPLICABLE LEGAL FRAMEWORK'}
       </div>
 
-      <!-- Objeto del Contrato & Marco Legal -->
-      <div class="section-heading">III. ${isEs ? 'OBJETO DEL CONTRATO Y MARCO NORMATIVO LEGAL' : 'CONTRACT PURPOSE & LEGAL FRAMEWORK'}</div>
-      <div class="card-box">
-        <p class="apa-text">
-          ${isEs 
-            ? `El presente instrumento constituye un contrato privado formal de arrendamiento habitacional y acuerdo de convivencia en modalidad co-living celebrados a través de <strong>RoommateFinder</strong>. Las partes se someten a la legislación aplicable en <strong>${legalFramework.countryName.es}</strong>:`
-            : `This agreement represents a formal lease and co-living contract executed via <strong>RoommateFinder</strong> under the laws of <strong>${legalFramework.countryName.en}</strong>:`
-          }
-        </p>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Ley de Arrendamiento' : 'Tenancy Law'}:</span>
-          <span class="data-value">${legalFramework.tenancyLaw[isEs ? 'es' : 'en']}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Ley de Firma Electrónica' : 'Digital Signature Law'}:</span>
-          <span class="data-value">${legalFramework.digitalSignatureLaw[isEs ? 'es' : 'en']}</span>
-        </div>
-      </div>
+      <table width="100%" cellpadding="6" cellspacing="0" style="${fontStack} width: 100%; border-collapse: collapse; font-size: 10.5px;">
+        <tr>
+          <td width="35%" style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Ley de Arrendamiento del País' : 'Tenancy Law'}:
+          </td>
+          <td width="65%" style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 7px 10px;">
+            ${legalFramework.tenancyLaw[isEs ? 'es' : 'en']} (${legalFramework.countryName[isEs ? 'es' : 'en']})
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 7px 10px;">
+            ${isEs ? 'Ley de Firma Electrónica' : 'Digital Signature Law'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 7px 10px;">
+            ${legalFramework.digitalSignatureLaw[isEs ? 'es' : 'en']}
+          </td>
+        </tr>
+      </table>
 
-      <div class="page-footer-bar">
-        <span>RoommateFinder Legal &bull; <span class="footer-accent">${legalFramework.countryName[isEs ? 'es' : 'en']}</span></span>
-        <span>${isEs ? 'Página 1 de 3' : 'Page 1 of 3'}</span>
-      </div>
     </div>
 
-    <!-- ================= PÁGINA 2 DE 3 ================= -->
-    <div class="page">
-      <div class="hero-header">
-        <div class="brand-group">
-          <div class="brand-title">Roommate<span class="brand-green">Finder</span></div>
-          <div class="brand-sub">${isEs ? 'Condiciones Económicas y Regulación de Convivencia' : 'Financial & Co-Living Regulations'}</div>
-        </div>
-        <div class="header-right">
-          <div class="ref-tag">HASH ID: ${contractHash.slice(0, 10)}</div>
-          <div class="status-pill">${statusStr}</div>
-        </div>
+    <!-- PIE DE PÁGINA 1 -->
+    <div style="${fontStack} padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+      <span>RoommateFinder Legal Platform &bull; <strong style="color: #059669;">${legalFramework.countryName[isEs ? 'es' : 'en']}</strong></span>
+      <span>${isEs ? 'Fecha de generación' : 'Generated'}: ${generationDate} &bull; <strong>${isEs ? 'Página 1 de 3' : 'Page 1 of 3'}</strong></span>
+    </div>
+  </div>
+
+  <!-- ============================================================================ -->
+  <!-- PÁGINA 2 DE 3: CONDICIONES ECONÓMICAS Y REGLAMENTO DE CO-LIVING -->
+  <!-- ============================================================================ -->
+  <div class="pdf-page" style="${fontStack} width: 794px; height: 1050px; min-height: 1050px; max-height: 1050px; padding: 28px 40px 28px 40px; background-color: #ffffff; page-break-after: always; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+    <div style="${fontStack}">
+      
+      <!-- RUNNING HEADER -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="${fontStack} width: 100%; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 14px;">
+        <tr>
+          <td style="${fontStack} font-size: 9.5px; color: #64748b;">
+            <strong style="color: #0f172a;">Roommate<span style="color: #059669;">Finder</span></strong> &bull; ${isEs ? 'Contrato de Arrendamiento' : 'Lease Agreement'}
+          </td>
+          <td align="right" style="${fontStack} font-size: 9.5px; color: #64748b; font-weight: bold;">
+            FOLIO: ${shortId}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 2. CONDICIONES DEL ARRENDAMIENTO -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? '2. CONDICIONES DEL ARRENDAMIENTO Y RÉGIMEN ECONÓMICO' : '2. LEASE TERMS & FINANCIAL CONDITIONS'}
       </div>
 
-      <!-- Términos Financieros -->
-      <div class="section-heading">IV. ${isEs ? 'CONDICIONES FINANCIERAS Y PAGOS DE RENTA' : 'FINANCIAL TERMS & RENT PAYMENTS'}</div>
-      <div class="card-box">
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Canon de Renta Mensual' : 'Monthly Rent'}:</span>
-          <span class="data-value" style="color:#047857;">${rentAmount} ${rentCurrency}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Día Límite de Pago Exigible' : 'Rent Due Day'}:</span>
-          <span class="data-value">${rentDueDay} ${isEs ? 'de cada mes' : 'of each month'}</span>
-        </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Recargo por Morosidad Exigible' : 'Late Payment Fee'}:</span>
-          <span class="data-value">${lateFee}</span>
-        </div>
+      <table width="100%" cellpadding="6" cellspacing="0" style="${fontStack} width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 10.5px;">
+        <tr style="background-color: #ffffff;">
+          <td width="40%" style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Canon de Alquiler Mensual' : 'Monthly Rent Amount'}:
+          </td>
+          <td width="60%" style="${fontStack} border: 1px solid #e2e8f0; color: #059669; font-weight: bold; font-size: 12px; padding: 6px 10px;">
+            ${rentAmount} ${rentCurrency}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Fecha de Inicio de Vigencia' : 'Effective Start Date'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${effectiveDate}
+          </td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Fecha de Finalización Estimada' : 'Estimated End Date'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${endDateFormatted}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Día Límite de Pago Exigible' : 'Rent Payment Due Day'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${rentDueDay} ${isEs ? 'de cada mes' : 'of each month'}
+          </td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Recargo por Morosidad' : 'Late Fee Penalty'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${lateFee}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Monto del Depósito de Garantía' : 'Security Deposit Amount'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; font-weight: bold; padding: 6px 10px;">
+            ${depositAmount}
+          </td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Plazo de Devolución de Depósito' : 'Deposit Refund Timeline'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${depositReturnDays}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Forma y Método de Pago' : 'Payment Method'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${paymentMethod}
+          </td>
+        </tr>
+        <tr style="background-color: #ffffff;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Servicios Incluidos en el Alquiler' : 'Included Utilities'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${utilitiesIncluded}
+          </td>
+        </tr>
+        <tr style="background-color: #f8fafc;">
+          <td style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #475569; background-color: #f8fafc; padding: 6px 10px;">
+            ${isEs ? 'Servicios a Cargo del Arrendatario' : 'Tenant Responsibilities'}:
+          </td>
+          <td style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 6px 10px;">
+            ${utilitiesNotIncluded}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 3. OBLIGACIONES Y CLÁUSULAS DEL CONTRATO -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? '3. OBLIGACIONES Y CLÁUSULAS DEL CONTRATO' : '3. OBLIGATIONS & LEASE CLAUSES'}
       </div>
 
-      <!-- Depósito de Garantía -->
-      <div class="section-heading">V. ${isEs ? 'DEPÓSITO DE GARANTÍA Y DEVOLUCIÓN' : 'SECURITY DEPOSIT & REFUND'}</div>
-      <div class="card-box">
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Monto del Depósito de Garantía' : 'Security Deposit Amount'}:</span>
-          <span class="data-value">${depositAmount}</span>
+      <div style="${fontStack} margin-bottom: 8px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+          ${isEs ? 'CLÁUSULA PRIMERA: CANON DE RENTA Y COMPROMISO DE PAGO' : 'CLAUSE 1: RENT PAYMENT COMMITMENT'}
         </div>
-        <div class="data-row">
-          <span class="data-label">${isEs ? 'Plazo de Devolución del Depósito' : 'Deposit Refund Window'}:</span>
-          <span class="data-value">${depositReturnDays}</span>
-        </div>
-      </div>
-
-      <div class="card-box card-accent">
-        <p class="apa-text" style="margin-bottom:0;">
-          <strong>${isEs ? 'CLÁUSULA PRIMERA (PAGO Y GARANTÍA):' : 'CLAUSE 1 (PAYMENT & DEPOSIT):'}</strong>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
           ${isEs 
-            ? `La parte inquilina se obliga a cancelar el canon de renta en la fecha límite estipulada. El depósito de garantía responderá exclusivamente por eventuales daños directos imputables o impagos de servicios, siendo restituido íntegramente en el plazo acordado tras la entrega formal de la habitación.`
-            : `The tenant agrees to pay rent on or before the due date. The security deposit guarantees against unpaid utilities or property damage caused by negligence, refundable within the specified window following move-out.`
+            ? `El Arrendatario se obliga a pagar al Arrendador la suma estipulada por concepto de canon mensual de arrendamiento, en la fecha límite acordada. El incumplimiento o mora en el pago autorizará la aplicación del recargo por morosidad señalado conforme a las leyes vigentes.`
+            : `The Tenant agrees to pay the Lessor the stipulated monthly rent on or before the due date. Failure to pay on time will incur the late fee specified above in accordance with applicable laws.`
           }
-        </p>
+        </div>
       </div>
 
-      <!-- Normas de Convivencia Co-Living -->
-      <div class="section-heading">VI. ${isEs ? 'NORMAS DE CO-LIVING Y USO DE ÁREAS COMUNES' : 'CO-LIVING HOUSE RULES & SHARED SPACES'}</div>
-      <div class="rules-grid">
-        ${cohabitationList.map(item => `
-          <div class="rule-card">
-            <div class="rule-header">${item.tag}</div>
-            <div class="rule-desc">${item.val}</div>
-          </div>
-        `).join('')}
-      </div>
-
-      <div class="card-box">
-        <p class="apa-text" style="margin-bottom:0;">
-          <strong>${isEs ? 'CLÁUSULA SEGUNDA (CONVIVENCIA Y SILENCIO):' : 'CLAUSE 2 (CO-LIVING HARMONY):'}</strong>
+      <div style="${fontStack} margin-bottom: 8px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+          ${isEs ? 'CLÁUSULA SEGUNDA: DEPÓSITO DE GARANTÍA Y CONSERVACIÓN' : 'CLAUSE 2: SECURITY DEPOSIT & REFUND'}
+        </div>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
           ${isEs
-            ? `Las partes se comprometen a preservar la limpieza y el orden en áreas compartidas (cocina, baños y salas). Se respetará estrictamente el horario de descanso fijado para asegurar la tranquilidad y descanso de todos los habitantes.`
-            : `Occupants agree to maintain cleanliness in common areas (kitchen, bathrooms, living room) and strictly observe quiet hours during designated night periods.`
+            ? `El depósito de garantía responderá exclusivamente por eventuales daños imputables al Arrendatario o facturas de servicios pendientes de pago. Dicho monto será devuelto íntegramente dentro del plazo legal tras la restitución formal del inmueble en óptimas condiciones.`
+            : `The security deposit serves as guarantee for unpaid utilities or property damages beyond normal wear and tear, and will be refunded within the statutory timeframe following move-out.`
           }
-        </p>
+        </div>
       </div>
 
-      <div class="page-footer-bar">
-        <span>RoommateFinder Legal &bull; <span class="footer-accent">${legalFramework.countryName[isEs ? 'es' : 'en']}</span></span>
-        <span>${isEs ? 'Página 2 de 3' : 'Page 2 of 3'}</span>
+      <div style="${fontStack} margin-bottom: 8px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+          ${isEs ? 'CLÁUSULA TERCERA: OBLIGACIONES Y DERECHOS DEL ARRENDADOR' : 'CLAUSE 3: LANDLORD OBLIGATIONS'}
+        </div>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
+          ${isEs
+            ? `El Arrendador se compromete a garantizar al Arrendatario el uso pacífico del inmueble durante la vigencia del contrato, realizar las reparaciones estructurales necesarias no imputables al mal uso, y respetar el derecho de privacidad de los ocupantes.`
+            : `The Lessor commits to maintaining the quiet enjoyment of the property, executing necessary structural repairs not caused by tenant negligence, and respecting tenant privacy.`
+          }
+        </div>
       </div>
+
+      <div style="${fontStack} margin-bottom: 8px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 2px;">
+          ${isEs ? 'CLÁUSULA CUARTA: OBLIGACIONES Y DERECHOS DEL ARRENDATARIO' : 'CLAUSE 4: TENANT OBLIGATIONS'}
+        </div>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
+          ${isEs
+            ? `El Arrendatario destinará el inmueble exclusivamente para uso residencial habitacional y co-living. Queda expresamente prohibido modificar la estructura de la propiedad, almacenar sustancias peligrosas o realizar actividades ilícitas.`
+            : `The Tenant shall use the property exclusively for residential co-living purposes. Modifying property structures, storing hazardous materials, or illegal activities are strictly prohibited.`
+          }
+        </div>
+      </div>
+
+      <div style="${fontStack} margin-bottom: 8px;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 4px;">
+          ${isEs ? 'CLÁUSULA QUINTA: REGLAMENTO INTERNO Y NORMAS DE CO-LIVING' : 'CLAUSE 5: CO-LIVING HOUSE RULES'}
+        </div>
+        <table width="100%" cellpadding="5" cellspacing="0" style="${fontStack} width: 100%; border-collapse: collapse; font-size: 9.5px;">
+          ${cohabitationList.map(item => `
+            <tr>
+              <td width="35%" style="${fontStack} border: 1px solid #e2e8f0; font-weight: bold; color: #059669; background-color: #f8fafc; padding: 4px 8px; text-transform: uppercase;">
+                ${item.label}:
+              </td>
+              <td width="65%" style="${fontStack} border: 1px solid #e2e8f0; color: #0f172a; padding: 4px 8px;">
+                ${item.val}
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+
     </div>
 
-    <!-- ================= PÁGINA 3 DE 3 ================= -->
-    <div class="page">
-      <div class="hero-header">
-        <div class="brand-group">
-          <div class="brand-title">Roommate<span class="brand-green">Finder</span></div>
-          <div class="brand-sub">${isEs ? 'Cláusulas Legales, Firmas y Auditoría Digital' : 'Legal Clauses, Signatures & Digital Audit'}</div>
-        </div>
-        <div class="header-right">
-          <div class="ref-tag">HASH ID: ${contractHash.slice(0, 10)}</div>
-          <div class="status-pill">${statusStr}</div>
-        </div>
+    <!-- PIE DE PÁGINA 2 -->
+    <div style="${fontStack} padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+      <span>RoommateFinder Legal Platform &bull; <strong style="color: #059669;">${legalFramework.countryName[isEs ? 'es' : 'en']}</strong></span>
+      <span><strong>${isEs ? 'Página 2 de 3' : 'Page 2 of 3'}</strong></span>
+    </div>
+  </div>
+
+  <!-- ============================================================================ -->
+  <!-- PÁGINA 3 DE 3: DISPOSICIONES ESPECIALES, FIRMAS Y AUDITORÍA SHA-256 -->
+  <!-- ============================================================================ -->
+  <div class="pdf-page" style="${fontStack} width: 794px; height: 1050px; min-height: 1050px; max-height: 1050px; padding: 28px 40px 28px 40px; background-color: #ffffff; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+    <div style="${fontStack}">
+      
+      <!-- RUNNING HEADER -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="${fontStack} width: 100%; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 14px;">
+        <tr>
+          <td style="${fontStack} font-size: 9.5px; color: #64748b;">
+            <strong style="color: #0f172a;">Roommate<span style="color: #059669;">Finder</span></strong> &bull; ${isEs ? 'Contrato de Arrendamiento' : 'Lease Agreement'}
+          </td>
+          <td align="right" style="${fontStack} font-size: 9.5px; color: #64748b; font-weight: bold;">
+            FOLIO: ${shortId}
+          </td>
+        </tr>
+      </table>
+
+      <!-- 4. DISPOSICIONES ESPECIALES Y RESCISIÓN -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 10px;">
+        ${isEs ? '4. DISPOSICIONES ESPECIALES Y RESCISIÓN' : '4. SPECIAL PROVISIONS & TERMINATION'}
       </div>
 
-      <!-- Cláusulas Legales Especiales -->
-      <div class="section-heading">VII. ${isEs ? 'EXENCIÓN POR DESGASTE NATURAL Y PREAVISO LEGAL' : 'LEGAL NOTICE & NORMAL WEAR & TEAR'}</div>
-      <div class="card-box">
-        <p class="apa-text">
-          <strong>${isEs ? 'CLÁUSULA TERCERA (DESGASTE NATURAL):' : 'CLAUSE 3 (NORMAL WEAR & TEAR):'}</strong>
-          ${isEs 
-            ? `Se exonera expresamente a la parte inquilina de responsabilidad por el deterioro ordinario resultante del uso legítimo y cotidiano del inmueble (${legalFramework.wearAndTearArticle.es}). Los daños originados por mal uso o negligencia grave serán asumidos por la parte responsable.`
-            : `The tenant is exempted from liability for normal wear and tear from ordinary use (${legalFramework.wearAndTearArticle.en}). Damages caused by gross negligence shall be indemnified by the responsible party.`
-          }
-        </p>
-        <p class="apa-text" style="margin-bottom:0;">
-          <strong>${isEs ? 'CLÁUSULA CUARTA (PREAVISO Y JURISDICCIÓN):' : 'CLAUSE 4 (NOTICE & JURISDICTION):'}</strong>
+      <div style="${fontStack} margin-bottom: 10px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 3px;">
+          ${isEs ? 'CLÁUSULA SEXTA: EXENCIÓN POR DESGASTE NATURAL' : 'CLAUSE 6: NORMAL WEAR & TEAR EXEMPTION'}
+        </div>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
           ${isEs
-            ? `La terminación anticipada del contrato requerirá una notificación escrita con al menos 30 días de anticipación. Cualquier discrepancia se someterá a mediación de buena fe y a la jurisdicción de los <strong>${legalFramework.disputeJurisdiction.es}</strong>.`
-            : `Early termination requires 30 days prior written notice. Disputes shall be submitted to mediation and to the <strong>${legalFramework.disputeJurisdiction.en}</strong>.`
+            ? `Se exonera expresamente al Arrendatario de responsabilidad por el deterioro ordinario resultante del uso legítimo y cotidiano de la vivienda (${legalFramework.wearAndTearArticle.es}). Únicamente los daños originados por mal uso o negligencia grave serán deducibles del depósito.`
+            : `The Tenant is exempted from liability for normal wear and tear resulting from ordinary domestic use (${legalFramework.wearAndTearArticle.en}). Only damages caused by gross negligence shall be indemnified.`
           }
-        </p>
+        </div>
       </div>
 
-      ${customClausesBadges ? `
-        <div class="section-heading">VIII. ${isEs ? 'CLÁUSULAS ADICIONALES ACORDADAS' : 'ADDITIONAL AGREED CLAUSES'}</div>
-        <div class="card-box">
-          <div class="custom-chips-wrap">
-            ${customClausesBadges}
+      <div style="${fontStack} margin-bottom: 10px; text-align: justify;">
+        <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 3px;">
+          ${isEs ? 'CLÁUSULA SÉPTIMA: PREAVISO, TERMINACIÓN ANTICIPADA Y JURISDICCIÓN' : 'CLAUSE 7: NOTICE, TERMINATION & JURISDICTION'}
+        </div>
+        <div style="${fontStack} font-size: 10.5px; line-height: 1.45; color: #334155;">
+          ${isEs
+            ? `Cualquiera de las partes podrá dar por terminado anticipadamente este contrato notificando por escrito con al menos 30 días de anticipación. Toda discrepancia derivada del presente instrumento se someterá a mediación de buena fe y a la jurisdicción de los <strong>${legalFramework.disputeJurisdiction.es}</strong>.`
+            : `Either party may terminate this agreement early by providing written notice at least 30 days in advance. Disputes shall be submitted to mediation and to the <strong>${legalFramework.disputeJurisdiction.en}</strong>.`
+          }
+        </div>
+      </div>
+
+      ${customClausesList.length > 0 ? `
+        <div style="${fontStack} margin-bottom: 12px;">
+          <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 4px;">
+            ${isEs ? 'CLÁUSULAS ADICIONALES SELECCIONADAS' : 'ADDITIONAL AGREED CLAUSES'}
+          </div>
+          <div style="${fontStack}">
+            ${customClausesList.map(label => `
+              <span style="${fontStack} background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #334155; font-size: 9.5px; font-weight: bold; padding: 3px 8px; border-radius: 12px; display: inline-block; margin-right: 5px; margin-bottom: 4px;">
+                &check; ${label}
+              </span>
+            `).join('')}
           </div>
         </div>
       ` : ''}
 
-      <!-- Cuadro de Firmas (3 Columnas) -->
-      <div class="section-heading">IX. ${isEs ? 'ACEPTACIÓN Y FIRMAS ELECTRÓNICAS VERIFICADAS' : 'ACCEPTANCE & VERIFIED DIGITAL SIGNATURES'}</div>
-      <div class="signatures-row">
-        <div class="signature-card">
-          <div>
-            <div class="sig-role-title">${isEs ? 'ARRENDADOR / PROPIETARIO' : 'LESSOR / LANDLORD'}</div>
-            <div class="sig-person-name">${initiatorName}</div>
-          </div>
-          <div>
-            <div class="sig-line-bar"></div>
-            <div class="sig-verified-pill">&check; ${isEs ? 'FIRMA VERIFICADA' : 'VERIFIED'} &bull; ${effectiveDate}</div>
-          </div>
-        </div>
+      <!-- FIRMAS DE LAS PARTES -->
+      <div style="${fontStack} font-size: 11.5px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 4px; border-bottom: 2px solid #059669; margin-bottom: 8px;">
+        ${isEs ? 'FIRMAS DE LAS PARTES Y ACEPTACIÓN LEGAL' : 'PARTIES SIGNATURES & LEGAL ACCEPTANCE'}
+      </div>
 
-        <div class="signature-card">
-          <div>
-            <div class="sig-role-title">${isEs ? 'INQUILINO / ROOMMATE' : 'TENANT / ROOMMATE'}</div>
-            <div class="sig-person-name">${counterpartyName}</div>
-          </div>
-          <div>
-            <div class="sig-line-bar"></div>
-            <div class="sig-verified-pill">&check; ${isEs ? 'FIRMA VERIFICADA' : 'VERIFIED'} &bull; ${effectiveDate}</div>
-          </div>
-        </div>
+      <div style="${fontStack} font-size: 10.5px; color: #334155; margin-bottom: 10px;">
+        ${isEs
+          ? `Las partes expresan su entera conformidad con todas las condiciones y cláusulas del presente contrato, firmando a continuación electrónicamente con plena validez jurídica de acuerdo a la legislación aplicable.`
+          : `The parties express full agreement with all terms and clauses of this agreement, executing digital signatures below with full legal force.`
+        }
+      </div>
 
-        <div class="signature-card">
-          <div>
-            <div class="sig-role-title">${isEs ? 'CERTIFICACIÓN PLATAFORMA' : 'PLATFORM WITNESS'}</div>
-            <div class="sig-person-name">RoommateFinder</div>
-          </div>
-          <div>
-            <div class="sig-line-bar"></div>
-            <div class="sig-verified-pill" style="color: #0284c7; background: #f0f9ff; border-color: #bae6fd;">AUDIT SEAL</div>
-          </div>
+      <!-- TABLA DE 3 COLUMNAS PARA FIRMAS -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="${fontStack} width: 100%; border-collapse: separate; border-spacing: 8px 0; margin-bottom: 16px; margin-left: -8px; margin-right: -8px;">
+        <tr>
+          <!-- FIRMA ARRENDADOR -->
+          <td width="33.3%" style="${fontStack} width: 33.3%; vertical-align: top; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 6px; text-align: center;">
+            <div style="${fontStack} font-size: 8.5px; font-weight: bold; color: #059669; text-transform: uppercase;">
+              ${isEs ? 'ARRENDADOR' : 'LESSOR'}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; margin-top: 3px;">
+              ${initiatorName}
+            </div>
+            <div style="border-bottom: 1.5px solid #94a3b8; margin: 14px 6px 5px 6px;"></div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569;">
+              ${isEs ? 'Firma:' : 'Signature:'} ________________
+            </div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569; margin-top: 2px;">
+              ${isEs ? 'Fecha:' : 'Date:'} ${effectiveDate}
+            </div>
+            <div style="margin-top: 6px;">
+              <span style="${fontStack} font-size: 8.5px; font-weight: bold; color: #059669; background-color: #d1fae5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 10px; display: inline-block;">
+                &check; ${isEs ? 'FIRMA VERIFICADA' : 'VERIFIED'}
+              </span>
+            </div>
+          </td>
+
+          <!-- FIRMA ARRENDATARIO -->
+          <td width="33.3%" style="${fontStack} width: 33.3%; vertical-align: top; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 6px; text-align: center;">
+            <div style="${fontStack} font-size: 8.5px; font-weight: bold; color: #059669; text-transform: uppercase;">
+              ${isEs ? 'ARRENDATARIO' : 'TENANT'}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; margin-top: 3px;">
+              ${counterpartyName}
+            </div>
+            <div style="border-bottom: 1.5px solid #94a3b8; margin: 14px 6px 5px 6px;"></div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569;">
+              ${isEs ? 'Firma:' : 'Signature:'} ________________
+            </div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569; margin-top: 2px;">
+              ${isEs ? 'Fecha:' : 'Date:'} ${effectiveDate}
+            </div>
+            <div style="margin-top: 6px;">
+              <span style="${fontStack} font-size: 8.5px; font-weight: bold; color: #059669; background-color: #d1fae5; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 10px; display: inline-block;">
+                &check; ${isEs ? 'FIRMA VERIFICADA' : 'VERIFIED'}
+              </span>
+            </div>
+          </td>
+
+          <!-- FIRMA CERTIFICACIÓN PLATAFORMA -->
+          <td width="33.3%" style="${fontStack} width: 33.3%; vertical-align: top; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 6px; text-align: center;">
+            <div style="${fontStack} font-size: 8.5px; font-weight: bold; color: #059669; text-transform: uppercase;">
+              ${isEs ? 'CERTIFICACIÓN PLATAFORMA' : 'PLATFORM WITNESS'}
+            </div>
+            <div style="${fontStack} font-size: 10.5px; font-weight: bold; color: #0f172a; margin-top: 3px;">
+              RoommateFinder
+            </div>
+            <div style="border-bottom: 1.5px solid #94a3b8; margin: 14px 6px 5px 6px;"></div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569;">
+              ${isEs ? 'Firma:' : 'Signature:'} <i>Legal Seal</i>
+            </div>
+            <div style="${fontStack} font-size: 9.5px; color: #475569; margin-top: 2px;">
+              ${isEs ? 'Fecha:' : 'Date:'} ${generationDate}
+            </div>
+            <div style="margin-top: 6px;">
+              <span style="${fontStack} font-size: 8.5px; font-weight: bold; color: #0369a1; background-color: #e0f2fe; border: 1px solid #bae6fd; padding: 2px 6px; border-radius: 10px; display: inline-block;">
+                AUDIT SEAL
+              </span>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- SELLO DE AUDITORÍA CRIPTOGRÁFICA SHA-256 -->
+      <div style="${fontStack} border: 1px solid #cbd5e1; background-color: #f1f5f9; border-radius: 6px; padding: 8px 12px; text-align: center;">
+        <div style="${fontStack} font-size: 8.5px; font-weight: bold; color: #0f172a; text-transform: uppercase;">
+          ${isEs ? 'CERTIFICADO DIGITAL DE INTEGRIDAD Y AUDITORÍA SHA-256' : 'DIGITAL INTEGRITY & AUDIT CERTIFICATE SHA-256'}
+        </div>
+        <div style="${fontStack} font-family: monospace; font-size: 8.5px; color: #059669; font-weight: bold; margin-top: 2px; word-break: break-all;">
+          ${contractHash}${contractHash.split('').reverse().join('')}
+        </div>
+        <div style="${fontStack} font-size: 8.5px; color: #64748b; margin-top: 2px;">
+          ${isEs ? 'Documento electrónico con plena eficacia y validez jurídica conforme a la ley' : 'Electronic document with legal force under law'} ${legalFramework.digitalSignatureLaw[isEs ? 'es' : 'en']}
         </div>
       </div>
 
-      <!-- Sello de Auditoría Criptográfica -->
-      <div class="audit-card">
-        <div class="audit-title">${isEs ? 'CERTIFICADO DE AUDITORÍA Y VALIDEZ DIGITAL (SHA-256)' : 'DIGITAL AUDIT CERTIFICATE (SHA-256)'}</div>
-        <div class="audit-hash">${contractHash}${contractHash.split('').reverse().join('')}</div>
-        <div class="audit-law">${isEs ? 'Documento electrónico con validez jurídica formal conforme a la ley' : 'Electronic document with legal force under law'} ${legalFramework.digitalSignatureLaw[isEs ? 'es' : 'en']}</div>
-      </div>
-
-      <div class="page-footer-bar">
-        <span>RoommateFinder Legal &bull; <span class="footer-accent">${legalFramework.countryName[isEs ? 'es' : 'en']}</span></span>
-        <span>${isEs ? 'Página 3 de 3' : 'Page 3 of 3'}</span>
-      </div>
     </div>
 
-  </body>
-  </html>
-  `;
+    <!-- PIE DE PÁGINA 3 -->
+    <div style="${fontStack} padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9.5px; color: #64748b; display: flex; justify-content: space-between; align-items: center;">
+      <span>RoommateFinder Legal Platform &bull; <strong style="color: #059669;">${legalFramework.countryName[isEs ? 'es' : 'en']}</strong></span>
+      <span><strong>${isEs ? 'Página 3 de 3' : 'Page 3 of 3'}</strong></span>
+    </div>
+  </div>
+
+</body>
+</html>`;
 }
